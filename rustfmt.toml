@@ -1,0 +1,12 @@
+unstable_features = true
+
+
+# condense_wildcard_suffixes = true
+format_code_in_doc_comments = true
+newline_style = "Unix"
+normalize_comments = true
+normalize_doc_attributes = true
+reorder_impl_items = true
+use_field_init_shorthand = true
+use_try_shorthand = true
+max_width = 80
