@@ -22,12 +22,17 @@ mod view;
 use event_handler::{Event, Result};
 
 fn main() -> Result<()> {
-    stdout().execute(EnterAlternateScreen)?;
-    enable_raw_mode()?;
+    // stdout().execute(EnterAlternateScreen)?;
+    // enable_raw_mode()?;
     let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
-    terminal.clear()?;
+    // terminal.clear()?;
 
     let mut model = model::Model::new().expect("Failed to init.");
+    println!("{:?}",
+             model.conn.list_group_2(("albumartistsort".into(), "albumartist".into()))?);
+
+    panic!("test");
+
     let event_handler = event_handler::EventHandler::new();
     while model.state != model::State::Done {
         terminal.draw(|f| view::view(&model, f))?;

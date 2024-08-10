@@ -1,0 +1,3 @@
+[submodule "rust-mpd"]
+	path = rust-mpd
+	url = https://github.com/eshrh/rust-mpd
