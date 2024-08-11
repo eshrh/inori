@@ -1,7 +1,12 @@
+use super::build_library;
 use crate::event_handler::Result;
 use crate::model::*;
 
 pub fn update_library(model: &mut Model) -> Result<()> {
+    if model.library.contents.is_empty() {
+        build_library::build_library(model)?;
+    }
+
     Ok(())
 }
 

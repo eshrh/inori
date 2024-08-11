@@ -1,5 +1,5 @@
 use crate::event_handler::Result;
-use crate::model::{Album, Artist, Model, Screen, State};
+use crate::model::{AlbumData, ArtistData, Model, Screen, State};
 use crate::util::{safe_decrement, safe_increment};
 use ratatui::crossterm::event::{self, KeyCode, KeyEvent, KeyEventKind};
 use std::option::Option;
@@ -36,8 +36,10 @@ pub enum Message {
     Enter,
     Quit,
     Switch(SwitchTo),
+    Delete
 }
 
+mod build_library;
 mod handlers;
 mod updaters;
 
@@ -66,10 +68,12 @@ fn parse_msg(key: event::KeyEvent) -> Option<Message> {
             Some(Message::Direction(Dirs::Horiz(Horizontal::Right)))
         }
         KeyCode::Char('q') => Some(Message::Quit),
+        KeyCode::Char('p') => Some(Message::PlayPause),
         KeyCode::Char('1') => Some(Message::Switch(SwitchTo::Library)),
         KeyCode::Char('2') => Some(Message::Switch(SwitchTo::Queue)),
         KeyCode::Char('3') => Some(Message::Switch(SwitchTo::Playlist)),
         KeyCode::Enter => Some(Message::Enter),
+        KeyCode::Backspace => Some(Message::Delete),
         _ => None,
     }
 }
@@ -85,6 +89,7 @@ pub fn handle_event(model: &mut Model, k: KeyEvent) -> Result<()> {
         Some(Message::Switch(SwitchTo::Playlist)) => {
             model.screen = Screen::Playlist
         }
+        Some(Message::PlayPause) => model.conn.toggle_pause()?,
         Some(other) => match model.screen {
             Screen::Library => handlers::handle_library(model, other)?,
             Screen::Queue => handlers::handle_queue(model, other)?,

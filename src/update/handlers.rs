@@ -42,6 +42,12 @@ pub fn handle_queue(model: &mut Model, msg: Message) -> Result<()> {
                 model.conn.swap(sel as u32, to as u32)?;
                 model.queue.selection = Some(to);
             }
+        },
+        Message::Delete => {
+            match model.queue.selection {
+                Some(p) => model.conn.delete(p as u32)?,
+                _ => ()
+            }
         }
         _ => (),
     }
