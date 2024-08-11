@@ -12,15 +12,10 @@ pub fn update_library(model: &mut Model) -> Result<()> {
     {
         model.library.set_artist_selected(Some(5));
     }
-    if model.library.artist_selected_pos().is_some()
-        && !model.library.artist_selected().unwrap().fetched
-    {
-        let artist_selected = model.library.artist_selected_name().unwrap().clone();
-        let (names, data) = build_library::get_tracks(model, &artist_selected)?.unwrap();
-
-        model.library.artist_selected_mut().unwrap().albums = names;
-        model.library.artist_selected_mut().unwrap().contents = Some(data);
-        model.library.artist_selected_mut().unwrap().fetched = true;
+    if let Some(pos) = model.library.artist_selected_pos() {
+        if !model.library.artist_selected().unwrap().fetched {
+            build_library::add_tracks(model, pos)?;
+        }
     }
     Ok(())
 }

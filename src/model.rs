@@ -26,6 +26,7 @@ pub struct AlbumData {
 }
 
 pub struct ArtistData {
+    pub name: String,
     pub fetched: bool,
     pub sort_names: Vec<String>,
     pub albums: Vec<String>,
@@ -33,8 +34,7 @@ pub struct ArtistData {
 }
 
 pub struct LibraryState {
-    pub artists: Vec<String>,
-    pub contents: HashMap<String, ArtistData>,
+    pub contents: Vec<ArtistData>,
     pub artist_state: ListState,
     pub song_state: ListState,
 }
@@ -72,8 +72,7 @@ impl Model {
             conn,
             screen: Screen::Queue,
             library: LibraryState {
-                artists: Vec::new(),
-                contents: HashMap::new(),
+                contents: Vec::new(),
                 artist_state: ListState::default(),
                 song_state: ListState::default(),
             },

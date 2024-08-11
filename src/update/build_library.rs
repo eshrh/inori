@@ -10,42 +10,27 @@ pub fn build_library(model: &mut Model) -> Result<()> {
         .conn
         .list_group_2(("albumartistsort".into(), "albumartist".into()))?;
 
-    for chunk in artists.chunk_by(|a, _b| a.0 == "AlbumArtist") {
-        // println!("{:?}", chunk);
+    for chunk in artists.chunk_by(|_a, b| b.0 == "AlbumArtistSort") {
         let albumartist = chunk[0].1.clone();
-        if !model.library.contents.contains_key(&albumartist) {
-            model.library.contents.insert(
-                albumartist.clone(),
-                ArtistData {
-                    fetched: false,
-                    albums: vec![],
-                    sort_names: vec![],
-                    contents: None,
-                },
-            );
-        }
 
-        for sort_name in chunk.iter().skip(1) {
-            model
-                .library
-                .contents
-                .get_mut(&albumartist)
-                .unwrap()
-                .sort_names
-                .push(sort_name.1.clone());
-        }
+        model.library.contents.push(ArtistData {
+            name: albumartist.clone(),
+            fetched: false,
+            albums: vec![],
+            sort_names: chunk.iter().skip(1).map(|i| i.1.clone()).collect(),
+            contents: None,
+        });
     }
-    model.library.artists = model.library.contents.keys().cloned().collect();
-    model.library.artists.sort();
+    model.library.contents.sort_by(|a, b| a.name.cmp(&b.name));
     Ok(())
 }
 
-pub fn get_tracks(
-    model: &mut Model,
-    artist_name: &String,
-) -> Result<Option<(Vec<String>, HashMap<String, AlbumData>)>> {
+pub fn add_tracks(model: &mut Model, artist_id: usize) -> Result<()> {
     let song_data = model.conn.find(
-        Query::new().and(Term::Tag(Borrowed("AlbumArtist")), artist_name),
+        Query::new().and(
+            Term::Tag(Borrowed("AlbumArtist")),
+            model.library.contents.get(artist_id).unwrap().name.clone(),
+        ),
         None,
     )?;
     let mut albums: HashMap<String, AlbumData> = HashMap::new();
@@ -62,5 +47,9 @@ pub fn get_tracks(
     let mut album_names: Vec<String> =
         albums.keys().into_iter().cloned().collect();
     album_names.sort();
-    Ok(Some((album_names, albums)))
+
+    model.library.artist_selected_mut().unwrap().albums = album_names;
+    model.library.artist_selected_mut().unwrap().contents = Some(albums);
+    model.library.artist_selected_mut().unwrap().fetched = true;
+    Ok(())
 }

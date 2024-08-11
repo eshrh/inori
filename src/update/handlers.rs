@@ -6,7 +6,7 @@ pub fn handle_library(model: &mut Model, msg: Message) -> Result<()> {
     match msg {
         Message::Direction(Dirs::Vert(d)) => {
             let sel = model.library.artist_state.selected();
-            let len = model.library.artists.len();
+            let len = model.library.contents.len();
             if sel.is_some() {
                 model.library.set_artist_selected(match d {
                     Vertical::Up => Some(safe_decrement(sel.unwrap(), len)),

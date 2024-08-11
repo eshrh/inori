@@ -4,7 +4,12 @@ use ratatui::widgets::*;
 use std::time::Duration;
 
 pub fn get_artist_list<'a>(model: &Model) -> List<'a> {
-    let artists: Vec<String> = model.library.artists.iter().cloned().collect();
+    let artists: Vec<String> = model
+        .library
+        .contents
+        .iter()
+        .map(|artist| artist.name.clone())
+        .collect();
     List::new(artists).highlight_style(Style::default().fg(Color::Red))
 }
 
@@ -13,7 +18,7 @@ pub fn get_track_data<'a>(model: &mut Model) -> List<'a> {
         Some(a) => a.albums.clone(),
         None => vec![],
     };
-    List::new(albums)
+    List::new(albums).block(Block::bordered())
 }
 
 pub fn render(model: &mut Model, frame: &mut Frame) {
