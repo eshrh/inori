@@ -12,7 +12,7 @@ pub fn make_progress_bar<'a>(ratio: f64) -> LineGauge<'a> {
     return progress_bar;
 }
 
-pub fn make_queue<'a>(model: &Model) -> (Table<'a>, TableState) {
+pub fn make_queue<'a>(model: &mut Model) -> Table<'a> {
     let rows: Vec<Row> = model
         .queue
         .contents
@@ -33,22 +33,17 @@ pub fn make_queue<'a>(model: &Model) -> (Table<'a>, TableState) {
     let table = Table::new(rows, vec![30, 30, 30])
         .highlight_style(Style::default().fg(Color::Red));
 
-    (
-        table,
-        TableState::new()
-            .with_offset(model.queue.offset)
-            .with_selected(model.queue.selection),
-    )
+    table
 }
 
-pub fn render(model: &Model, frame: &mut Frame) {
+pub fn render(model: &mut Model, frame: &mut Frame) {
     let layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints(vec![Constraint::Min(1), Constraint::Max(3)])
         .split(frame.size());
 
-    let (table, mut table_state) = make_queue(model);
-    frame.render_stateful_widget(table, layout[0], &mut table_state);
+    let table = make_queue(model);
+    frame.render_stateful_widget(table, layout[0], &mut model.queue.state);
 
     let ratio: f64 = match (model.status.elapsed, model.status.duration) {
         (Some(e), Some(t)) => e.as_secs_f64() / t.as_secs_f64(),

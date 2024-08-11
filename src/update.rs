@@ -36,7 +36,7 @@ pub enum Message {
     Enter,
     Quit,
     Switch(SwitchTo),
-    Delete
+    Delete,
 }
 
 mod build_library;

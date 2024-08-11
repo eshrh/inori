@@ -30,11 +30,11 @@ fn main() -> Result<()> {
     let mut model = model::Model::new().expect("Failed to init.");
     let event_handler = event_handler::EventHandler::new();
     while model.state != model::State::Done {
-        terminal.draw(|f| view::view(&model, f))?;
         match event_handler.next()? {
             Event::Tick => update::update_tick(&mut model)?,
             Event::Key(k) => update::handle_event(&mut model, k)?,
         }
+        terminal.draw(|f| view::view(&mut model, f))?;
     }
 
     stdout().execute(LeaveAlternateScreen)?;

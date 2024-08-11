@@ -2,9 +2,10 @@ extern crate mpd;
 use mpd::error::Result;
 use mpd::{Client, Song, Status};
 use ratatui::widgets::*;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::env;
 
+mod impl_library;
 mod impl_queue;
 
 #[derive(Clone)]
@@ -25,18 +26,22 @@ pub struct AlbumData {
 }
 
 pub struct ArtistData {
+    pub fetched: bool,
     pub sort_names: Vec<String>,
-    pub contents: Option<BTreeMap<String, AlbumData>>,
+    pub albums: Vec<String>,
+    pub contents: Option<HashMap<String, AlbumData>>,
 }
 
 pub struct LibraryState {
-    pub contents: BTreeMap<String, ArtistData>,
+    pub artists: Vec<String>,
+    pub contents: HashMap<String, ArtistData>,
+    pub artist_state: ListState,
+    pub song_state: ListState,
 }
 
 pub struct QueueState {
     pub contents: Vec<Song>,
-    pub offset: usize,
-    pub selection: Option<usize>,
+    pub state: TableState,
 }
 
 pub struct PlaylistState;
@@ -67,13 +72,14 @@ impl Model {
             conn,
             screen: Screen::Queue,
             library: LibraryState {
-                contents: BTreeMap::new(),
-
+                artists: Vec::new(),
+                contents: HashMap::new(),
+                artist_state: ListState::default(),
+                song_state: ListState::default(),
             },
             queue: QueueState {
-                contents: vec![],
-                offset: 0,
-                selection: None,
+                contents: Vec::new(),
+                state: TableState::default(),
             },
             playlist: PlaylistState,
         })

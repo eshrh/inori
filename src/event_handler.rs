@@ -19,11 +19,12 @@ impl EventHandler {
         let poll_time = Duration::from_millis(250);
         let tick_interval = Duration::from_millis(50);
         let (tx, rx) = std::sync::mpsc::channel();
+        let mut now = Instant::now();
         std::thread::spawn(move || loop {
-            let mut now = Instant::now();
             if crossterm::event::poll(poll_time).expect("event poll failed") {
                 match crossterm::event::read().expect("event read failed") {
                     crossterm::event::Event::Key(e) => tx.send(Event::Key(e)),
+                    crossterm::event::Event::Resize(_, _) => Ok(()),
                     _ => unimplemented!(),
                 }
                 .expect("event send failed")
@@ -33,7 +34,6 @@ impl EventHandler {
                 now = Instant::now();
             }
         });
-
         EventHandler { rx }
     }
 
