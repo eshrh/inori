@@ -1,18 +1,23 @@
 use super::*;
 use crate::event_handler::Result;
 use crate::model::*;
+use ratatui::widgets::{ListState, StatefulWidget, TableState};
+use selector_state::Selector;
+
+pub fn handle_vertical<T>(msg: Vertical, selector: &mut impl Selector<T>) {
+    match selector.selected() {
+        None => {}
+        Some(sel) => selector.set_selected(match msg {
+            Vertical::Up => Some(safe_decrement(sel, selector.len())),
+            Vertical::Down => Some(safe_increment(sel, selector.len())),
+        }),
+    }
+}
 
 pub fn handle_library(model: &mut Model, msg: Message) -> Result<()> {
     match msg {
         Message::Direction(Dirs::Vert(d)) => {
-            let sel = model.library.artist_state.selected();
-            let len = model.library.contents.len();
-            if sel.is_some() {
-                model.library.set_artist_selected(match d {
-                    Vertical::Up => Some(safe_decrement(sel.unwrap(), len)),
-                    Vertical::Down => Some(safe_increment(sel.unwrap(), len)),
-                })
-            }
+            handle_vertical(d, &mut model.library)
         }
         _ => {}
     }
@@ -37,7 +42,7 @@ pub fn handle_queue(model: &mut Model, msg: Message) -> Result<()> {
                 })
             }
         }
-        Message::Enter => match model.queue.get_sel_song() {
+        Message::Enter => match model.queue.selected_item() {
             Some(s) => {
                 model
                     .conn

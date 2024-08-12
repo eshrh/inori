@@ -1,7 +1,7 @@
+use crate::model::selector_state::Selector;
 use crate::model::*;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
-use std::time::Duration;
 
 pub fn get_artist_list<'a>(model: &Model) -> List<'a> {
     let artists: Vec<String> = model
@@ -14,8 +14,8 @@ pub fn get_artist_list<'a>(model: &Model) -> List<'a> {
 }
 
 pub fn get_track_data<'a>(model: &mut Model) -> List<'a> {
-    let albums = match model.library.artist_selected() {
-        Some(a) => a.albums.clone(),
+    let albums = match model.library.selected_item() {
+        Some(a) => a.albums.iter().map(|a| a.name.clone()).collect(),
         None => vec![],
     };
     List::new(albums).block(Block::bordered())
@@ -34,9 +34,5 @@ pub fn render(model: &mut Model, frame: &mut Frame) {
     );
 
     let list = get_track_data(model);
-    frame.render_stateful_widget(
-        list,
-        layout[1],
-        &mut model.library.song_state,
-    );
+    frame.render_widget(list, layout[1]);
 }

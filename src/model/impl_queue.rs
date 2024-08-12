@@ -1,22 +1,17 @@
+use super::selector_state::*;
 use super::*;
-use crate::event_handler::Result;
 
-impl QueueState {
-    pub fn set_selected(&mut self, val: Option<usize>) {
-        *self.state.selected_mut() = val;
+impl Selector<Song> for QueueState {
+    fn selector(&self) -> &impl SelectorState {
+        &self.state
     }
-
-    pub fn selected(&self) -> Option<usize> {
-        self.state.selected()
+    fn selector_mut(&mut self) -> &mut impl SelectorState {
+        &mut self.state
     }
-
-    pub fn get_sel_song(&self) -> Option<&Song> {
-        match self.state.selected() {
-            Some(i) => Some(&self.contents[i]),
-            None => None,
-        }
+    fn contents(&self) -> &Vec<Song> {
+        &self.contents
     }
-    pub fn len(&self) -> usize {
-        self.contents.len()
+    fn contents_mut(&mut self) -> &mut Vec<Song> {
+        &mut self.contents
     }
 }

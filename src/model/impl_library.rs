@@ -1,24 +1,17 @@
+use super::selector_state::*;
 use super::{ArtistData, LibraryState};
 
-impl LibraryState {
-    pub fn artist_selected_pos(&self) -> Option<usize> {
-        self.artist_state.selected()
+impl Selector<ArtistData> for LibraryState {
+    fn selector(&self) -> &impl SelectorState {
+        &self.artist_state
     }
-
-    pub fn artist_selected_name(&self) -> Option<&String> {
-        Some(&self.contents[self.artist_selected_pos()?].name)
+    fn selector_mut(&mut self) -> &mut impl SelectorState {
+        &mut self.artist_state
     }
-
-    pub fn artist_selected(&self) -> Option<&ArtistData> {
-        Some(&self.contents[self.artist_selected_pos()?])
+    fn contents(&self) -> &Vec<ArtistData> {
+        &self.contents
     }
-
-    pub fn artist_selected_mut(&mut self) -> Option<&mut ArtistData> {
-        let pos = self.artist_selected_pos()?;
-        self.contents.get_mut(pos)
-    }
-
-    pub fn set_artist_selected(&mut self, val: Option<usize>) {
-        *self.artist_state.selected_mut() = val;
+    fn contents_mut(&mut self) -> &mut Vec<ArtistData> {
+        &mut self.contents
     }
 }
