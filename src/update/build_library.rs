@@ -3,6 +3,7 @@ use crate::event_handler::Result;
 use crate::model::selector_state::Selector;
 use crate::model::{AlbumData, ArtistData, Model};
 use mpd::{Query, Song, Term};
+use ratatui::widgets::ListState;
 use std::borrow::Cow::Borrowed;
 
 pub fn build_library(model: &mut Model) -> Result<()> {
@@ -18,6 +19,7 @@ pub fn build_library(model: &mut Model) -> Result<()> {
             fetched: false,
             albums: vec![],
             sort_names: chunk.iter().skip(1).map(|i| i.1.clone()).collect(),
+            track_sel_state: ListState::default()
         });
     }
     model.library.contents.sort_by(|a, b| a.name.cmp(&b.name));

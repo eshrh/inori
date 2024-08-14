@@ -30,14 +30,19 @@ pub struct ArtistData {
     pub fetched: bool,
     pub sort_names: Vec<String>,
     pub albums: Vec<AlbumData>,
+    pub sel_contents: Vec<>,
+    pub track_sel_state: ListState
 }
 
+pub enum LibActiveSelector {ArtistSelector, TrackSelector}
+
 pub struct LibraryState {
+    pub active: LibActiveSelector,
     pub contents: Vec<ArtistData>,
     pub artist_state: ListState,
 }
 
-pub struct QueueState {
+pub struct QueueSelector {
     pub contents: Vec<Song>,
     pub state: TableState,
 }
@@ -50,7 +55,7 @@ pub struct Model {
     pub conn: Client,
     pub screen: Screen,
     pub library: LibraryState,
-    pub queue: QueueState,
+    pub queue: QueueSelector,
     pub playlist: PlaylistState,
 }
 
@@ -70,10 +75,11 @@ impl Model {
             conn,
             screen: Screen::Queue,
             library: LibraryState {
+                active: LibActiveSelector::ArtistSelector,
                 contents: Vec::new(),
                 artist_state: ListState::default(),
             },
-            queue: QueueState {
+            queue: QueueSelector {
                 contents: Vec::new(),
                 state: TableState::default(),
             },

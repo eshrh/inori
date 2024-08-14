@@ -3,6 +3,9 @@ use crate::model::{AlbumData, ArtistData, Model, Screen, State};
 use crate::util::{safe_decrement, safe_increment};
 use ratatui::crossterm::event::{self, KeyCode, KeyEvent, KeyEventKind};
 use std::option::Option;
+mod build_library;
+mod handlers;
+mod updaters;
 
 #[derive(PartialEq, Eq)]
 pub enum SwitchTo {
@@ -37,11 +40,8 @@ pub enum Message {
     Quit,
     Switch(SwitchTo),
     Delete,
+    Tab,
 }
-
-mod build_library;
-mod handlers;
-mod updaters;
 
 pub fn update_tick(model: &mut Model) -> Result<()> {
     model.status = model.conn.status()?;
@@ -69,6 +69,7 @@ fn parse_msg(key: event::KeyEvent) -> Option<Message> {
         }
         KeyCode::Char('q') => Some(Message::Quit),
         KeyCode::Char('p') => Some(Message::PlayPause),
+        KeyCode::Tab => Some(Message::Tab),
         KeyCode::Char('1') => Some(Message::Switch(SwitchTo::Library)),
         KeyCode::Char('2') => Some(Message::Switch(SwitchTo::Queue)),
         KeyCode::Char('3') => Some(Message::Switch(SwitchTo::Playlist)),
@@ -91,11 +92,11 @@ pub fn handle_event(model: &mut Model, k: KeyEvent) -> Result<()> {
         }
         Some(Message::PlayPause) => model.conn.toggle_pause()?,
         Some(other) => match model.screen {
-            Screen::Library => handlers::handle_library(model, other)?,
+            Screen::Library => handlers::library_handler::handle_library(model, other)?,
             Screen::Queue => handlers::handle_queue(model, other)?,
             Screen::Playlist => handlers::handle_playlist(model, other)?,
         },
-        None => {}
+        None => ()
     }
     Ok(())
 }

@@ -4,24 +4,16 @@ use crate::model::*;
 use ratatui::widgets::{ListState, StatefulWidget, TableState};
 use selector_state::Selector;
 
+pub mod library_handler;
+
 pub fn handle_vertical<T>(msg: Vertical, selector: &mut impl Selector<T>) {
     match selector.selected() {
-        None => {}
+        None => (),
         Some(sel) => selector.set_selected(match msg {
             Vertical::Up => Some(safe_decrement(sel, selector.len())),
             Vertical::Down => Some(safe_increment(sel, selector.len())),
         }),
     }
-}
-
-pub fn handle_library(model: &mut Model, msg: Message) -> Result<()> {
-    match msg {
-        Message::Direction(Dirs::Vert(d)) => {
-            handle_vertical(d, &mut model.library)
-        }
-        _ => {}
-    }
-    Ok(())
 }
 
 pub fn handle_queue(model: &mut Model, msg: Message) -> Result<()> {
@@ -32,16 +24,7 @@ pub fn handle_queue(model: &mut Model, msg: Message) -> Result<()> {
         model.queue.set_selected(None);
     }
     match msg {
-        Message::Direction(Dirs::Vert(d)) => {
-            let sel = model.queue.selected();
-            let len = model.queue.len();
-            if sel.is_some() {
-                model.queue.set_selected(match d {
-                    Vertical::Up => Some(safe_decrement(sel.unwrap(), len)),
-                    Vertical::Down => Some(safe_increment(sel.unwrap(), len)),
-                })
-            }
-        }
+        Message::Direction(Dirs::Vert(d)) => handle_vertical(d, &mut model.queue),
         Message::Enter => match model.queue.selected_item() {
             Some(s) => {
                 model

@@ -1,7 +1,7 @@
 use super::selector_state::*;
 use super::*;
 
-impl Selector<Song> for QueueState {
+impl Selector<Song> for QueueSelector {
     fn selector(&self) -> &impl SelectorState {
         &self.state
     }
