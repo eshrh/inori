@@ -42,6 +42,7 @@ pub enum Message {
     Delete,
     Tab,
     Fold,
+    Clear,
 }
 
 pub fn update_tick(model: &mut Model) -> Result<()> {
@@ -70,11 +71,12 @@ fn parse_msg(key: event::KeyEvent) -> Option<Message> {
         }
         KeyCode::Char('q') => Some(Message::Quit),
         KeyCode::Char('p') => Some(Message::PlayPause),
-        KeyCode::Tab => Some(Message::Tab),
         KeyCode::Char(' ') => Some(Message::Fold),
+        KeyCode::Char('-') => Some(Message::Clear),
         KeyCode::Char('1') => Some(Message::Switch(SwitchTo::Library)),
         KeyCode::Char('2') => Some(Message::Switch(SwitchTo::Queue)),
         KeyCode::Char('3') => Some(Message::Switch(SwitchTo::Playlist)),
+        KeyCode::Tab => Some(Message::Tab),
         KeyCode::Enter => Some(Message::Enter),
         KeyCode::Backspace => Some(Message::Delete),
         _ => None,
@@ -93,6 +95,7 @@ pub fn handle_event(model: &mut Model, k: KeyEvent) -> Result<()> {
             model.screen = Screen::Playlist
         }
         Some(Message::PlayPause) => model.conn.toggle_pause()?,
+        Some(Message::Clear) => model.conn.clear()?,
         Some(other) => match model.screen {
             Screen::Library => {
                 handlers::library_handler::handle_library(model, other)?

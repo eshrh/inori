@@ -11,12 +11,10 @@ use std::borrow::Cow::Borrowed;
 pub fn handle_library(model: &mut Model, msg: Message) -> Result<()> {
     match msg {
         Message::Tab => Ok(model.screen = Screen::Queue),
-        other => {
-            match model.library.active {
-                ArtistSelector => handle_library_artist(model, other),
-                TrackSelector => handle_library_track(model, other),
-            }
-        }
+        other => match model.library.active {
+            ArtistSelector => handle_library_artist(model, other),
+            TrackSelector => handle_library_track(model, other),
+        },
     }
 }
 
@@ -27,8 +25,19 @@ pub fn handle_library_artist(model: &mut Model, msg: Message) -> Result<()> {
         }
         Message::Direction(Dirs::Horiz(Horizontal::Right)) => {
             model.library.active = TrackSelector;
-            model.library.selected_item_mut().and_then(|f| Some(f.init()));
-        },
+            model
+                .library
+                .selected_item_mut()
+                .and_then(|f| Some(f.init()));
+        }
+        Message::Enter => {
+            if let Some(artist) = model.library.selected_item() {
+                model.conn.findadd(Query::new().and(
+                    Term::Tag(Borrowed("AlbumArtist")),
+                    artist.name.clone(),
+                ))?;
+            }
+        }
         _ => (),
     }
     Ok(())
@@ -59,8 +68,9 @@ pub fn handle_library_track(model: &mut Model, msg: Message) -> Result<()> {
         Message::Direction(Dirs::Vert(d)) => {
             handle_vertical(d, model.library.selected_item_mut().unwrap())
         }
-        Message::Direction(Dirs::Horiz(Horizontal::Left)) =>
-            model.library.active = ArtistSelector,
+        Message::Direction(Dirs::Horiz(Horizontal::Left)) => {
+            model.library.active = ArtistSelector
+        }
         Message::Enter => add_item(model)?,
         Message::Fold | Message::Direction(Dirs::Horiz(Horizontal::Right)) => {
             if let Some(art) = model.library.selected_item_mut() {

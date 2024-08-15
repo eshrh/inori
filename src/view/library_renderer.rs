@@ -10,10 +10,10 @@ pub fn get_artist_list<'a>(model: &Model) -> List<'a> {
         .iter()
         .map(|artist| artist.name.clone())
         .collect();
-    List::new(artists).highlight_style(Style::default().fg(Color::Red))
+    List::new(artists)
 }
 
-pub fn get_track_data<'a>(artist: &mut ArtistData) -> List<'a> {
+pub fn get_track_data<'a>(artist: &ArtistData) -> List<'a> {
     let albums = artist
         .contents()
         .iter()
@@ -26,8 +26,6 @@ pub fn get_track_data<'a>(artist: &mut ArtistData) -> List<'a> {
         .collect::<Vec<String>>();
 
     List::new(albums)
-        .block(Block::bordered())
-        .highlight_style(Style::default().fg(Color::Red))
 }
 
 pub fn render(model: &mut Model, frame: &mut Frame) {
@@ -36,21 +34,36 @@ pub fn render(model: &mut Model, frame: &mut Frame) {
         .constraints(vec![Constraint::Max(50), Constraint::Min(3)])
         .split(frame.size());
 
+    let artist_list = get_artist_list(model)
+        .block(match model.library.active {
+            LibActiveSelector::ArtistSelector => {
+                Block::bordered().border_style(Color::Blue)
+            }
+            LibActiveSelector::TrackSelector => Block::bordered(),
+        })
+        .highlight_style(Color::Red);
+
     frame.render_stateful_widget(
-        get_artist_list(model).block(Block::bordered()),
+        artist_list,
         layout[0],
         &mut model.library.artist_state,
     );
 
-    match model.library.selected_item_mut() {
-        Some(mut artist) => {
-            let list = get_track_data(&mut artist);
-            frame.render_stateful_widget(
-                list,
-                layout[1],
-                &mut artist.track_sel_state,
-            )
+    let block_style = match model.library.active {
+        LibActiveSelector::ArtistSelector => Block::bordered(),
+        LibActiveSelector::TrackSelector => {
+            Block::bordered().border_style(Color::Blue)
         }
-        None => {}
+    };
+    if let Some(artist) = model.library.selected_item_mut() {
+        let list = get_track_data(artist)
+            .block(block_style)
+            .highlight_style(Color::Red)
+            .highlight_symbol(">");
+        frame.render_stateful_widget(
+            list,
+            layout[1],
+            &mut artist.track_sel_state,
+        )
     }
 }
