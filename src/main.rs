@@ -11,6 +11,7 @@ use ratatui::{
     },
     Terminal,
 };
+use update::update_screens;
 
 use std::io::stdout;
 mod event_handler;
@@ -29,10 +30,17 @@ fn main() -> Result<()> {
 
     let mut model = model::Model::new().expect("Failed to init.");
     let event_handler = event_handler::EventHandler::new();
+
+    update::update_screens(&mut model)?;
+    terminal.draw(|f| view::view(&mut model, f))?;
+
     while model.state != model::State::Done {
         match event_handler.next()? {
             Event::Tick => update::update_tick(&mut model)?,
-            Event::Key(k) => update::handle_event(&mut model, k)?,
+            Event::Key(k) => {
+                update::handle_event(&mut model, k)?;
+                update::update_screens(&mut model)?;
+            }
         }
         terminal.draw(|f| view::view(&mut model, f))?;
     }

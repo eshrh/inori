@@ -47,6 +47,9 @@ pub enum Message {
 
 pub fn update_tick(model: &mut Model) -> Result<()> {
     model.status = model.conn.status()?;
+    Ok(())
+}
+pub fn update_screens(model: &mut Model) -> Result<()> {
     match model.screen {
         Screen::Library => updaters::update_library(model)?,
         Screen::Queue => updaters::update_queue(model)?,
@@ -100,7 +103,9 @@ pub fn handle_event(model: &mut Model, k: KeyEvent) -> Result<()> {
             Screen::Library => {
                 handlers::library_handler::handle_library(model, other)?
             }
-            Screen::Queue => handlers::handle_queue(model, other)?,
+            Screen::Queue => {
+                handlers::queue_handler::handle_queue(model, other)?
+            }
             Screen::Playlist => handlers::handle_playlist(model, other)?,
         },
         None => (),
