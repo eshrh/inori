@@ -11,8 +11,6 @@ use ratatui::{
     },
     Terminal,
 };
-use update::update_screens;
-
 use std::io::stdout;
 mod event_handler;
 mod model;

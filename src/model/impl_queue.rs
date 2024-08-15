@@ -21,3 +21,12 @@ impl SelectorWithContents<Song> for QueueSelector {
         &mut self.contents
     }
 }
+
+impl QueueSelector {
+    pub fn new() -> Self {
+        Self {
+            contents: vec![],
+            state: TableState::default(),
+        }
+    }
+}

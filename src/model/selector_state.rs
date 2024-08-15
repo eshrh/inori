@@ -59,15 +59,13 @@ pub trait SelectorWithContents<T>: Selector {
     fn contents(&self) -> &Vec<T>;
     fn contents_mut(&mut self) -> &mut Vec<T>;
     fn selected_item_mut(&mut self) -> Option<&mut T> {
-        match self.selector().selected() {
-            Some(i) => Some(&mut self.contents_mut()[i]),
-            None => None,
-        }
+        self.selector()
+            .selected()
+            .and_then(|i| self.contents_mut().get_mut(i))
     }
     fn selected_item(&self) -> Option<&T> {
-        match self.selector().selected() {
-            Some(i) => Some(&self.contents()[i]),
-            None => None,
-        }
+        self.selector()
+            .selected()
+            .and_then(|i| self.contents().get(i))
     }
 }

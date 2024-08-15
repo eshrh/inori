@@ -1,8 +1,16 @@
 use super::selector_state::*;
-use super::{AlbumData, ArtistData, LibraryState};
+use super::*;
 use crate::model::TrackSelItem;
 
 impl LibraryState {
+    pub fn new() -> Self {
+        Self {
+            search: super::SearchState::new(),
+            active: super::LibActiveSelector::ArtistSelector,
+            contents: Vec::new(),
+            artist_state: ListState::default(),
+        }
+    }
     pub fn selected_track(&self) -> Option<TrackSelItem> {
         self.selected_item()?.selected_item()
     }
@@ -98,6 +106,18 @@ impl<'a> ArtistData {
             }
         }
         None
+    }
+}
+
+impl ArtistData {
+    pub fn from_names(name: String, sort_names: Vec<String>) -> Self {
+        Self {
+            name,
+            fetched: false,
+            albums: vec![],
+            sort_names,
+            track_sel_state: ListState::default(),
+        }
     }
 }
 

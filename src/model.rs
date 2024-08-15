@@ -5,6 +5,7 @@ use ratatui::widgets::*;
 use std::env;
 mod impl_library;
 mod impl_queue;
+mod impl_searchstate;
 pub mod selector_state;
 
 #[derive(Clone)]
@@ -45,7 +46,13 @@ pub enum LibActiveSelector {
     TrackSelector,
 }
 
+pub struct SearchState {
+    pub active: bool,
+    pub query: String,
+}
+
 pub struct LibraryState {
+    pub search: SearchState,
     pub active: LibActiveSelector,
     pub contents: Vec<ArtistData>,
     pub artist_state: ListState,
@@ -83,15 +90,8 @@ impl Model {
             status: conn.status()?,
             conn,
             screen: Screen::Queue,
-            library: LibraryState {
-                active: LibActiveSelector::ArtistSelector,
-                contents: Vec::new(),
-                artist_state: ListState::default(),
-            },
-            queue: QueueSelector {
-                contents: Vec::new(),
-                state: TableState::default(),
-            },
+            library: LibraryState::new(),
+            queue: QueueSelector::new(),
             playlist: PlaylistState,
         })
     }

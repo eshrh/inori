@@ -13,14 +13,13 @@ pub fn handle_queue(model: &mut Model, msg: Message) -> Result<()> {
         Message::Direction(Dirs::Vert(d)) => {
             handle_vertical(d, &mut model.queue)
         }
-        Message::Enter => match model.queue.selected_item() {
-            Some(s) => {
+        Message::Enter => {
+            if let Some(s) = model.queue.selected_item() {
                 model
                     .conn
                     .switch(s.place.expect("Selected song has no place").pos)?;
             }
-            None => (),
-        },
+        }
         Message::Direction(Dirs::Horiz(d)) => {
             if model.queue.len() >= 2 && model.queue.selected().is_some() {
                 let sel = model.queue.selected().unwrap();
@@ -32,16 +31,15 @@ pub fn handle_queue(model: &mut Model, msg: Message) -> Result<()> {
                 model.queue.set_selected(Some(to));
             }
         }
-        Message::Delete => match model.queue.selected() {
-            Some(p) => {
+        Message::Delete => {
+            if let Some(p) = model.queue.selected() {
                 model.conn.delete(p as u32)?;
                 model.queue.set_selected(Some(safe_decrement(
                     model.queue.selected().unwrap(),
                     model.queue.len() - 1,
                 )));
             }
-            _ => (),
-        },
+        }
         _ => (),
     }
     Ok(())
