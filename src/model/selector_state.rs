@@ -48,6 +48,12 @@ pub trait Selector {
     fn set_selected(&mut self, val: Option<usize>) {
         self.selector_mut().set_selected(val);
     }
+    fn init(&mut self) {
+        // idempotent
+        if self.len() != 0 && self.selected().is_none() {
+            self.set_selected(Some(0));
+        }
+    }
 }
 pub trait SelectorWithContents<T>: Selector {
     fn contents(&self) -> &Vec<T>;

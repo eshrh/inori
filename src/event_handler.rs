@@ -17,7 +17,7 @@ impl EventHandler {
         // check that poll time > tick_interval is not causing issues.
         // maybe one should tick every loop anyway... timer not necessary.
         let poll_time = Duration::from_millis(16);
-        let tick_interval = Duration::from_millis(50);
+        let tick_interval = Duration::from_millis(250);
         let (tx, rx) = std::sync::mpsc::channel();
         let mut now = Instant::now();
         std::thread::spawn(move || loop {

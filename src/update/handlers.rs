@@ -28,6 +28,7 @@ pub fn handle_queue(model: &mut Model, msg: Message) -> Result<()> {
         model.queue.set_selected(None);
     }
     match msg {
+        Message::Tab => model.screen = Screen::Library,
         Message::Direction(Dirs::Vert(d)) => {
             handle_vertical(d, &mut model.queue)
         }

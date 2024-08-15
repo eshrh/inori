@@ -2,6 +2,12 @@ use super::selector_state::*;
 use super::{AlbumData, ArtistData, LibraryState};
 use crate::model::TrackSelItem;
 
+impl LibraryState {
+    pub fn selected_track(&self) -> Option<TrackSelItem> {
+        self.selected_item()?.selected_item()
+    }
+}
+
 impl Selector for LibraryState {
     fn selector(&self) -> &impl SelectorState {
         &self.artist_state
@@ -74,10 +80,25 @@ impl<'a> ArtistData {
         }
         None
     }
-    // pub fn test_sel_item(&mut self, idx: usize) {
-    //     self.set_selected(Some(idx));
-    //     dbg!(self.selected_item().unwrap().to_string());
-    // }
+    pub fn selected_album_mut(&mut self) -> Option<&mut AlbumData> {
+        // assumption: order in self.albums is the same as in the viewer.
+        // NOTE: can't use TrackSelItem enum since references are immutable.
+        // Tried this and it's busted.
+        let sel_idx = self.selector().selected()?;
+        let mut i = 0;
+        let mut album_i = 0;
+        for album in &self.albums {
+            if sel_idx == i {
+                return Some(&mut self.albums[album_i]);
+            }
+            album_i += 1;
+            i += 1;
+            if album.expanded {
+                i += album.tracks.len()
+            }
+        }
+        None
+    }
 }
 
 impl<'a> ToString for TrackSelItem<'a> {

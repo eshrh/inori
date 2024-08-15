@@ -27,7 +27,6 @@ pub struct AlbumData {
     pub tracks: Vec<Song>,
 }
 
-#[derive(Debug)]
 pub enum TrackSelItem<'a> {
     Album(&'a AlbumData),
     Song(&'a Song),

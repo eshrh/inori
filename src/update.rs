@@ -41,6 +41,7 @@ pub enum Message {
     Switch(SwitchTo),
     Delete,
     Tab,
+    Fold,
 }
 
 pub fn update_tick(model: &mut Model) -> Result<()> {
@@ -62,14 +63,15 @@ fn parse_msg(key: event::KeyEvent) -> Option<Message> {
             Some(Message::Direction(Dirs::Vert(Vertical::Down)))
         }
         KeyCode::Char('n') => {
-            Some(Message::Direction(Dirs::Horiz(Horizontal::Left)))
+            Some(Message::Direction(Dirs::Horiz(Horizontal::Right)))
         }
         KeyCode::Char('d') => {
-            Some(Message::Direction(Dirs::Horiz(Horizontal::Right)))
+            Some(Message::Direction(Dirs::Horiz(Horizontal::Left)))
         }
         KeyCode::Char('q') => Some(Message::Quit),
         KeyCode::Char('p') => Some(Message::PlayPause),
         KeyCode::Tab => Some(Message::Tab),
+        KeyCode::Char(' ') => Some(Message::Fold),
         KeyCode::Char('1') => Some(Message::Switch(SwitchTo::Library)),
         KeyCode::Char('2') => Some(Message::Switch(SwitchTo::Queue)),
         KeyCode::Char('3') => Some(Message::Switch(SwitchTo::Playlist)),
