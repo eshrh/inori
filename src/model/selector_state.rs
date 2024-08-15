@@ -37,11 +37,10 @@ impl SelectorState for TableState {
     }
 }
 
-pub trait Selector<T> {
+pub trait Selector {
     fn selector(&self) -> &impl SelectorState;
     fn selector_mut(&mut self) -> &mut impl SelectorState;
-    fn contents(&self) -> &Vec<T>;
-    fn contents_mut(&mut self) -> &mut Vec<T>;
+    fn len(&self) -> usize;
 
     fn selected(&self) -> Option<usize> {
         self.selector().selected()
@@ -49,19 +48,20 @@ pub trait Selector<T> {
     fn set_selected(&mut self, val: Option<usize>) {
         self.selector_mut().set_selected(val);
     }
-    fn selected_item(&self) -> Option<&T> {
-        match self.selector().selected() {
-            Some(i) => Some(&self.contents()[i]),
-            None => None,
-        }
-    }
+}
+pub trait SelectorWithContents<T>: Selector {
+    fn contents(&self) -> &Vec<T>;
+    fn contents_mut(&mut self) -> &mut Vec<T>;
     fn selected_item_mut(&mut self) -> Option<&mut T> {
         match self.selector().selected() {
             Some(i) => Some(&mut self.contents_mut()[i]),
             None => None,
         }
     }
-    fn len(&self) -> usize {
-        self.contents().len()
+    fn selected_item(&self) -> Option<&T> {
+        match self.selector().selected() {
+            Some(i) => Some(&self.contents()[i]),
+            None => None,
+        }
     }
 }

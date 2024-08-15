@@ -1,4 +1,4 @@
-use crate::model::selector_state::Selector;
+use crate::model::selector_state::*;
 use crate::model::*;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
@@ -13,12 +13,21 @@ pub fn get_artist_list<'a>(model: &Model) -> List<'a> {
     List::new(artists).highlight_style(Style::default().fg(Color::Red))
 }
 
-pub fn get_track_data<'a>(model: &mut Model) -> List<'a> {
-    let albums = match model.library.selected_item() {
-        Some(a) => a.albums.iter().map(|a| a.name.clone()).collect(),
-        None => vec![],
-    };
-    List::new(albums).block(Block::bordered())
+pub fn get_track_data<'a>(artist: &mut ArtistData) -> List<'a> {
+    let albums = artist
+        .contents()
+        .iter()
+        .map(|i| match i {
+            TrackSelItem::Album(a) => a.name.clone(),
+            TrackSelItem::Song(s) => {
+                "    ".to_string() + &s.title.clone().unwrap()
+            }
+        })
+        .collect::<Vec<String>>();
+
+    List::new(albums)
+        .block(Block::bordered())
+        .highlight_style(Style::default().fg(Color::Red))
 }
 
 pub fn render(model: &mut Model, frame: &mut Frame) {
@@ -33,6 +42,15 @@ pub fn render(model: &mut Model, frame: &mut Frame) {
         &mut model.library.artist_state,
     );
 
-    let list = get_track_data(model);
-    frame.render_widget(list, layout[1]);
+    match model.library.selected_item_mut() {
+        Some(mut artist) => {
+            let list = get_track_data(&mut artist);
+            frame.render_stateful_widget(
+                list,
+                layout[1],
+                &mut artist.track_sel_state,
+            )
+        }
+        None => {}
+    }
 }

@@ -2,13 +2,17 @@ use super::*;
 use crate::event_handler::Result;
 use crate::model::*;
 use ratatui::widgets::{ListState, StatefulWidget, TableState};
-use selector_state::Selector;
+use selector_state::*;
 
 pub mod library_handler;
 
-pub fn handle_vertical<T>(msg: Vertical, selector: &mut impl Selector<T>) {
+pub fn handle_vertical(msg: Vertical, selector: &mut impl Selector) {
     match selector.selected() {
-        None => (),
+        None => {
+            if selector.len() != 0 {
+                selector.set_selected(Some(0));
+            }
+        }
         Some(sel) => selector.set_selected(match msg {
             Vertical::Up => Some(safe_decrement(sel, selector.len())),
             Vertical::Down => Some(safe_increment(sel, selector.len())),
@@ -24,7 +28,9 @@ pub fn handle_queue(model: &mut Model, msg: Message) -> Result<()> {
         model.queue.set_selected(None);
     }
     match msg {
-        Message::Direction(Dirs::Vert(d)) => handle_vertical(d, &mut model.queue),
+        Message::Direction(Dirs::Vert(d)) => {
+            handle_vertical(d, &mut model.queue)
+        }
         Message::Enter => match model.queue.selected_item() {
             Some(s) => {
                 model

@@ -20,9 +20,17 @@ pub enum State {
     Done,
 }
 
+#[derive(Debug)]
 pub struct AlbumData {
+    pub expanded: bool,
     pub name: String,
     pub tracks: Vec<Song>,
+}
+
+#[derive(Debug)]
+pub enum TrackSelItem<'a> {
+    Album(&'a AlbumData),
+    Song(&'a Song),
 }
 
 pub struct ArtistData {
@@ -30,11 +38,13 @@ pub struct ArtistData {
     pub fetched: bool,
     pub sort_names: Vec<String>,
     pub albums: Vec<AlbumData>,
-    pub sel_contents: Vec<>,
-    pub track_sel_state: ListState
+    pub track_sel_state: ListState,
 }
 
-pub enum LibActiveSelector {ArtistSelector, TrackSelector}
+pub enum LibActiveSelector {
+    ArtistSelector,
+    TrackSelector,
+}
 
 pub struct LibraryState {
     pub active: LibActiveSelector,

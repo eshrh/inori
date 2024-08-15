@@ -92,11 +92,13 @@ pub fn handle_event(model: &mut Model, k: KeyEvent) -> Result<()> {
         }
         Some(Message::PlayPause) => model.conn.toggle_pause()?,
         Some(other) => match model.screen {
-            Screen::Library => handlers::library_handler::handle_library(model, other)?,
+            Screen::Library => {
+                handlers::library_handler::handle_library(model, other)?
+            }
             Screen::Queue => handlers::handle_queue(model, other)?,
             Screen::Playlist => handlers::handle_playlist(model, other)?,
         },
-        None => ()
+        None => (),
     }
     Ok(())
 }

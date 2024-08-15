@@ -1,22 +1,19 @@
 use super::build_library;
 use crate::event_handler::Result;
 use crate::model::*;
-use selector_state::Selector;
+use selector_state::*;
 use std::borrow::Borrow;
 
 pub fn update_library(model: &mut Model) -> Result<()> {
     if model.library.contents.is_empty() {
         build_library::build_library(model)?;
     }
-    if !model.library.contents.is_empty() && model.library.selected().is_none()
+    if model.library.selected().is_some()
+        && !model.library.selected_item().unwrap().fetched
     {
-        model.library.set_selected(Some(0));
-    }
-    if model.library.selected().is_some() && !model.library.selected_item().unwrap().fetched {
-            build_library::add_tracks(model)?;
+        build_library::add_tracks(model)?;
     }
     Ok(())
-
 }
 
 pub fn update_queue(model: &mut Model) -> Result<()> {
