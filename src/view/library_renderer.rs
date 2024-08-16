@@ -6,8 +6,7 @@ use ratatui::widgets::*;
 pub fn get_artist_list<'a>(model: &Model) -> List<'a> {
     let artists: Vec<String> = model
         .library
-        .contents
-        .iter()
+        .contents()
         .map(|artist| artist.name.clone())
         .collect();
     List::new(artists)

@@ -3,9 +3,9 @@ use mpd::error::Result;
 use mpd::{Client, Song, Status};
 use ratatui::widgets::*;
 use std::env;
+mod impl_artiststate;
 mod impl_library;
 mod impl_queue;
-mod impl_artiststate;
 mod impl_searchstate;
 pub mod selector_state;
 
@@ -16,8 +16,8 @@ pub enum Screen {
     Playlist,
 }
 
-#[derive(PartialEq, Eq)]
 pub enum State {
+    Searching,
     Running,
     Done,
 }

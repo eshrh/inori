@@ -33,16 +33,23 @@ pub enum Dirs {
 }
 
 #[derive(PartialEq, Eq)]
+pub enum SearchMsg {
+    Start,
+    End,
+}
+
 pub enum Message {
     Direction(Dirs),
     PlayPause,
     Enter,
-    Quit,
-    Switch(SwitchTo),
+    SwitchState(State),
+    SwitchScreen(SwitchTo),
     Delete,
     Tab,
     Fold,
     Clear,
+    Search(SearchMsg),
+    Escape,
 }
 
 pub fn update_tick(model: &mut Model) -> Result<()> {
@@ -72,34 +79,54 @@ fn parse_msg(key: event::KeyEvent) -> Option<Message> {
         KeyCode::Char('d') => {
             Some(Message::Direction(Dirs::Horiz(Horizontal::Left)))
         }
-        KeyCode::Char('q') => Some(Message::Quit),
+        KeyCode::Char('q') => Some(Message::SwitchState(State::Done)),
         KeyCode::Char('p') => Some(Message::PlayPause),
         KeyCode::Char(' ') => Some(Message::Fold),
         KeyCode::Char('-') => Some(Message::Clear),
-        KeyCode::Char('1') => Some(Message::Switch(SwitchTo::Library)),
-        KeyCode::Char('2') => Some(Message::Switch(SwitchTo::Queue)),
-        KeyCode::Char('3') => Some(Message::Switch(SwitchTo::Playlist)),
+        KeyCode::Char('/') => Some(Message::Search(SearchMsg::Start)),
+        KeyCode::Char('1') => Some(Message::SwitchScreen(SwitchTo::Library)),
+        KeyCode::Char('2') => Some(Message::SwitchScreen(SwitchTo::Queue)),
+        KeyCode::Char('3') => Some(Message::SwitchScreen(SwitchTo::Playlist)),
         KeyCode::Tab => Some(Message::Tab),
         KeyCode::Enter => Some(Message::Enter),
         KeyCode::Backspace => Some(Message::Delete),
+        KeyCode::Esc => Some(Message::Escape),
         _ => None,
     }
 }
 
-pub fn handle_event(model: &mut Model, k: KeyEvent) -> Result<()> {
-    let msg = parse_msg(k);
-    match msg {
-        Some(Message::Quit) => model.state = State::Done,
-        Some(Message::Switch(SwitchTo::Library)) => {
+pub fn handle_key(model: &mut Model, k: KeyEvent) -> Result<()> {
+    match model.state {
+        State::Searching => match model.screen {
+            Screen::Library => {
+                handlers::library_handler::handle_search(model, k)?
+            }
+            Screen::Queue => unimplemented!(),
+            Screen::Playlist => unimplemented!(),
+        },
+        State::Running => {
+            if let Some(m) = parse_msg(k) {
+                handle_msg(model, m)?;
+            }
+        }
+        State::Done => {}
+    }
+    Ok(())
+}
+
+pub fn handle_msg(model: &mut Model, m: Message) -> Result<()> {
+    match m {
+        Message::SwitchState(state) => model.state = state,
+        Message::SwitchScreen(SwitchTo::Library) => {
             model.screen = Screen::Library
         }
-        Some(Message::Switch(SwitchTo::Queue)) => model.screen = Screen::Queue,
-        Some(Message::Switch(SwitchTo::Playlist)) => {
+        Message::SwitchScreen(SwitchTo::Queue) => model.screen = Screen::Queue,
+        Message::SwitchScreen(SwitchTo::Playlist) => {
             model.screen = Screen::Playlist
         }
-        Some(Message::PlayPause) => model.conn.toggle_pause()?,
-        Some(Message::Clear) => model.conn.clear()?,
-        Some(other) => match model.screen {
+        Message::PlayPause => model.conn.toggle_pause()?,
+        Message::Clear => model.conn.clear()?,
+        other => match model.screen {
             Screen::Library => {
                 handlers::library_handler::handle_library(model, other)?
             }
@@ -108,7 +135,6 @@ pub fn handle_event(model: &mut Model, k: KeyEvent) -> Result<()> {
             }
             Screen::Playlist => handlers::handle_playlist(model, other)?,
         },
-        None => (),
     }
     Ok(())
 }

@@ -35,25 +35,28 @@ impl Searchable<ArtistData> for LibraryState {
     fn filter_mut(&mut self) -> &mut Filter {
         &mut self.search
     }
-    fn contents(&self) -> Box<dyn Iterator<Item=&ArtistData> + '_> {
+    fn contents(&self) -> Box<dyn Iterator<Item = &ArtistData> + '_> {
         if self.filter().active {
             Box::new(
-                self.contents.iter()
-                    .filter(|i| i.name.contains(&self.filter().query))
+                self.contents
+                    .iter()
+                    .filter(|i| i.name.contains(&self.filter().query)),
             )
         } else {
             Box::new(self.contents.iter())
         }
     }
-    fn contents_mut(&mut self) -> Box<dyn Iterator<Item=&mut ArtistData> + '_> {
+    fn contents_mut(
+        &mut self,
+    ) -> Box<dyn Iterator<Item = &mut ArtistData> + '_> {
         if self.search.active {
             Box::new(
-                self.contents.iter_mut()
-                    .filter(|i| i.name.contains(&self.search.query))
+                self.contents
+                    .iter_mut()
+                    .filter(|i| i.name.contains(&self.search.query)),
             )
         } else {
             Box::new(self.contents.iter_mut())
         }
-
     }
 }

@@ -1,6 +1,6 @@
 extern crate mpd;
-use ratatui::widgets::{ListState, TableState};
 use super::*;
+use ratatui::widgets::{ListState, TableState};
 
 pub trait SelectorState {
     fn selected(&self) -> Option<usize>;
@@ -55,13 +55,18 @@ pub trait Selector {
             self.set_selected(Some(0));
         }
     }
+    fn watch_oob(&mut self) {
+        if self.len() == 0 || self.selected().is_some_and(|f| f >= self.len()) {
+            self.set_selected(None)
+        }
+    }
 }
 
 pub trait Searchable<T>: Selector {
     fn filter(&self) -> &Filter;
     fn filter_mut(&mut self) -> &mut Filter;
-    fn contents(&self) -> Box<dyn Iterator<Item=&T> + '_>;
-    fn contents_mut(&mut self) -> Box<dyn Iterator<Item=&mut T> + '_>;
+    fn contents(&self) -> Box<dyn Iterator<Item = &T> + '_>;
+    fn contents_mut(&mut self) -> Box<dyn Iterator<Item = &mut T> + '_>;
     fn selected_item(&self) -> Option<&T> {
         self.selector()
             .selected()
@@ -75,7 +80,6 @@ pub trait Searchable<T>: Selector {
     fn contents_vec(&self) -> Vec<&T> {
         self.contents().collect()
     }
-
 }
 
 pub trait SelectorWithContents<T>: Selector {

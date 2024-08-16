@@ -1,6 +1,7 @@
 use super::*;
 use crate::event_handler::Result;
 use crate::model::*;
+use event::KeyModifiers;
 use selector_state::*;
 
 pub mod library_handler;
@@ -18,6 +19,33 @@ pub fn handle_vertical(msg: Vertical, selector: &mut impl Selector) {
             Vertical::Down => Some(safe_increment(sel, selector.len())),
         }),
     }
+}
+
+pub fn handle_search_k<T>(
+    s: &mut impl Searchable<T>,
+    k: KeyEvent,
+) -> Option<Message> {
+    match k.code {
+        KeyCode::Char(c) => {
+            s.filter_mut().query.push(c);
+        }
+        KeyCode::Backspace => {
+            let _ = s.filter_mut().query.pop();
+        }
+        KeyCode::Esc => {
+            return Some(Message::Search(SearchMsg::End));
+        }
+        _ => {}
+    }
+    if k.modifiers.contains(KeyModifiers::CONTROL) {
+        match k.code {
+            // TODO: keep track of cursor and implement AEFB
+            KeyCode::Char('u') => s.filter_mut().query.clear(),
+            _ => {}
+        }
+    }
+    s.watch_oob();
+    None
 }
 
 pub fn handle_playlist(model: &mut Model, msg: Message) -> Result<()> {

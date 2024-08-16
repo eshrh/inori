@@ -10,12 +10,34 @@ use std::borrow::Cow::Borrowed;
 
 pub fn handle_library(model: &mut Model, msg: Message) -> Result<()> {
     match msg {
-        Message::Tab => Ok(model.screen = Screen::Queue),
+        Message::Search(SearchMsg::Start) => match model.library.active {
+            ArtistSelector => {
+                model.library.search.active = true;
+                model.state = State::Searching;
+            }
+            TrackSelector => unimplemented!(),
+        },
+        Message::Search(SearchMsg::End) => model.state = State::Running,
+        Message::Escape => model.library.search.active = false,
+        Message::Tab => model.screen = Screen::Queue,
         other => match model.library.active {
-            ArtistSelector => handle_library_artist(model, other),
-            TrackSelector => handle_library_track(model, other),
+            ArtistSelector => handle_library_artist(model, other)?,
+            TrackSelector => handle_library_track(model, other)?,
         },
     }
+    Ok(())
+}
+
+pub fn handle_search(model: &mut Model, k: KeyEvent) -> Result<()> {
+    match model.library.active {
+        LibActiveSelector::ArtistSelector => {
+            if let Some(m) = handle_search_k(&mut model.library, k) {
+                handle_msg(model, m);
+            }
+        }
+        LibActiveSelector::TrackSelector => unimplemented!(),
+    }
+    Ok(())
 }
 
 pub fn handle_library_artist(model: &mut Model, msg: Message) -> Result<()> {

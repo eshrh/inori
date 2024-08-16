@@ -9,7 +9,7 @@ impl Selector for QueueSelector {
         &mut self.state
     }
     fn len(&self) -> usize {
-        self.contents.len()
+        self.contents_vec().len()
     }
 }
 
@@ -20,10 +20,10 @@ impl Searchable<Song> for QueueSelector {
     fn filter_mut(&mut self) -> &mut Filter {
         &mut self.search
     }
-    fn contents(&self) -> Box<dyn Iterator<Item=&Song> + '_> {
+    fn contents(&self) -> Box<dyn Iterator<Item = &Song> + '_> {
         Box::new(self.contents.iter())
     }
-    fn contents_mut(&mut self) -> Box<dyn Iterator<Item=&mut Song> + '_> {
+    fn contents_mut(&mut self) -> Box<dyn Iterator<Item = &mut Song> + '_> {
         Box::new(self.contents.iter_mut())
     }
 }

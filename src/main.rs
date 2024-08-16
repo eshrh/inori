@@ -1,5 +1,6 @@
 extern crate mpd;
 
+use model::State;
 use ratatui::{
     backend::CrosstermBackend,
     crossterm::{
@@ -32,15 +33,18 @@ fn main() -> Result<()> {
     update::update_screens(&mut model)?;
     terminal.draw(|f| view::view(&mut model, f))?;
 
-    while model.state != model::State::Done {
+    loop {
         match event_handler.next()? {
             Event::Tick => update::update_tick(&mut model)?,
             Event::Key(k) => {
-                update::handle_event(&mut model, k)?;
+                update::handle_key(&mut model, k)?;
                 update::update_screens(&mut model)?;
             }
         }
         terminal.draw(|f| view::view(&mut model, f))?;
+        if let State::Done = model.state {
+            break;
+        }
     }
 
     stdout().execute(LeaveAlternateScreen)?;
