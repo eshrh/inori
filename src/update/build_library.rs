@@ -12,12 +12,12 @@ pub fn build_library(model: &mut Model) -> Result<()> {
         .list_group_2(("albumartistsort".into(), "albumartist".into()))?;
 
     for chunk in artists.chunk_by(|_a, b| b.0 == "AlbumArtistSort") {
-        let albumartist = chunk[0].1.clone();
-
-        model.library.contents.push(ArtistData::from_names(
-            albumartist.clone(),
-            chunk.iter().skip(1).map(|i| i.1.clone()).collect(),
-        ));
+        if let Some(albumartist) = chunk.first().map(|i| i.1.clone()) {
+            model.library.contents.push(ArtistData::from_names(
+                albumartist,
+                chunk.iter().skip(1).map(|i| i.1.clone()).collect(),
+            ));
+        }
     }
     model.library.contents.sort_by(|a, b| a.name.cmp(&b.name));
     Ok(())
@@ -34,7 +34,7 @@ pub fn add_tracks(model: &mut Model) -> Result<()> {
         ),
         None,
     )?;
-    let mut albums: Vec<AlbumData> = vec![];
+    let mut albums: Vec<AlbumData> = Vec::new();
 
     // chunks have album field invariant!
     for album in song_data.chunk_by(|a, b| {

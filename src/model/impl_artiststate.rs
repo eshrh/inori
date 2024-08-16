@@ -19,7 +19,7 @@ impl Selector for ArtistData {
 
 impl<'a> ArtistData {
     pub fn contents(&'a self) -> Vec<TrackSelItem> {
-        let mut new: Vec<TrackSelItem> = vec![];
+        let mut new: Vec<TrackSelItem> = Vec::new();
         for album in &self.albums {
             new.push(TrackSelItem::Album(album));
             if album.expanded {
@@ -42,9 +42,10 @@ impl<'a> ArtistData {
             if album.expanded {
                 let al_len = album.tracks.len();
                 if (sel_idx - i) < al_len {
-                    return Some(TrackSelItem::Song(
-                        &album.tracks[sel_idx - i],
-                    ));
+                    return album
+                        .tracks
+                        .get(sel_idx - i)
+                        .map(|i| TrackSelItem::Song(i));
                 }
                 i += al_len;
             }
@@ -60,7 +61,7 @@ impl<'a> ArtistData {
         let mut album_i = 0;
         for album in &self.albums {
             if sel_idx == i {
-                return Some(&mut self.albums[album_i]);
+                return self.albums.get_mut(album_i);
             }
             album_i += 1;
             i += 1;
@@ -77,7 +78,7 @@ impl ArtistData {
         Self {
             name,
             fetched: false,
-            albums: vec![],
+            albums: Vec::new(),
             sort_names,
             track_sel_state: ListState::default(),
         }

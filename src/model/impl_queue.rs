@@ -32,7 +32,7 @@ impl QueueSelector {
     pub fn new() -> Self {
         Self {
             search: Filter::new(),
-            contents: vec![],
+            contents: Vec::new(),
             state: TableState::default(),
         }
     }
