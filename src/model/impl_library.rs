@@ -40,7 +40,7 @@ impl Searchable<ArtistData> for LibraryState {
             Box::new(
                 self.contents
                     .iter()
-                    .filter(|i| i.name.contains(&self.filter().query)),
+                    .filter(|i| i.matches_query(&self.filter().query)),
             )
         } else {
             Box::new(self.contents.iter())
@@ -53,10 +53,17 @@ impl Searchable<ArtistData> for LibraryState {
             Box::new(
                 self.contents
                     .iter_mut()
-                    .filter(|i| i.name.contains(&self.search.query)),
+                    .filter(|i| i.matches_query(&self.search.query)),
             )
         } else {
             Box::new(self.contents.iter_mut())
         }
+    }
+}
+
+impl ArtistData {
+    pub fn matches_query(&self, query: &String) -> bool {
+        // TODO: search in sort names also.
+        self.name.contains(query)
     }
 }

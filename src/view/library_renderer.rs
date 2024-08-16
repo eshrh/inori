@@ -19,7 +19,10 @@ pub fn get_track_data<'a>(artist: &ArtistData) -> List<'a> {
         .map(|i| match i {
             TrackSelItem::Album(a) => a.name.clone(),
             TrackSelItem::Song(s) => {
-                "    ".to_string() + &s.title.clone().unwrap()
+                "    ".to_string()
+                    + &s.title
+                        .clone()
+                        .unwrap_or("<SONG TITLE NOT FOUND>".into())
             }
         })
         .collect::<Vec<String>>();

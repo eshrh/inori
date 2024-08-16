@@ -88,7 +88,9 @@ impl<'a> ToString for TrackSelItem<'a> {
     fn to_string(&self) -> String {
         match self {
             TrackSelItem::Album(a) => a.name.clone(),
-            TrackSelItem::Song(s) => s.title.clone().unwrap(),
+            TrackSelItem::Song(s) => {
+                s.title.clone().unwrap_or("<SONG TITLE NOT FOUND>".into())
+            }
         }
     }
 }

@@ -27,7 +27,10 @@ pub fn add_tracks(model: &mut Model) -> Result<()> {
     let song_data = model.conn.find(
         Query::new().and(
             Term::Tag(Borrowed("AlbumArtist")),
-            model.library.selected_item_mut().unwrap().name.clone(),
+            match model.library.selected_item_mut() {
+                Some(a) => a.name.clone(),
+                None => return Ok(()),
+            },
         ),
         None,
     )?;
@@ -44,15 +47,18 @@ pub fn add_tracks(model: &mut Model) -> Result<()> {
                     .tags
                     .iter()
                     .find(|t| t.0 == "Album")
-                    .unwrap()
-                    .clone()
-                    .1,
+                    .cloned()
+                    .and_then(|i| Some(i.1))
+                    .unwrap_or("<ALBUM NOT FOUND>".into()),
                 tracks: album.iter().cloned().collect(),
                 expanded: true,
             });
         }
     }
-    model.library.selected_item_mut().unwrap().albums = albums;
-    model.library.selected_item_mut().unwrap().fetched = true;
+
+    model.library.selected_item_mut().map(|i| {
+        i.albums = albums;
+        i.fetched = true;
+    });
     Ok(())
 }

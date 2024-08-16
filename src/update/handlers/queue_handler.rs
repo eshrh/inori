@@ -21,23 +21,30 @@ pub fn handle_queue(model: &mut Model, msg: Message) -> Result<()> {
             }
         }
         Message::Direction(Dirs::Horiz(d)) => {
-            if model.queue.len() >= 2 && model.queue.selected().is_some() {
-                let sel = model.queue.selected().unwrap();
-                let to = match d {
-                    Horizontal::Left => safe_increment(sel, model.queue.len()),
-                    Horizontal::Right => safe_decrement(sel, model.queue.len()),
-                };
-                model.conn.swap(sel as u32, to as u32)?;
-                model.queue.set_selected(Some(to));
+            if model.queue.len() >= 2 {
+                if let Some(p) = model.queue.selected() {
+                    let to = match d {
+                        Horizontal::Left => {
+                            safe_increment(p, model.queue.len())
+                        }
+                        Horizontal::Right => {
+                            safe_decrement(p, model.queue.len())
+                        }
+                    };
+                    model.conn.swap(p as u32, to as u32)?;
+                    model.queue.set_selected(Some(to));
+                    model.queue.watch_oob();
+                }
             }
         }
         Message::Delete => {
             if let Some(p) = model.queue.selected() {
                 model.conn.delete(p as u32)?;
                 model.queue.set_selected(Some(safe_decrement(
-                    model.queue.selected().unwrap(),
+                    p,
                     model.queue.len() - 1,
                 )));
+                model.queue.watch_oob();
             }
         }
         _ => (),

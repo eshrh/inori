@@ -88,7 +88,9 @@ pub fn add_item(model: &mut Model) -> Result<()> {
 pub fn handle_library_track(model: &mut Model, msg: Message) -> Result<()> {
     match msg {
         Message::Direction(Dirs::Vert(d)) => {
-            handle_vertical(d, model.library.selected_item_mut().unwrap())
+            if let Some(art) = model.library.selected_item_mut() {
+                handle_vertical(d, art)
+            }
         }
         Message::Direction(Dirs::Horiz(Horizontal::Left)) => {
             model.library.active = ArtistSelector
