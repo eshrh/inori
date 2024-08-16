@@ -5,6 +5,7 @@ use ratatui::widgets::*;
 use std::env;
 mod impl_library;
 mod impl_queue;
+mod impl_artiststate;
 mod impl_searchstate;
 pub mod selector_state;
 
