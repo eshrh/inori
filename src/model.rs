@@ -47,19 +47,20 @@ pub enum LibActiveSelector {
     TrackSelector,
 }
 
-pub struct SearchState {
+pub struct Filter {
     pub active: bool,
     pub query: String,
 }
 
 pub struct LibraryState {
-    pub search: SearchState,
+    pub search: Filter,
     pub active: LibActiveSelector,
     pub contents: Vec<ArtistData>,
     pub artist_state: ListState,
 }
 
 pub struct QueueSelector {
+    pub search: Filter,
     pub contents: Vec<Song>,
     pub state: TableState,
 }

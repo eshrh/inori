@@ -5,7 +5,7 @@ use crate::model::TrackSelItem;
 impl LibraryState {
     pub fn new() -> Self {
         Self {
-            search: super::SearchState::new(),
+            search: super::Filter::new(),
             active: super::LibActiveSelector::ArtistSelector,
             contents: Vec::new(),
             artist_state: ListState::default(),
@@ -24,15 +24,36 @@ impl Selector for LibraryState {
         &mut self.artist_state
     }
     fn len(&self) -> usize {
-        self.contents.len()
+        self.contents_vec().len()
     }
 }
 
-impl SelectorWithContents<ArtistData> for LibraryState {
-    fn contents(&self) -> &Vec<ArtistData> {
-        &self.contents
+impl Searchable<ArtistData> for LibraryState {
+    fn filter(&self) -> &Filter {
+        &self.search
     }
-    fn contents_mut(&mut self) -> &mut Vec<ArtistData> {
-        &mut self.contents
+    fn filter_mut(&mut self) -> &mut Filter {
+        &mut self.search
+    }
+    fn contents(&self) -> Box<dyn Iterator<Item=&ArtistData> + '_> {
+        if self.filter().active {
+            Box::new(
+                self.contents.iter()
+                    .filter(|i| i.name.contains(&self.filter().query))
+            )
+        } else {
+            Box::new(self.contents.iter())
+        }
+    }
+    fn contents_mut(&mut self) -> Box<dyn Iterator<Item=&mut ArtistData> + '_> {
+        if self.search.active {
+            Box::new(
+                self.contents.iter_mut()
+                    .filter(|i| i.name.contains(&self.search.query))
+            )
+        } else {
+            Box::new(self.contents.iter_mut())
+        }
+
     }
 }

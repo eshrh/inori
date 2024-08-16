@@ -1,6 +1,6 @@
 use super::*;
 
-impl SearchState {
+impl Filter {
     pub fn new() -> Self {
         Self {
             active: false,
