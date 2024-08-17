@@ -12,6 +12,7 @@ pub fn update_library(model: &mut Model) -> Result<()> {
     if !model.library.selected_item().is_some_and(|i| i.fetched) {
         build_library::add_tracks(model)?;
     }
+    model.currentsong = model.conn.currentsong()?;
     Ok(())
 }
 

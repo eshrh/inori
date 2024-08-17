@@ -80,7 +80,7 @@ impl ArtistData {
             fetched: false,
             albums: Vec::new(),
             sort_names,
-            track_sel_state: ListState::default(),
+            track_sel_state: TableState::default(),
         }
     }
 }

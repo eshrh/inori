@@ -3,6 +3,7 @@ use mpd::error::Result;
 use mpd::{Client, Song, Status};
 use ratatui::widgets::*;
 use std::env;
+mod impl_album_song;
 mod impl_artiststate;
 mod impl_library;
 mod impl_queue;
@@ -39,7 +40,7 @@ pub struct ArtistData {
     pub fetched: bool,
     pub sort_names: Vec<String>,
     pub albums: Vec<AlbumData>,
-    pub track_sel_state: ListState,
+    pub track_sel_state: TableState,
 }
 
 pub enum LibActiveSelector {
@@ -75,6 +76,7 @@ pub struct Model {
     pub library: LibraryState,
     pub queue: QueueSelector,
     pub playlist: PlaylistState,
+    pub currentsong: Option<Song>,
 }
 
 impl Model {
@@ -91,10 +93,11 @@ impl Model {
             state: State::Running,
             status: conn.status()?,
             conn,
-            screen: Screen::Queue,
+            screen: Screen::Library,
             library: LibraryState::new(),
             queue: QueueSelector::new(),
             playlist: PlaylistState,
+            currentsong: None,
         })
     }
     pub fn update_status(&mut self) -> Result<()> {
