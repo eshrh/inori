@@ -1,14 +1,13 @@
+use super::status_renderer::render_status;
 use super::Theme;
 use crate::model::selector_state::*;
 use crate::model::LibActiveSelector::*;
 use crate::model::*;
 use crate::util::{format_progress, format_time, song_album};
-use mpd::State::*;
 use ratatui::prelude::Constraint::*;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
 use std::time::Duration;
-use style::Styled;
 
 pub fn get_artist_list<'a>(model: &Model) -> List<'a> {
     let artists: Vec<String> = model
@@ -19,7 +18,10 @@ pub fn get_artist_list<'a>(model: &Model) -> List<'a> {
     List::new(artists)
 }
 
-pub fn get_track_data<'a>(artist: Option<&ArtistData>, theme: &Theme) -> Table<'a> {
+pub fn get_track_data<'a>(
+    artist: Option<&ArtistData>,
+    theme: &Theme,
+) -> Table<'a> {
     if let Some(artist) = artist {
         let items = artist
             .contents()
@@ -28,7 +30,8 @@ pub fn get_track_data<'a>(artist: Option<&ArtistData>, theme: &Theme) -> Table<'
                 TrackSelItem::Album(a) => Row::new(vec![
                     Text::from(a.name.clone()),
                     Text::from(format_time(a.total_time())).right_aligned(),
-                ]) .style(theme.album),
+                ])
+                .style(theme.album),
                 TrackSelItem::Song(s) => Row::new(vec![
                     Text::from(
                         "    ".to_string()
@@ -108,81 +111,25 @@ pub fn render_track_list(
     }
 }
 
-pub fn render_status(
+pub fn render_filter(
     model: &mut Model,
     frame: &mut Frame,
     area: Rect,
     theme: &Theme,
 ) {
-    let w = Table::new::<Vec<Row>, Vec<Constraint>>(
-        vec![
-            Row::new(vec![
-                Cell::from(match model.status.state {
-                    Play | Pause => format_progress(&model.status),
-                    Stop => String::new(),
-                }),
-                Cell::from(
-                    match &model.currentsong {
-                        Some(song) => Line::from(
-                            song.title
-                                .clone()
-                                .unwrap_or("<TITLE NOT FOUND>".into()),
-                        ),
-                        None => Line::from("祈"),
-                    }
-                    .centered()
-                    .set_style(theme.status_title),
-                ),
-                Cell::from("r z s c"),
-            ]),
-            Row::new(vec![
-                Cell::from(match model.status.state {
-                    Play => "[playing]",
-                    Pause => "[paused]",
-                    Stop => "[stopped]",
-                }),
-                Cell::from(
-                    match &model.currentsong {
-                        Some(song) => Line::from(vec![
-                            Span::from(
-                                song.artist
-                                    .clone()
-                                    .unwrap_or("<ARTIST NOT FOUND>".into()),
-                            )
-                            .style(theme.status_artist),
-                            Span::from(format!(
-                                " ({})",
-                                song_album(song)
-                                    .cloned()
-                                    .unwrap_or("<ALBUM NOT FOUND>".into())
-                            ))
-                            .style(theme.status_album),
-                        ]),
-                        None => "いのり".into(),
-                    }
-                    .centered(),
-                ),
-                Cell::from(format!(
-                    "{} {} {} {}",
-                    format_status(model.status.repeat),
-                    format_status(model.status.random),
-                    format_status(model.status.single),
-                    format_status(model.status.consume)
-                )),
-            ]),
-        ],
-        vec![Max(10), Min(10), Max(10)],
-    )
-    .block(Block::bordered());
-    frame.render_widget(w, area);
-}
-
-pub fn format_status(state: bool) -> String {
-    if state {
-        "#".to_string()
-    } else {
-        "_".to_string()
-    }
+    let t = Paragraph::new(vec![Line::from(vec![
+        Span::from("Search: "),
+        Span::from(&model.library.search.query)
+            .style(Style::new().bg(Color::DarkGray).fg(Color::Black)),
+    ])])
+    .block(
+        Block::new()
+            .borders(Borders::all().difference(Borders::BOTTOM))
+            .border_type(BorderType::Rounded)
+            .padding(Padding::vertical(0)),
+    );
+    frame.render_widget(Clear, area);
+    frame.render_widget(t, area);
 }
 
 pub fn render(model: &mut Model, frame: &mut Frame, theme: &Theme) {
@@ -192,6 +139,17 @@ pub fn render(model: &mut Model, frame: &mut Frame, theme: &Theme) {
     let header_layout = Layout::horizontal(vec![Ratio(1, 1)]).split(layout[0]);
     render_artist_list(model, frame, menu_layout[0], theme);
     render_track_list(model, frame, menu_layout[1], theme);
-
     render_status(model, frame, header_layout[0], theme);
+
+    if model.library.search.active {
+        let area = Layout::vertical(vec![Min(1), Max(4)]).split(frame.size());
+        let bottom = Layout::horizontal(vec![
+            Percentage(20),
+            Percentage(60),
+            Percentage(20),
+        ])
+        .split(area[1]);
+        frame.render_widget(Clear, bottom[1]);
+        render_filter(model, frame, bottom[1], theme);
+    }
 }

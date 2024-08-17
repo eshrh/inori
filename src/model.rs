@@ -93,7 +93,7 @@ impl Model {
             state: State::Running,
             status: conn.status()?,
             conn,
-            screen: Screen::Library,
+            screen: Screen::Queue,
             library: LibraryState::new(),
             queue: QueueSelector::new(),
             playlist: PlaylistState,
@@ -102,6 +102,10 @@ impl Model {
     }
     pub fn update_status(&mut self) -> Result<()> {
         self.status = self.conn.status()?;
+        Ok(())
+    }
+    pub fn update_currentsong(&mut self) -> Result<()> {
+        self.currentsong = self.conn.currentsong()?;
         Ok(())
     }
 }

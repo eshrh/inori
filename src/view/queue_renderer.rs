@@ -1,54 +1,92 @@
+use super::Theme;
 use crate::model::*;
+use crate::util::{format_time, song_album};
 use mpd::Song;
+use ratatui::prelude::Constraint::*;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
 use std::time::Duration;
 
+use super::status_renderer::render_status;
+
 pub fn make_progress_bar<'a>(ratio: f64) -> LineGauge<'a> {
     let progress_bar = LineGauge::default()
         .block(Block::bordered().title("Progress"))
-        .filled_style(Style::default().bg(Color::White).fg(Color::Black))
+        .filled_style(
+            Style::default()
+                .fg(Color::LightYellow)
+                .bg(Color::Black)
+                .add_modifier(Modifier::BOLD),
+        )
+        .unfilled_style(Style::default().fg(Color::Black))
+        .line_set(symbols::line::THICK)
         .ratio(ratio);
     return progress_bar;
 }
 
-pub fn make_queue<'a>(model: &mut Model) -> Table<'a> {
+pub fn make_queue<'a>(model: &mut Model, theme: &Theme) -> Table<'a> {
     let rows: Vec<Row> = model
         .queue
         .contents
         .iter()
         .map(|song| {
             Row::new(vec![
-                Cell::from(song.artist.clone().unwrap_or("".to_string())),
+                Cell::from(
+                    song.artist.clone().unwrap_or("Unknown Artist".into()),
+                ),
                 Cell::from(song.title.clone().unwrap_or("".to_string())),
                 Cell::from(
-                    song.duration
-                        .unwrap_or(Duration::new(0, 0))
-                        .as_secs()
-                        .to_string(),
+                    song_album(song).cloned().unwrap_or("Unknown Album".into()),
+                ),
+                Cell::from(
+                    Text::from(format_time(
+                        song.duration.unwrap_or(Duration::new(0, 0)),
+                    ))
+                    .right_aligned(),
                 ),
             ])
+            .add_modifier(
+                if song
+                    .place
+                    .is_some_and(|s| model.status.song.is_some_and(|o| s == o))
+                {
+                    Modifier::BOLD | Modifier::ITALIC
+                } else {
+                    Modifier::empty()
+                },
+            )
         })
         .collect();
-    let table = Table::new(rows, vec![30, 30, 30])
-        .highlight_style(Style::default().fg(Color::Red));
+    let table = Table::new(
+        rows,
+        vec![
+            Percentage(35),
+            Percentage(50),
+            Percentage(15),
+            Percentage(5),
+        ],
+    )
+    .highlight_style(theme.item_highlight_active)
+    .block(Block::bordered().title("Queue"));
 
     table
 }
 
-pub fn render(model: &mut Model, frame: &mut Frame) {
+pub fn render(model: &mut Model, frame: &mut Frame, theme: &Theme) {
     let layout = Layout::default()
         .direction(Direction::Vertical)
-        .constraints(vec![Constraint::Min(1), Constraint::Max(3)])
+        .constraints(vec![Max(4), Min(1), Max(3)])
         .split(frame.size());
 
-    let table = make_queue(model);
-    frame.render_stateful_widget(table, layout[0], &mut model.queue.state);
+    render_status(model, frame, layout[0], theme);
+
+    let table = make_queue(model, theme);
+    frame.render_stateful_widget(table, layout[1], &mut model.queue.state);
 
     let ratio: f64 = match (model.status.elapsed, model.status.duration) {
         (Some(e), Some(t)) => e.as_secs_f64() / t.as_secs_f64(),
         _ => 0 as f64,
     };
 
-    frame.render_widget(make_progress_bar(ratio), layout[1])
+    frame.render_widget(make_progress_bar(ratio), layout[2])
 }

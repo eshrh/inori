@@ -5,6 +5,7 @@ use ratatui::style::{Color, Modifier, Style};
 use ratatui::widgets::*;
 pub mod library_renderer;
 pub mod queue_renderer;
+mod status_renderer;
 
 pub struct Theme {
     pub item_highlight_active: Style,
@@ -27,11 +28,11 @@ pub fn view(model: &mut Model, frame: &mut Frame) {
         status_artist: Style::new().fg(Green),
         status_album: Style::new().fg(Cyan).italic(),
         status_title: Style::new().bold(),
-        album: Style::new().bold().italic().fg(Red)
+        album: Style::new().bold().italic().fg(Red),
     };
     match model.screen {
         Screen::Library => library_renderer::render(model, frame, &theme),
-        Screen::Queue => queue_renderer::render(model, frame),
+        Screen::Queue => queue_renderer::render(model, frame, &theme),
         Screen::Playlist => library_renderer::render(model, frame, &theme),
     }
 }

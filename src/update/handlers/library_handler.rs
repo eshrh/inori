@@ -32,7 +32,7 @@ pub fn handle_search(model: &mut Model, k: KeyEvent) -> Result<()> {
     match model.library.active {
         LibActiveSelector::ArtistSelector => {
             if let Some(m) = handle_search_k(&mut model.library, k) {
-                handle_msg(model, m);
+                handle_msg(model, m)?;
             }
         }
         LibActiveSelector::TrackSelector => unimplemented!(),

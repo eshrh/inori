@@ -38,6 +38,13 @@ pub enum SearchMsg {
     End,
 }
 
+pub enum Toggle {
+    Repeat,
+    Random,
+    Single,
+    Consume,
+}
+
 pub enum Message {
     Direction(Dirs),
     PlayPause,
@@ -50,10 +57,12 @@ pub enum Message {
     Clear,
     Search(SearchMsg),
     Escape,
+    Set(Toggle),
 }
 
 pub fn update_tick(model: &mut Model) -> Result<()> {
     model.status = model.conn.status()?;
+    model.currentsong = model.conn.currentsong()?;
     Ok(())
 }
 pub fn update_screens(model: &mut Model) -> Result<()> {
@@ -81,6 +90,12 @@ fn parse_msg(key: event::KeyEvent) -> Option<Message> {
         }
         KeyCode::Char('q') => Some(Message::SwitchState(State::Done)),
         KeyCode::Char('p') => Some(Message::PlayPause),
+
+        KeyCode::Char('r') => Some(Message::Set(Toggle::Repeat)),
+        KeyCode::Char('z') => Some(Message::Set(Toggle::Random)),
+        KeyCode::Char('s') => Some(Message::Set(Toggle::Single)),
+        KeyCode::Char('c') => Some(Message::Set(Toggle::Consume)),
+
         KeyCode::Char(' ') => Some(Message::Fold),
         KeyCode::Char('-') => Some(Message::Clear),
         KeyCode::Char('/') => Some(Message::Search(SearchMsg::Start)),
@@ -125,6 +140,15 @@ pub fn handle_msg(model: &mut Model, m: Message) -> Result<()> {
             model.screen = Screen::Playlist
         }
         Message::PlayPause => model.conn.toggle_pause()?,
+        Message::Set(t) => {
+            match t {
+                Toggle::Repeat => model.conn.repeat(!model.status.repeat),
+                Toggle::Single => model.conn.single(!model.status.single),
+                Toggle::Random => model.conn.random(!model.status.random),
+                Toggle::Consume => model.conn.consume(!model.status.consume),
+            }?;
+            model.update_status()?;
+        }
         Message::Clear => model.conn.clear()?,
         other => match model.screen {
             Screen::Library => {
