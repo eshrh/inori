@@ -21,6 +21,7 @@ pub fn get_artist_list<'a>(model: &Model) -> List<'a> {
 pub fn get_track_data<'a>(
     artist: Option<&ArtistData>,
     theme: &Theme,
+    width: u16
 ) -> Table<'a> {
     if let Some(artist) = artist {
         let items = artist
@@ -28,7 +29,7 @@ pub fn get_track_data<'a>(
             .iter()
             .map(|i| match i {
                 TrackSelItem::Album(a) => Row::new(vec![
-                    Text::from(a.name.clone()),
+                    Text::from(format!("{} {}", a.name.clone(), &str::repeat("─", width.into()))),
                     Text::from(format_time(a.total_time())).right_aligned(),
                 ])
                 .style(theme.album),
@@ -44,7 +45,7 @@ pub fn get_track_data<'a>(
                 ]),
             })
             .collect::<Vec<Row>>();
-        Table::new::<Vec<Row>, Vec<Constraint>>(items, vec![Min(10), Max(10)])
+        Table::new::<Vec<Row>, Vec<Constraint>>(items, vec![Min(10), Max(9)])
     } else {
         return Table::new::<Vec<Row>, Vec<u16>>(vec![], vec![]);
     }
@@ -84,7 +85,7 @@ pub fn render_track_list(
     area: Rect,
     theme: &Theme,
 ) {
-    let list = get_track_data(model.library.selected_item(), theme)
+    let list = get_track_data(model.library.selected_item(), theme, area.width)
         .block(
             match model.library.active {
                 ArtistSelector => Block::bordered(),

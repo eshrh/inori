@@ -1,9 +1,12 @@
+use std::str::FromStr;
+
 use super::Theme;
 use crate::model::Model;
 use crate::util::*;
 use mpd::State::*;
 use ratatui::prelude::Constraint::*;
 use ratatui::prelude::*;
+use ratatui::prelude::Color;
 use ratatui::style::Styled;
 use ratatui::widgets::*;
 
@@ -44,9 +47,9 @@ pub fn render_status(
             ]),
             Row::new(vec![
                 Cell::from(match model.status.state {
-                    Play => "[playing]",
-                    Pause => "[paused]",
-                    Stop => "[stopped]",
+                    Play => Text::from("[playing]").style(theme.playing),
+                    Pause => Text::from("[paused]").style(theme.paused),
+                    Stop => "[stopped]".into(),
                 }),
                 Cell::from(
                     match &model.currentsong {
