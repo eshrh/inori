@@ -81,7 +81,7 @@ pub fn render_status(
                 )),
             ]),
         ],
-        vec![Max(20), Min(10), Max(10)],
+        vec![Max(10), Min(10), Max(10)],
     )
     .block(Block::bordered().border_type(BorderType::Rounded));
     frame.render_widget(w, area);

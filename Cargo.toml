@@ -5,6 +5,8 @@ edition = "2021"
 
 [dependencies]
 ratatui = "0.27.0"
+fuzzy-matcher = "0.3.7"
+bitflags = "*"
 
 [dependencies.mpd]
 path = "./rust-mpd"

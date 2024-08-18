@@ -1,11 +1,23 @@
 use crate::event_handler::Result;
+use crate::model::selector_state::Searchable;
 use crate::model::{AlbumData, ArtistData, Model, Screen, State};
 use crate::util::{safe_decrement, safe_increment};
+use bitflags::bitflags;
 use ratatui::crossterm::event::{self, KeyCode, KeyEvent, KeyEventKind};
 use std::option::Option;
+
 mod build_library;
 mod handlers;
 mod updaters;
+
+bitflags! {
+    pub struct Update: u8 {
+        const QUEUE = 0x01;
+        const CURRENT_ARTIST = 0x02;
+        const STATUS = 0x04;
+        const CURRENT_SONG = 0x08;
+    }
+}
 
 #[derive(PartialEq, Eq)]
 pub enum SwitchTo {
@@ -61,11 +73,25 @@ pub enum Message {
 }
 
 pub fn update_tick(model: &mut Model) -> Result<()> {
-    model.status = model.conn.status()?;
-    model.currentsong = model.conn.currentsong()?;
+    update_screens(model, Update::all())?;
     Ok(())
 }
-pub fn update_screens(model: &mut Model) -> Result<()> {
+
+pub fn update_screens(model: &mut Model, update: Update) -> Result<()> {
+    if update.contains(Update::QUEUE) {
+        model.queue.contents = model.conn.queue().unwrap_or(vec![]);
+    }
+    if update.contains(Update::CURRENT_ARTIST) {
+        if !model.library.selected_item_mut().is_some_and(|i| i.fetched) {
+            build_library::add_tracks(model)?;
+        }
+    }
+    if update.contains(Update::STATUS) {
+        model.update_status()?;
+    }
+    if update.contains(Update::CURRENT_SONG) {
+        model.update_currentsong()?;
+    }
     match model.screen {
         Screen::Library => updaters::update_library(model)?,
         Screen::Queue => updaters::update_queue(model)?,
@@ -110,36 +136,44 @@ fn parse_msg(key: event::KeyEvent) -> Option<Message> {
     }
 }
 
-pub fn handle_key(model: &mut Model, k: KeyEvent) -> Result<()> {
+pub fn handle_key(model: &mut Model, k: KeyEvent) -> Result<Update> {
     match model.state {
         State::Searching => match model.screen {
             Screen::Library => {
-                handlers::library_handler::handle_search(model, k)?
+                Ok(handlers::library_handler::handle_search(model, k)?)
             }
             Screen::Queue => unimplemented!(),
             Screen::Playlist => unimplemented!(),
         },
         State::Running => {
             if let Some(m) = parse_msg(k) {
-                handle_msg(model, m)?;
+                Ok(handle_msg(model, m)?)
+            } else {
+                Ok(Update::empty())
             }
         }
-        State::Done => {}
+        State::Done => Ok(Update::empty()),
     }
-    Ok(())
 }
 
-pub fn handle_msg(model: &mut Model, m: Message) -> Result<()> {
+pub fn handle_msg(model: &mut Model, m: Message) -> Result<Update> {
     match m {
-        Message::SwitchState(state) => model.state = state,
-        Message::SwitchScreen(SwitchTo::Library) => {
-            model.screen = Screen::Library
+        Message::SwitchState(state) => {
+            model.state = state;
+            Ok(Update::empty())
         }
-        Message::SwitchScreen(SwitchTo::Queue) => model.screen = Screen::Queue,
-        Message::SwitchScreen(SwitchTo::Playlist) => {
-            model.screen = Screen::Playlist
+        Message::SwitchScreen(to) => {
+            model.screen = match to {
+                SwitchTo::Library => Screen::Library,
+                SwitchTo::Queue => Screen::Queue,
+                SwitchTo::Playlist => Screen::Playlist,
+            };
+            Ok(Update::empty())
         }
-        Message::PlayPause => model.conn.toggle_pause()?,
+        Message::PlayPause => {
+            model.conn.toggle_pause()?;
+            Ok(Update::STATUS)
+        }
         Message::Set(t) => {
             match t {
                 Toggle::Repeat => model.conn.repeat(!model.status.repeat),
@@ -147,18 +181,20 @@ pub fn handle_msg(model: &mut Model, m: Message) -> Result<()> {
                 Toggle::Random => model.conn.random(!model.status.random),
                 Toggle::Consume => model.conn.consume(!model.status.consume),
             }?;
-            model.update_status()?;
+            Ok(Update::STATUS)
         }
-        Message::Clear => model.conn.clear()?,
+        Message::Clear => {
+            model.conn.clear()?;
+            Ok(Update::STATUS | Update::QUEUE)
+        }
         other => match model.screen {
             Screen::Library => {
-                handlers::library_handler::handle_library(model, other)?
+                handlers::library_handler::handle_library(model, other)
             }
             Screen::Queue => {
-                handlers::queue_handler::handle_queue(model, other)?
+                handlers::queue_handler::handle_queue(model, other)
             }
-            Screen::Playlist => handlers::handle_playlist(model, other)?,
+            Screen::Playlist => handlers::handle_playlist(model, other),
         },
     }
-    Ok(())
 }

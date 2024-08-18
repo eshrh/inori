@@ -48,6 +48,6 @@ pub fn handle_search_k<T>(
     None
 }
 
-pub fn handle_playlist(model: &mut Model, msg: Message) -> Result<()> {
-    Ok(())
+pub fn handle_playlist(model: &mut Model, msg: Message) -> Result<Update> {
+    unimplemented!()
 }

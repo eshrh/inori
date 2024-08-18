@@ -13,6 +13,7 @@ use ratatui::{
     Terminal,
 };
 use std::io::stdout;
+use update::Update;
 mod event_handler;
 mod model;
 mod update;
@@ -28,17 +29,18 @@ fn main() -> Result<()> {
     terminal.clear()?;
 
     let mut model = model::Model::new().expect("Failed to init.");
-    let event_handler = event_handler::EventHandler::new();
 
-    update::update_screens(&mut model)?;
+    update::update_tick(&mut model)?;
+    update::update_screens(&mut model, Update::empty())?;
     terminal.draw(|f| view::view(&mut model, f))?;
 
+    let event_handler = event_handler::EventHandler::new();
     loop {
         match event_handler.next()? {
             Event::Tick => update::update_tick(&mut model)?,
             Event::Key(k) => {
-                update::handle_key(&mut model, k)?;
-                update::update_screens(&mut model)?;
+                let update = update::handle_key(&mut model, k)?;
+                update::update_screens(&mut model, update)?;
             }
         }
         terminal.draw(|f| view::view(&mut model, f))?;

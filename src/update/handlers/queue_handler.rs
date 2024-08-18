@@ -1,17 +1,15 @@
 use super::*;
 use crate::event_handler::Result;
 
-pub fn handle_queue(model: &mut Model, msg: Message) -> Result<()> {
-    if !model.queue.contents.is_empty() && model.queue.selected().is_none() {
-        model.queue.set_selected(Some(0));
-    }
-    if model.queue.contents.is_empty() {
-        model.queue.set_selected(None);
-    }
+pub fn handle_queue(model: &mut Model, msg: Message) -> Result<Update> {
     match msg {
-        Message::Tab => model.screen = Screen::Library,
+        Message::Tab => {
+            model.screen = Screen::Library;
+            Ok(Update::empty())
+        }
         Message::Direction(Dirs::Vert(d)) => {
-            handle_vertical(d, &mut model.queue)
+            handle_vertical(d, &mut model.queue);
+            Ok(Update::empty())
         }
         Message::Enter => {
             if let Some(s) = model.queue.selected_item() {
@@ -19,6 +17,7 @@ pub fn handle_queue(model: &mut Model, msg: Message) -> Result<()> {
                     .conn
                     .switch(s.place.expect("Selected song has no place").pos)?;
             }
+            Ok(Update::STATUS | Update::CURRENT_SONG)
         }
         Message::Direction(Dirs::Horiz(d)) => {
             if model.queue.len() >= 2 {
@@ -36,6 +35,7 @@ pub fn handle_queue(model: &mut Model, msg: Message) -> Result<()> {
                     model.queue.watch_oob();
                 }
             }
+            Ok(Update::STATUS | Update::QUEUE)
         }
         Message::Delete => {
             if let Some(p) = model.queue.selected() {
@@ -46,8 +46,8 @@ pub fn handle_queue(model: &mut Model, msg: Message) -> Result<()> {
                 )));
                 model.queue.watch_oob();
             }
+            Ok(Update::STATUS | Update::QUEUE)
         }
-        _ => (),
+        _ => Ok(Update::empty()),
     }
-    Ok(())
 }
