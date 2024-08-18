@@ -4,9 +4,9 @@ use super::Theme;
 use crate::model::Model;
 use crate::util::*;
 use mpd::State::*;
+use ratatui::prelude::Color;
 use ratatui::prelude::Constraint::*;
 use ratatui::prelude::*;
-use ratatui::prelude::Color;
 use ratatui::style::Styled;
 use ratatui::widgets::*;
 
@@ -83,9 +83,6 @@ pub fn render_status(
         ],
         vec![Max(20), Min(10), Max(10)],
     )
-    .block(
-        Block::bordered()
-            .border_type(BorderType::Rounded),
-    );
+    .block(Block::bordered().border_type(BorderType::Rounded));
     frame.render_widget(w, area);
 }

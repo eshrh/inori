@@ -9,6 +9,9 @@ pub fn update_library(model: &mut Model) -> Result<()> {
     if model.library.contents.is_empty() {
         build_library::build_library(model)?;
     }
+    if model.library.len() != 0 && model.library.selected().is_none() {
+        model.library.set_selected(Some(0))
+    }
     if !model.library.selected_item().is_some_and(|i| i.fetched) {
         build_library::add_tracks(model)?;
     }

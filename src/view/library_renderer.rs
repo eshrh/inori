@@ -21,7 +21,7 @@ pub fn get_artist_list<'a>(model: &Model) -> List<'a> {
 pub fn get_track_data<'a>(
     artist: Option<&ArtistData>,
     theme: &Theme,
-    width: u16
+    width: u16,
 ) -> Table<'a> {
     if let Some(artist) = artist {
         let items = artist
@@ -29,13 +29,17 @@ pub fn get_track_data<'a>(
             .iter()
             .map(|i| match i {
                 TrackSelItem::Album(a) => Row::new(vec![
-                    Text::from(format!("{} {}", a.name.clone(), &str::repeat("─", width.into()))),
+                    Text::from(format!(
+                        " {} {}",
+                        a.name.clone(),
+                        &str::repeat("─", width.into())
+                    )),
                     Text::from(format_time(a.total_time())).right_aligned(),
                 ])
                 .style(theme.album),
                 TrackSelItem::Song(s) => Row::new(vec![
                     Text::from(
-                        "    ".to_string()
+                        str::repeat(" ", 3)
                             + &s.title.clone().unwrap_or("Unknown Song".into()),
                     ),
                     Text::from(format_time(
@@ -99,7 +103,6 @@ pub fn render_track_list(
             ArtistSelector => theme.item_highlight_inactive,
             TrackSelector => theme.item_highlight_active,
         })
-        .highlight_symbol("->")
         .highlight_spacing(HighlightSpacing::Always);
 
     match model.library.selected_item_mut() {
@@ -127,7 +130,7 @@ pub fn render_filter(
         Block::new()
             .borders(Borders::all().difference(Borders::BOTTOM))
             .border_type(BorderType::Rounded)
-            .padding(Padding::vertical(0)),
+            .padding(Padding::vertical(1)),
     );
     frame.render_widget(Clear, area);
     frame.render_widget(t, area);
