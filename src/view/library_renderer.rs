@@ -122,16 +122,11 @@ pub fn render_filter(
     theme: &Theme,
 ) {
     let t = Paragraph::new(vec![Line::from(vec![
-        Span::from("Search: "),
+        Span::from("> "),
         Span::from(&model.library.search.query)
             .style(Style::new().bg(Color::DarkGray).fg(Color::Black)),
     ])])
-    .block(
-        Block::new()
-            .borders(Borders::all().difference(Borders::BOTTOM))
-            .border_type(BorderType::Rounded)
-            .padding(Padding::vertical(1)),
-    );
+    .block(Block::bordered().border_type(BorderType::Thick));
     frame.render_widget(Clear, area);
     frame.render_widget(t, area);
 }
@@ -141,19 +136,16 @@ pub fn render(model: &mut Model, frame: &mut Frame, theme: &Theme) {
     let menu_layout =
         Layout::horizontal(vec![Ratio(1, 3), Ratio(2, 3)]).split(layout[1]);
     let header_layout = Layout::horizontal(vec![Ratio(1, 1)]).split(layout[0]);
-    render_artist_list(model, frame, menu_layout[0], theme);
+    let left_panel =
+        Layout::vertical(vec![Max(3), Min(1)]).split(menu_layout[0]);
+
     render_track_list(model, frame, menu_layout[1], theme);
     render_status(model, frame, header_layout[0], theme);
 
     if model.library.search.active {
-        let area = Layout::vertical(vec![Min(1), Max(4)]).split(frame.size());
-        let bottom = Layout::horizontal(vec![
-            Percentage(20),
-            Percentage(60),
-            Percentage(20),
-        ])
-        .split(area[1]);
-        frame.render_widget(Clear, bottom[1]);
-        render_filter(model, frame, bottom[1], theme);
+        render_filter(model, frame, left_panel[0], theme);
+        render_artist_list(model, frame, left_panel[1], theme);
+    } else {
+        render_artist_list(model, frame, menu_layout[0], theme);
     }
 }

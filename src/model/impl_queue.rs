@@ -23,8 +23,10 @@ impl Searchable<Song> for QueueSelector {
     fn contents(&self) -> Box<dyn Iterator<Item = &Song> + '_> {
         Box::new(self.contents.iter())
     }
-    fn contents_mut(&mut self) -> Box<dyn Iterator<Item = &mut Song> + '_> {
-        Box::new(self.contents.iter_mut())
+    fn selected_item_mut(&mut self) -> Option<&mut Song> {
+        self.selector()
+            .selected()
+            .and_then(|i| self.contents.get_mut(i))
     }
 }
 

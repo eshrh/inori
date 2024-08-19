@@ -8,6 +8,7 @@ pub trait SelectorState {
     fn offset(&self) -> usize;
     fn set_offset(&mut self, o: usize);
 }
+
 impl SelectorState for ListState {
     fn selected(&self) -> Option<usize> {
         self.selected()
@@ -66,17 +67,17 @@ pub trait Searchable<T>: Selector {
     fn filter(&self) -> &Filter;
     fn filter_mut(&mut self) -> &mut Filter;
     fn contents(&self) -> Box<dyn Iterator<Item = &T> + '_>;
-    fn contents_mut(&mut self) -> Box<dyn Iterator<Item = &mut T> + '_>;
+    // fn contents_mut(&mut self) -> Vec<&mut T>;
     fn selected_item(&self) -> Option<&T> {
         self.selector()
             .selected()
             .and_then(|i| self.contents().nth(i))
     }
-    fn selected_item_mut(&mut self) -> Option<&mut T> {
-        self.selector()
-            .selected()
-            .and_then(|i| self.contents_mut().nth(i))
-    }
+    fn selected_item_mut(&mut self) -> Option<&mut T>;
+    //     self.selector()
+    //         .selected()
+    //         .and_then(|i| self.contents_mut().nth(i))
+    // }
     fn contents_vec(&self) -> Vec<&T> {
         self.contents().collect()
     }

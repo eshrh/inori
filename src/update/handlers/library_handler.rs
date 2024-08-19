@@ -24,6 +24,7 @@ pub fn handle_library(model: &mut Model, msg: Message) -> Result<Update> {
         }
         Message::Escape => {
             model.library.search.active = false;
+            model.library.search.query = String::new();
             Ok(Update::empty())
         }
         Message::Tab => {

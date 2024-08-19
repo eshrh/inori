@@ -1,6 +1,11 @@
+use std::iter::zip;
+
 use super::selector_state::*;
 use super::*;
 use crate::model::TrackSelItem;
+use nucleo_matcher::pattern::{AtomKind, CaseMatching, Normalization, Pattern};
+use nucleo_matcher::{Config, Matcher};
+use nucleo_matcher::{Utf32Str, Utf32String};
 
 impl LibraryState {
     pub fn new() -> Self {
@@ -13,6 +18,36 @@ impl LibraryState {
     }
     pub fn selected_track(&self) -> Option<TrackSelItem> {
         self.selected_item()?.selected_item()
+    }
+    pub fn get_ordering(&self) -> Vec<usize> {
+        if self.filter().active {
+            let mut matcher = Matcher::new(Config::DEFAULT);
+            let pattern = Pattern::new(
+                self.search.query.as_str(),
+                CaseMatching::Ignore,
+                Normalization::Smart,
+                AtomKind::Fuzzy,
+            );
+            let scores = self
+                .contents
+                .iter()
+                .map(|i| {
+                    pattern.score(
+                        Utf32Str::new(&i.name, &mut Vec::new()),
+                        &mut matcher,
+                    )
+                })
+                .collect::<Vec<Option<u32>>>();
+            let mut order_iter =
+                scores
+                    .into_iter()
+                    .enumerate()
+                    .collect::<Vec<(usize, Option<u32>)>>();
+            order_iter.sort_by(|a, b| b.1.unwrap_or(0).cmp(&a.1.unwrap_or(0)));
+            order_iter.iter().map(|i| i.0).collect()
+        } else {
+            (0..self.len()).collect()
+        }
     }
 }
 
@@ -37,26 +72,22 @@ impl Searchable<ArtistData> for LibraryState {
     }
     fn contents(&self) -> Box<dyn Iterator<Item = &ArtistData> + '_> {
         if self.filter().active {
-            Box::new(
-                self.contents
-                    .iter()
-                    .filter(|i| i.matches_query(&self.filter().query)),
-            )
+            let order_iter = self.get_ordering();
+            Box::new(order_iter.into_iter().map(|i| &self.contents[i]))
         } else {
             Box::new(self.contents.iter())
         }
     }
-    fn contents_mut(
-        &mut self,
-    ) -> Box<dyn Iterator<Item = &mut ArtistData> + '_> {
+    fn selected_item_mut(&mut self) -> Option<&mut ArtistData> {
         if self.search.active {
-            Box::new(
-                self.contents
-                    .iter_mut()
-                    .filter(|i| i.matches_query(&self.search.query)),
-            )
+            let order_iter = self.get_ordering();
+            self.selector()
+                .selected()
+                .and_then(|i| self.contents.get_mut(order_iter[i]))
         } else {
-            Box::new(self.contents.iter_mut())
+            self.selector()
+                .selected()
+                .and_then(|i| self.contents.get_mut(i))
         }
     }
 }
