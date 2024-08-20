@@ -74,26 +74,7 @@ pub trait Searchable<T>: Selector {
             .and_then(|i| self.contents().nth(i))
     }
     fn selected_item_mut(&mut self) -> Option<&mut T>;
-    //     self.selector()
-    //         .selected()
-    //         .and_then(|i| self.contents_mut().nth(i))
-    // }
     fn contents_vec(&self) -> Vec<&T> {
         self.contents().collect()
-    }
-}
-
-pub trait SelectorWithContents<T>: Selector {
-    fn contents(&self) -> &Vec<T>;
-    fn contents_mut(&mut self) -> &mut Vec<T>;
-    fn selected_item_mut(&mut self) -> Option<&mut T> {
-        self.selector()
-            .selected()
-            .and_then(|i| self.contents_mut().get_mut(i))
-    }
-    fn selected_item(&self) -> Option<&T> {
-        self.selector()
-            .selected()
-            .and_then(|i| self.contents().get(i))
     }
 }

@@ -19,7 +19,7 @@ impl LibraryState {
     pub fn selected_track(&self) -> Option<TrackSelItem> {
         self.selected_item()?.selected_item()
     }
-    pub fn get_ordering(&self) -> Vec<usize> {
+    pub fn get_ordering(&self) -> Vec<Option<usize>> {
         let mut matcher = Matcher::new(Config::DEFAULT);
         let pattern = Pattern::new(
             self.search.query.as_str(),
@@ -42,7 +42,18 @@ impl LibraryState {
             .enumerate()
             .collect::<Vec<(usize, Option<u32>)>>();
         order_iter.sort_by(|a, b| b.1.unwrap_or(0).cmp(&a.1.unwrap_or(0)));
-        order_iter.iter().map(|i| i.0).collect()
+
+        // include the index only if the score is Some(nonzero)
+        order_iter
+            .iter()
+            .map(|i| {
+                if i.1.is_some_and(|score| score > 0) {
+                    Some(i.0)
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 }
 
@@ -68,7 +79,11 @@ impl Searchable<ArtistData> for LibraryState {
     fn contents(&self) -> Box<dyn Iterator<Item = &ArtistData> + '_> {
         if self.filter().active {
             let order_iter = self.get_ordering();
-            Box::new(order_iter.into_iter().map(|i| &self.contents[i]))
+            Box::new(
+                order_iter
+                    .into_iter()
+                    .filter_map(|idx| idx.map(|i| &self.contents[i])),
+            )
         } else {
             Box::new(self.contents.iter())
         }
@@ -76,20 +91,13 @@ impl Searchable<ArtistData> for LibraryState {
     fn selected_item_mut(&mut self) -> Option<&mut ArtistData> {
         if self.filter().active {
             let order_iter = self.get_ordering();
-            self.selector()
-                .selected()
-                .and_then(|i| self.contents.get_mut(order_iter[i]))
+            self.selector().selected().and_then(|i| {
+                order_iter[i].and_then(|j| self.contents.get_mut(j))
+            })
         } else {
             self.selector()
                 .selected()
                 .and_then(|i| self.contents.get_mut(i))
         }
-    }
-}
-
-impl ArtistData {
-    pub fn matches_query(&self, query: &String) -> bool {
-        // TODO: search in sort names also.
-        self.name.contains(query)
     }
 }

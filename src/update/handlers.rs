@@ -25,22 +25,27 @@ pub fn handle_search_k<T>(
     s: &mut impl Searchable<T>,
     k: KeyEvent,
 ) -> Option<Message> {
-    match k.code {
-        KeyCode::Char(c) => {
-            s.filter_mut().query.push(c);
-        }
-        KeyCode::Backspace => {
-            let _ = s.filter_mut().query.pop();
-        }
-        KeyCode::Esc => {
-            return Some(Message::Search(SearchMsg::End));
-        }
-        _ => {}
-    }
     if k.modifiers.contains(KeyModifiers::CONTROL) {
         match k.code {
             // TODO: keep track of cursor and implement AEFB
             KeyCode::Char('u') => s.filter_mut().query.clear(),
+            KeyCode::Char('n') => {
+                s.set_selected(Some(s.selected().unwrap() + 1));
+            }
+            KeyCode::Char('p') => handle_vertical(Vertical::Up, s),
+            _ => {}
+        }
+    } else {
+        match k.code {
+            KeyCode::Char(c) => {
+                s.filter_mut().query.push(c);
+            }
+            KeyCode::Backspace => {
+                let _ = s.filter_mut().query.pop();
+            }
+            KeyCode::Esc => {
+                return Some(Message::Search(SearchMsg::End));
+            }
             _ => {}
         }
     }

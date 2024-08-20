@@ -3,6 +3,9 @@ use mpd::Status;
 use std::time::Duration;
 
 pub fn safe_increment(idx: usize, length: usize) -> usize {
+    if length == 0 {
+        return idx;
+    }
     (idx + 1) % length
 }
 

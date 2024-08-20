@@ -14,6 +14,9 @@ pub fn handle_library(model: &mut Model, msg: Message) -> Result<Update> {
             ArtistSelector => {
                 model.library.search.active = true;
                 model.state = State::Searching;
+                if model.library.len() != 0 {
+                    model.library.set_selected(Some(0))
+                }
                 Ok(Update::empty())
             }
             TrackSelector => unimplemented!(),
@@ -75,7 +78,7 @@ pub fn handle_library_artist(
                     artist.name.clone(),
                 ))?;
             }
-            Ok(Update::STATUS | Update::QUEUE)
+            Ok(Update::STATUS | Update::QUEUE | Update::START_PLAYING)
         }
         _ => Ok(Update::empty()),
     }
@@ -98,7 +101,7 @@ pub fn add_item(model: &mut Model) -> Result<Update> {
             None => {}
         }
     }
-    Ok(Update::STATUS | Update::QUEUE)
+    Ok(Update::STATUS | Update::QUEUE | Update::START_PLAYING)
 }
 
 pub fn handle_library_track(model: &mut Model, msg: Message) -> Result<Update> {

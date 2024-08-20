@@ -16,6 +16,7 @@ bitflags! {
         const CURRENT_ARTIST = 0x02;
         const STATUS = 0x04;
         const CURRENT_SONG = 0x08;
+        const START_PLAYING = 0x10;
     }
 }
 
@@ -26,7 +27,7 @@ pub enum SwitchTo {
     Playlist,
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum Vertical {
     Up,
     Down,
@@ -91,6 +92,15 @@ pub fn update_screens(model: &mut Model, update: Update) -> Result<()> {
     }
     if update.contains(Update::CURRENT_SONG) {
         model.update_currentsong()?;
+    }
+    if update.contains(Update::START_PLAYING) {
+        if !update.contains(Update::QUEUE) {
+            model.update_status()?;
+        }
+        if model.status.queue_len > 0 && model.status.state == mpd::State::Stop
+        {
+            model.conn.switch(0)?;
+        }
     }
     match model.screen {
         Screen::Library => updaters::update_library(model)?,

@@ -123,8 +123,10 @@ pub fn render_filter(
 ) {
     let t = Paragraph::new(vec![Line::from(vec![
         Span::from("> "),
-        Span::from(&model.library.search.query)
-            .style(Style::new().bg(Color::DarkGray).fg(Color::Black)),
+        Span::from(&model.library.search.query).style(match model.state {
+            State::Searching => Style::new().bg(Color::White).fg(Color::Black),
+            _ => Style::new().bg(Color::DarkGray).fg(Color::Black),
+        }),
     ])])
     .block(Block::bordered().border_type(BorderType::Thick));
     frame.render_widget(Clear, area);
