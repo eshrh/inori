@@ -1,6 +1,7 @@
 extern crate mpd;
 use mpd::error::Result;
 use mpd::{Client, Song, Status};
+use nucleo_matcher::Config;
 use ratatui::widgets::*;
 use std::env;
 mod impl_album_song;
@@ -48,9 +49,16 @@ pub enum LibActiveSelector {
     TrackSelector,
 }
 
+pub struct FilterCache {
+    pub query: String,
+    pub order: Vec<Option<usize>>,
+    pub indices: Vec<Option<Vec<u32>>>,
+}
+
 pub struct Filter {
     pub active: bool,
     pub query: String,
+    pub cache: FilterCache,
 }
 
 pub struct LibraryState {
@@ -58,6 +66,7 @@ pub struct LibraryState {
     pub active: LibActiveSelector,
     pub contents: Vec<ArtistData>,
     pub artist_state: ListState,
+    pub matcher: nucleo_matcher::Matcher,
 }
 
 pub struct QueueSelector {

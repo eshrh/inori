@@ -49,6 +49,7 @@ pub fn handle_search_k<T>(
             _ => {}
         }
     }
+    s.update_filter_cache();
     s.watch_oob();
     None
 }

@@ -7,16 +7,9 @@ use crate::util::{format_progress, format_time, song_album};
 use ratatui::prelude::Constraint::*;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
+use std::convert::TryFrom;
 use std::time::Duration;
-
-pub fn get_artist_list<'a>(model: &Model) -> List<'a> {
-    let artists: Vec<String> = model
-        .library
-        .contents()
-        .map(|artist| artist.name.clone())
-        .collect();
-    List::new(artists)
-}
+use style::Styled;
 
 pub fn get_track_data<'a>(
     artist: Option<&ArtistData>,
@@ -52,6 +45,38 @@ pub fn get_track_data<'a>(
         Table::new::<Vec<Row>, Vec<Constraint>>(items, vec![Min(10), Max(9)])
     } else {
         return Table::new::<Vec<Row>, Vec<u16>>(vec![], vec![]);
+    }
+}
+
+pub fn render_str_with_idxs<'a>(str: String, idxs: &Vec<u32>) -> Line<'a> {
+    let spans: Vec<Span> = str
+        .chars()
+        .enumerate()
+        .map(|(i, c)| {
+            if idxs.contains(&u32::try_from(i).unwrap()) {
+                Span::from(c.to_string())
+                    .style(Style::default().fg(Color::Blue))
+            } else {
+                Span::from(c.to_string())
+            }
+        })
+        .collect();
+    Line::from(spans)
+}
+
+pub fn get_artist_list<'a>(model: &Model) -> List<'a> {
+    let artists = model.library.contents().map(|artist| artist.name.clone());
+    if model.library.search.active {
+        let indices = &model.library.search.cache.indices;
+        List::new(artists.zip(indices).map(|(artist, idxs_o)| {
+            if let Some(idxs) = idxs_o {
+                render_str_with_idxs(artist, idxs)
+            } else {
+                Line::from(artist)
+            }
+        }))
+    } else {
+        List::new(artists.collect::<Vec<String>>())
     }
 }
 

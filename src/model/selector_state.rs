@@ -67,14 +67,15 @@ pub trait Searchable<T>: Selector {
     fn filter(&self) -> &Filter;
     fn filter_mut(&mut self) -> &mut Filter;
     fn contents(&self) -> Box<dyn Iterator<Item = &T> + '_>;
+    fn selected_item_mut(&mut self) -> Option<&mut T>;
     // fn contents_mut(&mut self) -> Vec<&mut T>;
     fn selected_item(&self) -> Option<&T> {
         self.selector()
             .selected()
             .and_then(|i| self.contents().nth(i))
     }
-    fn selected_item_mut(&mut self) -> Option<&mut T>;
     fn contents_vec(&self) -> Vec<&T> {
         self.contents().collect()
     }
+    fn update_filter_cache(&mut self);
 }

@@ -28,6 +28,9 @@ impl Searchable<Song> for QueueSelector {
             .selected()
             .and_then(|i| self.contents.get_mut(i))
     }
+    fn update_filter_cache(&mut self) {
+        unimplemented!();
+    }
 }
 
 impl QueueSelector {
