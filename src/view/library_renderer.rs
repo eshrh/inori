@@ -55,7 +55,7 @@ pub fn render_str_with_idxs<'a>(str: String, idxs: &Vec<u32>) -> Line<'a> {
         .map(|(i, c)| {
             if idxs.contains(&u32::try_from(i).unwrap()) {
                 Span::from(c.to_string())
-                    .style(Style::default().fg(Color::Blue))
+                    .style(Style::default().add_modifier(Modifier::UNDERLINED))
             } else {
                 Span::from(c.to_string())
             }
@@ -65,8 +65,11 @@ pub fn render_str_with_idxs<'a>(str: String, idxs: &Vec<u32>) -> Line<'a> {
 }
 
 pub fn get_artist_list<'a>(model: &Model) -> List<'a> {
-    let artists = model.library.contents().map(|artist| artist.name.clone());
     if model.library.search.active {
+        let artists = model
+            .library
+            .contents()
+            .map(|artist| artist.to_fuzzy_find_str().clone());
         let indices = &model.library.search.cache.indices;
         List::new(artists.zip(indices).map(|(artist, idxs_o)| {
             if let Some(idxs) = idxs_o {
@@ -76,7 +79,13 @@ pub fn get_artist_list<'a>(model: &Model) -> List<'a> {
             }
         }))
     } else {
-        List::new(artists.collect::<Vec<String>>())
+        List::new(
+            model
+                .library
+                .contents()
+                .map(|artist| artist.name.clone())
+                .collect::<Vec<String>>(),
+        )
     }
 }
 

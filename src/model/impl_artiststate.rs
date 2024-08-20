@@ -1,4 +1,5 @@
 use super::*;
+use nucleo_matcher::Utf32Str;
 use selector_state::*;
 impl Selector for ArtistData {
     fn selector(&self) -> &impl SelectorState {
@@ -81,6 +82,13 @@ impl ArtistData {
             albums: Vec::new(),
             sort_names,
             track_sel_state: TableState::default(),
+        }
+    }
+    pub fn to_fuzzy_find_str(&self) -> String {
+        if self.sort_names.first().is_some_and(|n| *n == self.name) {
+            self.name.clone()
+        } else {
+            format!("{} [{}]", self.name, self.sort_names.join(", "))
         }
     }
 }

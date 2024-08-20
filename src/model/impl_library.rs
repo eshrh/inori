@@ -78,7 +78,7 @@ impl Searchable<ArtistData> for LibraryState {
                 .iter()
                 .map(|i| {
                     pattern.score(
-                        Utf32Str::new(&i.name, &mut Vec::new()),
+                        Utf32Str::new(&i.to_fuzzy_find_str(), &mut Vec::new()),
                         &mut self.matcher,
                     )
                 })
@@ -106,7 +106,7 @@ impl Searchable<ArtistData> for LibraryState {
                 let mut tmp: Vec<u32> = Vec::new();
                 pattern.indices(
                     Utf32Str::new(
-                        &self.contents[idx.unwrap()].name,
+                        &self.contents[idx.unwrap()].to_fuzzy_find_str(),
                         &mut Vec::new(),
                     ),
                     &mut self.matcher,
