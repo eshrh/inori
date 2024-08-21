@@ -62,9 +62,12 @@ pub fn render_str_with_idxs<'a>(
                     .style(Style::default().add_modifier(Modifier::UNDERLINED))
             } else {
                 Span::from(c.to_string())
-            }.style(if i >= len {
+            }
+            .style(if i >= len {
                 Style::default().fg(Color::DarkGray)
-            } else { Style::default()})
+            } else {
+                Style::default()
+            })
         })
         .collect();
     Line::from(spans)

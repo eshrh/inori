@@ -121,6 +121,18 @@ pub fn handle_library_track(model: &mut Model, msg: Message) -> Result<Update> {
             if let Some(art) = model.library.selected_item_mut() {
                 if let Some(album) = art.selected_album_mut() {
                     album.expanded = !album.expanded;
+                } else {
+                    if let Some(idx) = art.selected() {
+                        for i in (0..idx).rev() {
+                            if let Some(Album(_)) = art.contents().get(i) {
+                                art.set_selected(Some(i));
+                            }
+                            if let Some(album) = art.selected_album_mut() {
+                                album.expanded = !album.expanded;
+                                break;
+                            }
+                        }
+                    }
                 }
             }
             Ok(Update::empty())
