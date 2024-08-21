@@ -1,5 +1,6 @@
 extern crate mpd;
 use mpd::error::Result;
+// use crate::event_handler::Result;
 use mpd::{Client, Song, Status};
 use nucleo_matcher::Config;
 use ratatui::widgets::*;
@@ -63,10 +64,17 @@ pub struct Filter {
     pub cache: FilterCache,
 }
 
+#[derive(Clone, Debug)]
+pub struct InfoEntry {
+    pub artist: String,
+    pub artist_sort: Option<String>,
+    pub album: Option<String>,
+    pub title: Option<String>,
+}
 pub struct GlobalSearchState {
     pub search: Filter,
     pub matcher: nucleo_matcher::Matcher,
-    pub contents: Option<Vec<Vec<String>>>,
+    pub contents: Option<Vec<InfoEntry>>,
     pub results_state: ListState,
 }
 
@@ -127,13 +135,40 @@ impl Model {
         self.currentsong = self.conn.currentsong()?;
         Ok(())
     }
-    pub fn jump_to(&mut self, target: &Vec<String>) {
+
+    pub fn update_global_search_contents(&mut self) -> Result<()> {
+        let mut res = self.conn.list_groups(vec![
+            "title",
+            "album",
+            "albumartistsort",
+            "albumartist",
+        ])?;
+        self.library.global_search.contents = Some(
+            res.iter_mut()
+                .filter_map(|vec| {
+                    let ie = InfoEntry::from(vec);
+                    if !ie.is_redundant() {
+                        Some(ie)
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<InfoEntry>>(),
+        );
+        // dbg!(InfoEntry::from(&mut res[1]));
+        // dbg!(&self.library.global_search.contents.clone().unwrap()[2]);
+        Ok(())
+    }
+
+    pub fn jump_to(&mut self, target: InfoEntry) {
         // order: albumartist albumartistsort album title
-        let artist_idx =
-            self.library.contents().position(|i| i.name == target[0]);
+        let artist_idx = self
+            .library
+            .contents()
+            .position(|i| i.name == target.artist);
         self.library.artist_state.set_selected(artist_idx);
 
-        if target.len() == 2 {
+        if target.album.is_none() {
             return;
         }
         // 3 -> album
@@ -144,15 +179,15 @@ impl Model {
         }
         if let Some(artist) = self.library.selected_item_mut() {
             let mut idx: Option<usize> = None;
-            if let Some(track_name) = target.get(3) {
+            if let Some(track_name) = target.title {
                 idx = artist.contents().iter().position(|i| match i {
                     TrackSelItem::Song(s) => {
-                        s.title.as_ref().unwrap() == track_name
+                        *s.title.as_ref().unwrap() == track_name
                     }
                     _ => false,
                 });
             } else {
-                if let Some(album_name) = target.get(2) {
+                if let Some(album_name) = target.album {
                     idx = artist.contents().iter().position(|i| match i {
                         TrackSelItem::Album(a) => a.name == *album_name,
                         _ => false,

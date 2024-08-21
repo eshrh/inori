@@ -1,3 +1,5 @@
+use std::error::Error;
+
 use super::*;
 use nucleo_matcher::pattern::{AtomKind, CaseMatching, Normalization, Pattern};
 use nucleo_matcher::{Config, Matcher};
@@ -24,6 +26,51 @@ impl Filter {
     }
 }
 
+impl From<&mut Vec<String>> for InfoEntry {
+    fn from(v: &mut Vec<String>) -> Self {
+        if v.len() > 4 {
+            panic!("too much info given to infoentry");
+        } else {
+            let mut drained = v.drain(..);
+            InfoEntry {
+                artist: drained.nth(0).unwrap(),
+                artist_sort: drained.nth(0),
+                album: drained.nth(0),
+                title: drained.nth(0),
+            }
+        }
+    }
+}
+
+impl InfoEntry {
+    pub fn is_redundant(&self) -> bool {
+        self.album.is_none()
+            && self.title.is_none()
+            && self.artist_sort.as_ref().is_some_and(|i| *i == self.artist)
+    }
+}
+
+impl ToString for InfoEntry {
+    fn to_string(&self) -> String {
+        let mut out: String = self.artist.clone();
+        if let Some(artist_sort) = &self.artist_sort {
+            if *artist_sort != out {
+                out.push('/');
+                out.push_str(artist_sort);
+            }
+        }
+        if let Some(album) = &self.album {
+            out.push('/');
+            out.push_str(album);
+        }
+        if let Some(title) = &self.title {
+            out.push('/');
+            out.push_str(title);
+        }
+        out
+    }
+}
+
 impl Selector for GlobalSearchState {
     fn selector(&self) -> &impl SelectorState {
         &self.results_state
@@ -43,14 +90,14 @@ impl Selector for GlobalSearchState {
     }
 }
 
-impl Searchable<Vec<String>> for GlobalSearchState {
+impl Searchable<InfoEntry> for GlobalSearchState {
     fn filter(&self) -> &Filter {
         &self.search
     }
     fn filter_mut(&mut self) -> &mut Filter {
         &mut self.search
     }
-    fn contents(&self) -> Box<dyn Iterator<Item = &Vec<String>> + '_> {
+    fn contents(&self) -> Box<dyn Iterator<Item = &InfoEntry> + '_> {
         match &self.contents {
             Some(c) => {
                 if self.filter().active {
@@ -68,7 +115,7 @@ impl Searchable<Vec<String>> for GlobalSearchState {
             None => Box::new(std::iter::empty()),
         }
     }
-    fn selected_item_mut(&mut self) -> Option<&mut Vec<String>> {
+    fn selected_item_mut(&mut self) -> Option<&mut InfoEntry> {
         // if self.filter().active {
         //     self.selector().selected().and_then(|i| {
         //         self.search.cache.order[i]
@@ -103,7 +150,7 @@ impl Searchable<Vec<String>> for GlobalSearchState {
             .iter()
             .map(|i| {
                 pattern.score(
-                    Utf32Str::new(&i.join("/"), &mut Vec::new()),
+                    Utf32Str::new(&i.to_string(), &mut Vec::new()),
                     &mut self.matcher,
                 )
             })

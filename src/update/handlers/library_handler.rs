@@ -32,13 +32,7 @@ pub fn handle_library(model: &mut Model, msg: Message) -> Result<Update> {
             model.state = State::Searching;
             model.library.global_search.search.active = true;
             if model.library.global_search.contents.is_none() {
-                model.library.global_search.contents =
-                    Some(model.conn.list_groups(vec![
-                        "title",
-                        "album",
-                        "albumartistsort",
-                        "albumartist",
-                    ])?)
+                model.update_global_search_contents();
             }
             Ok(Update::empty())
         }
@@ -71,7 +65,7 @@ pub fn handle_search(model: &mut Model, k: KeyEvent) -> Result<Update> {
             } else {
                 if let Some(item) = model.library.global_search.selected_item()
                 {
-                    model.jump_to(&item.clone());
+                    model.jump_to(item.clone());
                 }
                 Ok(Update::empty())
             }

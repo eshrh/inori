@@ -124,6 +124,7 @@ name = "inori"
 version = "0.1.0"
 dependencies = [
  "bitflags",
+ "itertools",
  "mpd",
  "nucleo-matcher",
  "ratatui",

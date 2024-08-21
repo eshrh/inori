@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 ratatui = "0.27.0"
 nucleo-matcher = "*"
+itertools = "*"
 bitflags = "*"
 
 [dependencies.mpd]

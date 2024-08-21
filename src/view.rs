@@ -14,10 +14,12 @@ pub struct Theme {
     pub status_artist: Style,
     pub status_album: Style,
     pub status_title: Style,
+    pub artist_sort: Style,
     pub album: Style,
     pub playing: Style,
     pub paused: Style,
     pub stopped: Style,
+    pub slash_span: Style
 }
 
 pub fn view(model: &mut Model, frame: &mut Frame) {
@@ -35,6 +37,8 @@ pub fn view(model: &mut Model, frame: &mut Frame) {
         playing: Style::new().fg(LightGreen),
         paused: Style::new().fg(LightRed),
         stopped: Style::new().fg(Red),
+        artist_sort: Style::new().fg(DarkGray),
+        slash_span: Style::new().fg(LightMagenta)
     };
     match model.screen {
         Screen::Library => library_renderer::render(model, frame, &theme),
