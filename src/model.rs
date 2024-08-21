@@ -155,8 +155,6 @@ impl Model {
                 })
                 .collect::<Vec<InfoEntry>>(),
         );
-        // dbg!(InfoEntry::from(&mut res[1]));
-        // dbg!(&self.library.global_search.contents.clone().unwrap()[2]);
         Ok(())
     }
 
@@ -173,9 +171,12 @@ impl Model {
         }
         // 3 -> album
         // 4 -> track
-        if self.library.selected_item().is_some_and(|i| i.fetched) {
+        if self.library.selected_item().is_some_and(|i| !i.fetched) {
             build_library::add_tracks(self)
                 .expect("couldn't add tracks on the fly while searching");
+        }
+        if target.album.is_some() || target.title.is_some() {
+            self.library.active = LibActiveSelector::TrackSelector;
         }
         if let Some(artist) = self.library.selected_item_mut() {
             let mut idx: Option<usize> = None;
@@ -187,6 +188,8 @@ impl Model {
                     _ => false,
                 });
             } else {
+                // dbg!(target);
+                // panic!();
                 if let Some(album_name) = target.album {
                     idx = artist.contents().iter().position(|i| match i {
                         TrackSelItem::Album(a) => a.name == *album_name,

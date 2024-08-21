@@ -19,7 +19,11 @@ impl LibraryState {
             active: super::LibActiveSelector::ArtistSelector,
             contents: Vec::new(),
             artist_state: ListState::default(),
-            matcher: Matcher::new(Config::DEFAULT),
+            matcher: {
+                let mut default_config = Config::DEFAULT;
+                default_config.prefer_prefix = true;
+                Matcher::new(default_config)
+            },
         }
     }
     pub fn selected_track(&self) -> Option<TrackSelItem> {

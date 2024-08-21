@@ -4,13 +4,13 @@ use crate::model::selector_state::*;
 use crate::model::LibActiveSelector::*;
 use crate::model::*;
 use crate::util::{format_progress, format_time, song_album};
+use itertools::intersperse;
 use ratatui::prelude::Constraint::*;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
 use std::convert::TryFrom;
 use std::time::Duration;
 use style::Styled;
-use itertools::intersperse;
 
 pub fn get_track_data<'a>(
     artist: Option<&ArtistData>,
@@ -53,7 +53,7 @@ pub fn render_str_with_idxs<'a>(
     str: String,
     idxs: &Vec<u32>,
     len: usize,
-    theme: &Theme
+    theme: &Theme,
 ) -> Line<'a> {
     let spans: Vec<Span> = str
         .chars()
@@ -65,7 +65,8 @@ pub fn render_str_with_idxs<'a>(
             } else {
                 Span::from(c.to_string())
             }
-            .style(if i >= len { theme.artist_sort
+            .patch_style(if i >= len {
+                theme.artist_sort
             } else {
                 Style::default()
             })
@@ -81,7 +82,12 @@ pub fn get_artist_list<'a>(model: &Model, theme: &Theme) -> List<'a> {
             |(artist, idxs_o)| {
                 let len = artist.name.chars().count();
                 if let Some(idxs) = idxs_o {
-                    render_str_with_idxs(artist.to_fuzzy_find_str(), idxs, len, theme)
+                    render_str_with_idxs(
+                        artist.to_fuzzy_find_str(),
+                        idxs,
+                        len,
+                        theme,
+                    )
                 } else {
                     Line::from(vec![
                         Span::from(artist.name[0..len].to_string()),
@@ -194,35 +200,34 @@ pub fn render_global_search(
     area: Rect,
     theme: &Theme,
 ) {
-    let layout = Layout::vertical(vec![Max(3), Min(1)]).margin(1).split(area);
+    let layout = Layout::vertical(vec![Max(3), Min(1)]).horizontal_margin(2).vertical_margin(1).split(area);
 
     frame.render_widget(Clear, area);
-    frame.render_widget(Block::bordered(), area);
+    frame.render_widget(Block::bordered().border_type(BorderType::Rounded), area);
     frame.render_widget(
         make_search_box(&model.library.global_search.search.query, true),
         layout[0],
     );
-    let list = List::new(model.library.global_search.contents().map(
-        |ie| {
-            let mut out = vec![Span::from(ie.artist.clone())];
-            if let Some(artist_sort) = ie.artist_sort.clone() {
+    let list = List::new(model.library.global_search.contents().map(|ie| {
+        let mut out = vec![Span::from(ie.artist.clone())];
+        if let Some(artist_sort) = ie.artist_sort.clone() {
+            if artist_sort != ie.artist {
                 out.push(Span::from("/").style(theme.slash_span));
                 out.push(Span::from(artist_sort).style(theme.artist_sort));
             }
-            if let Some(album) = ie.album.clone() {
-                out.push(Span::from("/").style(theme.slash_span));
-                out.push(Span::from(album));
-            }
-            if let Some(title) = ie.title.clone() {
-                out.push(Span::from("/").style(theme.slash_span));
-                out.push(Span::from(title));
-            }
-            Line::from(out)
         }
-    ));
+        if let Some(album) = ie.album.clone() {
+            out.push(Span::from("/").style(theme.slash_span));
+            out.push(Span::from(album).style(theme.album));
+        }
+        if let Some(title) = ie.title.clone() {
+            out.push(Span::from("/").style(theme.slash_span));
+            out.push(Span::from(title));
+        }
+        Line::from(out)
+    }));
     frame.render_stateful_widget(
-        list
-            .block(Block::bordered())
+        list.block(Block::bordered())
             .highlight_style(theme.item_highlight_active),
         layout[1],
         &mut model.library.global_search.results_state,

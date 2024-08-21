@@ -30,9 +30,10 @@ pub fn handle_library(model: &mut Model, msg: Message) -> Result<Update> {
         }
         Message::GlobalSearch(SearchMsg::Start) => {
             model.state = State::Searching;
+            model.library.artist_search.active = false;
             model.library.global_search.search.active = true;
             if model.library.global_search.contents.is_none() {
-                model.update_global_search_contents();
+                model.update_global_search_contents()?;
             }
             Ok(Update::empty())
         }

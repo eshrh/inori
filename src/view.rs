@@ -19,7 +19,7 @@ pub struct Theme {
     pub playing: Style,
     pub paused: Style,
     pub stopped: Style,
-    pub slash_span: Style
+    pub slash_span: Style,
 }
 
 pub fn view(model: &mut Model, frame: &mut Frame) {
@@ -30,15 +30,15 @@ pub fn view(model: &mut Model, frame: &mut Frame) {
         item_highlight_active: Style::new().fg(Black).bg(White),
         item_highlight_inactive: Style::new().fg(Black).bg(DarkGray),
         block_active: Style::new().fg(Red),
-        status_artist: Style::new().fg(Green),
-        status_album: Style::new().fg(Cyan).italic(),
+        status_artist: Style::new().fg(Cyan),
         status_title: Style::new().bold(),
+        status_album: Style::new().bold().italic().fg(Red),
         album: Style::new().bold().italic().fg(Red),
         playing: Style::new().fg(LightGreen),
         paused: Style::new().fg(LightRed),
         stopped: Style::new().fg(Red),
         artist_sort: Style::new().fg(DarkGray),
-        slash_span: Style::new().fg(LightMagenta)
+        slash_span: Style::new().fg(LightMagenta),
     };
     match model.screen {
         Screen::Library => library_renderer::render(model, frame, &theme),
