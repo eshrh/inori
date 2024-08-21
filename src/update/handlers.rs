@@ -29,9 +29,7 @@ pub fn handle_search_k<T>(
         match k.code {
             // TODO: keep track of cursor and implement AEFB
             KeyCode::Char('u') => s.filter_mut().query.clear(),
-            KeyCode::Char('n') => {
-                s.set_selected(Some(s.selected().unwrap() + 1));
-            }
+            KeyCode::Char('n') => handle_vertical(Vertical::Down, s),
             KeyCode::Char('p') => handle_vertical(Vertical::Up, s),
             _ => {}
         }
@@ -44,7 +42,7 @@ pub fn handle_search_k<T>(
                 let _ = s.filter_mut().query.pop();
             }
             KeyCode::Esc => {
-                return Some(Message::Search(SearchMsg::End));
+                return Some(Message::LocalSearch(SearchMsg::End));
             }
             _ => {}
         }

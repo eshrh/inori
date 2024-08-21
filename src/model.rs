@@ -10,6 +10,8 @@ mod impl_library;
 mod impl_queue;
 mod impl_searchstate;
 pub mod selector_state;
+use crate::model::selector_state::*;
+use crate::update::build_library;
 
 #[derive(Clone)]
 pub enum Screen {
@@ -61,8 +63,16 @@ pub struct Filter {
     pub cache: FilterCache,
 }
 
-pub struct LibraryState {
+pub struct GlobalSearchState {
     pub search: Filter,
+    pub matcher: nucleo_matcher::Matcher,
+    pub contents: Option<Vec<Vec<String>>>,
+    pub results_state: ListState,
+}
+
+pub struct LibraryState {
+    pub artist_search: Filter,
+    pub global_search: GlobalSearchState,
     pub active: LibActiveSelector,
     pub contents: Vec<ArtistData>,
     pub artist_state: ListState,
@@ -102,7 +112,7 @@ impl Model {
             state: State::Running,
             status: conn.status()?,
             conn,
-            screen: Screen::Queue,
+            screen: Screen::Library,
             library: LibraryState::new(),
             queue: QueueSelector::new(),
             playlist: PlaylistState,
@@ -116,5 +126,40 @@ impl Model {
     pub fn update_currentsong(&mut self) -> Result<()> {
         self.currentsong = self.conn.currentsong()?;
         Ok(())
+    }
+    pub fn jump_to(&mut self, target: &Vec<String>) {
+        // order: albumartist albumartistsort album title
+        let artist_idx =
+            self.library.contents().position(|i| i.name == target[0]);
+        self.library.artist_state.set_selected(artist_idx);
+
+        if target.len() == 2 {
+            return;
+        }
+        // 3 -> album
+        // 4 -> track
+        if self.library.selected_item().is_some_and(|i| i.fetched) {
+            build_library::add_tracks(self)
+                .expect("couldn't add tracks on the fly while searching");
+        }
+        if let Some(artist) = self.library.selected_item_mut() {
+            let mut idx: Option<usize> = None;
+            if let Some(track_name) = target.get(3) {
+                idx = artist.contents().iter().position(|i| match i {
+                    TrackSelItem::Song(s) => {
+                        s.title.as_ref().unwrap() == track_name
+                    }
+                    _ => false,
+                });
+            } else {
+                if let Some(album_name) = target.get(2) {
+                    idx = artist.contents().iter().position(|i| match i {
+                        TrackSelItem::Album(a) => a.name == *album_name,
+                        _ => false,
+                    });
+                }
+            }
+            artist.set_selected(idx);
+        }
     }
 }

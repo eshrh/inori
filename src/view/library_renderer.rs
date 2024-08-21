@@ -74,8 +74,8 @@ pub fn render_str_with_idxs<'a>(
 }
 
 pub fn get_artist_list<'a>(model: &Model) -> List<'a> {
-    if model.library.search.active {
-        let indices = &model.library.search.cache.indices;
+    if model.library.artist_search.active {
+        let indices = &model.library.artist_search.cache.indices;
         List::new(model.library.contents().zip(indices).map(
             |(artist, idxs_o)| {
                 let len = artist.name.chars().count();
@@ -160,22 +160,60 @@ pub fn render_track_list(
     }
 }
 
+pub fn make_search_box<'a>(query: &'a String, active: bool) -> Paragraph<'a> {
+    Paragraph::new(vec![Line::from(vec![
+        Span::from("> "),
+        Span::from(query).style(if active {
+            Style::new().bg(Color::White).fg(Color::Black)
+        } else {
+            Style::new().bg(Color::DarkGray).fg(Color::Black)
+        }),
+    ])])
+    .block(Block::bordered().border_type(BorderType::Thick))
+}
+
 pub fn render_filter(
     model: &mut Model,
     frame: &mut Frame,
     area: Rect,
     theme: &Theme,
 ) {
-    let t = Paragraph::new(vec![Line::from(vec![
-        Span::from("> "),
-        Span::from(&model.library.search.query).style(match model.state {
-            State::Searching => Style::new().bg(Color::White).fg(Color::Black),
-            _ => Style::new().bg(Color::DarkGray).fg(Color::Black),
-        }),
-    ])])
-    .block(Block::bordered().border_type(BorderType::Thick));
+    frame.render_widget(
+        make_search_box(
+            &model.library.artist_search.query,
+            matches!(model.state, State::Searching),
+        ),
+        area,
+    );
+}
+
+pub fn render_global_search(
+    model: &mut Model,
+    frame: &mut Frame,
+    area: Rect,
+    theme: &Theme,
+) {
+    let layout = Layout::vertical(vec![Max(3), Min(1)]).margin(1).split(area);
+
     frame.render_widget(Clear, area);
-    frame.render_widget(t, area);
+    frame.render_widget(Block::bordered(), area);
+    frame.render_widget(
+        make_search_box(&model.library.global_search.search.query, true),
+        layout[0],
+    );
+    let results: Vec<String> = model
+        .library
+        .global_search
+        .contents()
+        .map(|i| i.join("/"))
+        .collect();
+    frame.render_stateful_widget(
+        List::new(results.clone())
+            .block(Block::bordered())
+            .highlight_style(theme.item_highlight_active),
+        layout[1],
+        &mut model.library.global_search.results_state,
+    );
 }
 
 pub fn render(model: &mut Model, frame: &mut Frame, theme: &Theme) {
@@ -186,13 +224,28 @@ pub fn render(model: &mut Model, frame: &mut Frame, theme: &Theme) {
     let left_panel =
         Layout::vertical(vec![Max(3), Min(1)]).split(menu_layout[0]);
 
+    let center_popup_h = Layout::horizontal(vec![
+        Percentage(20),
+        Percentage(60),
+        Percentage(20),
+    ])
+    .split(frame.size());
+    let center_popup_v =
+        Layout::vertical(vec![Percentage(20), Percentage(60), Percentage(20)])
+            .split(center_popup_h[1]);
+    let center_popup = center_popup_v[1];
+
     render_track_list(model, frame, menu_layout[1], theme);
     render_status(model, frame, header_layout[0], theme);
 
-    if model.library.search.active {
+    if model.library.artist_search.active {
         render_filter(model, frame, left_panel[0], theme);
         render_artist_list(model, frame, left_panel[1], theme);
     } else {
         render_artist_list(model, frame, menu_layout[0], theme);
+    }
+
+    if model.library.global_search.search.active {
+        render_global_search(model, frame, center_popup, theme)
     }
 }

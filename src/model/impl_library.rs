@@ -1,6 +1,7 @@
 use super::selector_state::*;
 use super::*;
 use crate::model::TrackSelItem;
+use crate::update::build_library;
 use nucleo_matcher::pattern::{AtomKind, CaseMatching, Normalization, Pattern};
 use nucleo_matcher::{Config, Matcher};
 use nucleo_matcher::{Utf32Str, Utf32String};
@@ -8,7 +9,13 @@ use nucleo_matcher::{Utf32Str, Utf32String};
 impl LibraryState {
     pub fn new() -> Self {
         Self {
-            search: super::Filter::new(),
+            artist_search: super::Filter::new(),
+            global_search: GlobalSearchState {
+                contents: None,
+                results_state: ListState::default(),
+                search: Filter::new(),
+                matcher: Matcher::new(Config::DEFAULT),
+            },
             active: super::LibActiveSelector::ArtistSelector,
             contents: Vec::new(),
             artist_state: ListState::default(),
@@ -34,15 +41,15 @@ impl Selector for LibraryState {
 
 impl Searchable<ArtistData> for LibraryState {
     fn filter(&self) -> &Filter {
-        &self.search
+        &self.artist_search
     }
     fn filter_mut(&mut self) -> &mut Filter {
-        &mut self.search
+        &mut self.artist_search
     }
     fn contents(&self) -> Box<dyn Iterator<Item = &ArtistData> + '_> {
         if self.filter().active {
             Box::new(
-                self.search
+                self.artist_search
                     .cache
                     .order
                     .iter()
@@ -55,7 +62,7 @@ impl Searchable<ArtistData> for LibraryState {
     fn selected_item_mut(&mut self) -> Option<&mut ArtistData> {
         if self.filter().active {
             self.selector().selected().and_then(|i| {
-                self.search.cache.order[i]
+                self.artist_search.cache.order[i]
                     .and_then(|j| self.contents.get_mut(j))
             })
         } else {
@@ -65,9 +72,9 @@ impl Searchable<ArtistData> for LibraryState {
         }
     }
     fn update_filter_cache(&mut self) {
-        if self.filter().cache.query != self.search.query {
+        if self.filter().cache.query != self.artist_search.query {
             let pattern = Pattern::new(
-                self.search.query.as_str(),
+                self.artist_search.query.as_str(),
                 CaseMatching::Ignore,
                 Normalization::Smart,
                 AtomKind::Fuzzy,

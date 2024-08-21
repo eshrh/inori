@@ -6,7 +6,7 @@ use bitflags::bitflags;
 use ratatui::crossterm::event::{self, KeyCode, KeyEvent, KeyEventKind};
 use std::option::Option;
 
-mod build_library;
+pub mod build_library;
 mod handlers;
 mod updaters;
 
@@ -68,7 +68,8 @@ pub enum Message {
     Tab,
     Fold,
     Clear,
-    Search(SearchMsg),
+    LocalSearch(SearchMsg),
+    GlobalSearch(SearchMsg),
     Escape,
     Set(Toggle),
 }
@@ -134,7 +135,8 @@ fn parse_msg(key: event::KeyEvent) -> Option<Message> {
 
         KeyCode::Char(' ') => Some(Message::Fold),
         KeyCode::Char('-') => Some(Message::Clear),
-        KeyCode::Char('/') => Some(Message::Search(SearchMsg::Start)),
+        KeyCode::Char('/') => Some(Message::LocalSearch(SearchMsg::Start)),
+        KeyCode::Char('g') => Some(Message::GlobalSearch(SearchMsg::Start)),
         KeyCode::Char('1') => Some(Message::SwitchScreen(SwitchTo::Library)),
         KeyCode::Char('2') => Some(Message::SwitchScreen(SwitchTo::Queue)),
         KeyCode::Char('3') => Some(Message::SwitchScreen(SwitchTo::Playlist)),

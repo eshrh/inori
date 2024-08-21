@@ -10,9 +10,9 @@ use std::borrow::Cow::Borrowed;
 
 pub fn handle_library(model: &mut Model, msg: Message) -> Result<Update> {
     match msg {
-        Message::Search(SearchMsg::Start) => match model.library.active {
+        Message::LocalSearch(SearchMsg::Start) => match model.library.active {
             ArtistSelector => {
-                model.library.search.active = true;
+                model.library.artist_search.active = true;
                 model.state = State::Searching;
                 if model.library.len() != 0 {
                     model.library.set_selected(Some(0))
@@ -21,13 +21,30 @@ pub fn handle_library(model: &mut Model, msg: Message) -> Result<Update> {
             }
             TrackSelector => unimplemented!(),
         },
-        Message::Search(SearchMsg::End) => {
+        Message::LocalSearch(SearchMsg::End) => {
             model.state = State::Running;
+            if model.library.global_search.search.active {
+                model.library.global_search.search.active = false;
+            }
+            Ok(Update::empty())
+        }
+        Message::GlobalSearch(SearchMsg::Start) => {
+            model.state = State::Searching;
+            model.library.global_search.search.active = true;
+            if model.library.global_search.contents.is_none() {
+                model.library.global_search.contents =
+                    Some(model.conn.list_groups(vec![
+                        "title",
+                        "album",
+                        "albumartistsort",
+                        "albumartist",
+                    ])?)
+            }
             Ok(Update::empty())
         }
         Message::Escape => {
-            model.library.search.active = false;
-            model.library.search.query = String::new();
+            model.library.artist_search.active = false;
+            model.library.artist_search.query = String::new();
             Ok(Update::empty())
         }
         Message::Tab => {
@@ -42,15 +59,31 @@ pub fn handle_library(model: &mut Model, msg: Message) -> Result<Update> {
 }
 
 pub fn handle_search(model: &mut Model, k: KeyEvent) -> Result<Update> {
-    match model.library.active {
-        LibActiveSelector::ArtistSelector => {
+    match (
+        &model.library.active,
+        model.library.global_search.search.active,
+    ) {
+        (_, true) => {
+            if let Some(m) =
+                handle_search_k(&mut model.library.global_search, k)
+            {
+                handle_msg(model, m)
+            } else {
+                if let Some(item) = model.library.global_search.selected_item()
+                {
+                    model.jump_to(&item.clone());
+                }
+                Ok(Update::empty())
+            }
+        }
+        (ArtistSelector, _) => {
             if let Some(m) = handle_search_k(&mut model.library, k) {
                 handle_msg(model, m)
             } else {
                 Ok(Update::empty())
             }
         }
-        LibActiveSelector::TrackSelector => unimplemented!(),
+        (TrackSelector, _) => unimplemented!(),
     }
 }
 
