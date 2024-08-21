@@ -48,7 +48,11 @@ pub fn get_track_data<'a>(
     }
 }
 
-pub fn render_str_with_idxs<'a>(str: String, idxs: &Vec<u32>) -> Line<'a> {
+pub fn render_str_with_idxs<'a>(
+    str: String,
+    idxs: &Vec<u32>,
+    len: usize,
+) -> Line<'a> {
     let spans: Vec<Span> = str
         .chars()
         .enumerate()
@@ -58,7 +62,9 @@ pub fn render_str_with_idxs<'a>(str: String, idxs: &Vec<u32>) -> Line<'a> {
                     .style(Style::default().add_modifier(Modifier::UNDERLINED))
             } else {
                 Span::from(c.to_string())
-            }
+            }.style(if i >= len {
+                Style::default().fg(Color::DarkGray)
+            } else { Style::default()})
         })
         .collect();
     Line::from(spans)
@@ -66,18 +72,20 @@ pub fn render_str_with_idxs<'a>(str: String, idxs: &Vec<u32>) -> Line<'a> {
 
 pub fn get_artist_list<'a>(model: &Model) -> List<'a> {
     if model.library.search.active {
-        let artists = model
-            .library
-            .contents()
-            .map(|artist| artist.to_fuzzy_find_str().clone());
         let indices = &model.library.search.cache.indices;
-        List::new(artists.zip(indices).map(|(artist, idxs_o)| {
-            if let Some(idxs) = idxs_o {
-                render_str_with_idxs(artist, idxs)
-            } else {
-                Line::from(artist)
-            }
-        }))
+        List::new(model.library.contents().zip(indices).map(
+            |(artist, idxs_o)| {
+                let len = artist.name.chars().count();
+                if let Some(idxs) = idxs_o {
+                    render_str_with_idxs(artist.to_fuzzy_find_str(), idxs, len)
+                } else {
+                    Line::from(vec![
+                        Span::from(artist.name[0..len].to_string()),
+                        Span::from(artist.sort_names.join(", ") + "]"),
+                    ])
+                }
+            },
+        ))
     } else {
         List::new(
             model
