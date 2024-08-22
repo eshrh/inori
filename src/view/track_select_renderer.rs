@@ -1,5 +1,5 @@
 use super::Theme;
-use crate::model::selector_state::*;
+use crate::model::proto::*;
 use crate::model::LibActiveSelector::*;
 use crate::model::*;
 use crate::util::format_time;

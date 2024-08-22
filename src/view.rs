@@ -48,6 +48,6 @@ pub fn view(model: &mut Model, frame: &mut Frame) {
     };
     match model.screen {
         Screen::Library => library_renderer::render(model, frame, &theme),
-        Screen::Queue => queue_renderer::render(model, frame, &theme)
+        Screen::Queue => queue_renderer::render(model, frame, &theme),
     }
 }

@@ -1,7 +1,7 @@
 use super::build_library;
 use crate::event_handler::Result;
 use crate::model::*;
-use selector_state::*;
+use proto::*;
 
 pub fn update_library(model: &mut Model) -> Result<()> {
     model.library.watch_oob();

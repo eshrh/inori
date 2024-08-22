@@ -1,6 +1,6 @@
 extern crate mpd;
 use crate::event_handler::Result;
-use crate::model::selector_state::*;
+use crate::model::proto::*;
 use crate::model::{AlbumData, ArtistData, Model};
 use mpd::{Query, Term};
 use std::borrow::Cow::Borrowed;

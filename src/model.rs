@@ -8,14 +8,13 @@ mod impl_artiststate;
 mod impl_library;
 mod impl_queue;
 mod impl_searchstate;
-pub mod selector_state;
-use crate::model::selector_state::*;
+pub mod proto;
+use crate::model::proto::*;
 use crate::update::build_library;
 
-#[derive(Clone)]
 pub enum Screen {
     Library,
-    Queue
+    Queue,
 }
 
 pub enum State {
@@ -24,7 +23,6 @@ pub enum State {
     Done,
 }
 
-#[derive(Debug)]
 pub struct AlbumData {
     pub expanded: bool,
     pub name: String,
@@ -61,7 +59,7 @@ pub struct Filter {
     pub cache: FilterCache,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct InfoEntry {
     pub artist: String,
     pub artist_sort: Option<String>,

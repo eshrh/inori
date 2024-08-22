@@ -1,5 +1,5 @@
 use crate::event_handler::Result;
-use crate::model::selector_state::Searchable;
+use crate::model::proto::Searchable;
 use crate::model::{Model, Screen, State};
 use crate::util::{safe_decrement, safe_increment};
 use bitflags::bitflags;
@@ -23,7 +23,7 @@ bitflags! {
 #[derive(PartialEq, Eq)]
 pub enum SwitchTo {
     Library,
-    Queue
+    Queue,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]

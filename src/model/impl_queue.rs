@@ -1,4 +1,4 @@
-use super::selector_state::*;
+use super::proto::*;
 use super::*;
 
 impl Selector for QueueSelector {

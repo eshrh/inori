@@ -1,9 +1,9 @@
-use super::selector_state::*;
+use super::proto::*;
 use super::*;
 use crate::model::TrackSelItem;
 use nucleo_matcher::pattern::{AtomKind, CaseMatching, Normalization, Pattern};
-use nucleo_matcher::{Config, Matcher};
 use nucleo_matcher::Utf32Str;
+use nucleo_matcher::{Config, Matcher};
 
 impl LibraryState {
     pub fn new() -> Self {

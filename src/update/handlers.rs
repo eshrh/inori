@@ -1,7 +1,7 @@
 use super::*;
 use crate::model::*;
 use event::KeyModifiers;
-use selector_state::*;
+use proto::*;
 
 pub mod library_handler;
 pub mod queue_handler;

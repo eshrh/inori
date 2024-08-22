@@ -1,7 +1,7 @@
 use super::*;
 use nucleo_matcher::pattern::{AtomKind, CaseMatching, Normalization, Pattern};
 use nucleo_matcher::Utf32Str;
-use selector_state::*;
+use proto::*;
 
 impl FilterCache {
     pub fn new() -> Self {

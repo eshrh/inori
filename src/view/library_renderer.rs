@@ -3,7 +3,7 @@ use super::search_renderer::make_search_box;
 use super::status_renderer::render_status;
 use super::track_select_renderer::render_track_list;
 use super::Theme;
-use crate::model::selector_state::*;
+use crate::model::proto::*;
 use crate::model::*;
 use ratatui::prelude::Constraint::*;
 use ratatui::prelude::*;
@@ -26,7 +26,7 @@ pub fn render_filter(
 }
 
 pub fn render_artist_sort<'a>(text: String, style: Style) -> Span<'a> {
-    Span::from(format!(" {}{}{}", "[", text, "]")) .style(style)
+    Span::from(format!(" {}{}{}", "[", text, "]")).style(style)
 }
 
 pub fn render_global_search(
@@ -53,9 +53,7 @@ pub fn render_global_search(
         let mut out = vec![Span::from(ie.artist.clone())];
         if let Some(artist_sort) = ie.artist_sort.clone() {
             if artist_sort != ie.artist {
-                out.push(
-                    render_artist_sort(artist_sort, theme.artist_sort)
-                );
+                out.push(render_artist_sort(artist_sort, theme.artist_sort));
             }
         }
         if let Some(album) = ie.album.clone() {

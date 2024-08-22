@@ -1,5 +1,6 @@
 use super::*;
-use selector_state::*;
+use proto::*;
+
 impl Selector for ArtistData {
     fn selector(&self) -> &impl SelectorState {
         &self.track_sel_state
