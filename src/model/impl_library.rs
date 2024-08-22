@@ -4,6 +4,7 @@ use crate::model::TrackSelItem;
 use nucleo_matcher::pattern::{AtomKind, CaseMatching, Normalization, Pattern};
 use nucleo_matcher::Utf32Str;
 use nucleo_matcher::{Config, Matcher};
+use search_utils::{compute_indices, compute_orders};
 
 impl LibraryState {
     pub fn new() -> Self {
@@ -13,16 +14,10 @@ impl LibraryState {
                 contents: None,
                 results_state: ListState::default(),
                 search: Filter::new(),
-                matcher: Matcher::new(Config::DEFAULT),
             },
             active: super::LibActiveSelector::ArtistSelector,
             contents: Vec::new(),
             artist_state: ListState::default(),
-            matcher: {
-                let mut default_config = Config::DEFAULT;
-                default_config.prefer_prefix = true;
-                Matcher::new(default_config)
-            },
         }
     }
     pub fn selected_track(&self) -> Option<TrackSelItem> {
@@ -74,59 +69,36 @@ impl Searchable<ArtistData> for LibraryState {
                 .and_then(|i| self.contents.get_mut(i))
         }
     }
-    fn update_filter_cache(&mut self) {
-        if self.filter().cache.query != self.artist_search.query {
-            let pattern = Pattern::new(
-                self.artist_search.query.as_str(),
-                CaseMatching::Ignore,
-                Normalization::Smart,
-                AtomKind::Fuzzy,
-            );
-
-            let scores = self
-                .contents
-                .iter()
-                .map(|i| {
-                    pattern.score(
-                        Utf32Str::new(&i.to_fuzzy_find_str(), &mut Vec::new()),
-                        &mut self.matcher,
-                    )
-                })
-                .collect::<Vec<Option<u32>>>();
-            let mut order = scores
-                .into_iter()
-                .enumerate()
-                .collect::<Vec<(usize, Option<u32>)>>();
-            order.sort_by(|a, b| b.1.unwrap_or(0).cmp(&a.1.unwrap_or(0)));
-            // include the index only if the score is Some(nonzero)
-            let order = order
-                .iter()
-                .map(|i| {
-                    if i.1.is_some_and(|score| score > 0) {
-                        Some(i.0)
-                    } else {
-                        None
-                    }
-                })
-                .collect::<Vec<Option<usize>>>();
-
-            // generate indices:
-            let mut indices: Vec<Option<Vec<u32>>> = Vec::new();
-            for idx in order.iter().take_while(|i| i.is_some()) {
-                let mut tmp: Vec<u32> = Vec::new();
-                pattern.indices(
-                    Utf32Str::new(
-                        &self.contents[idx.unwrap()].to_fuzzy_find_str(),
-                        &mut Vec::new(),
-                    ),
-                    &mut self.matcher,
-                    &mut tmp,
-                );
-                indices.push(Some(tmp));
-            }
-            self.filter_mut().cache.query = self.filter().query.clone();
-            self.filter_mut().cache.order = order;
-            self.filter_mut().cache.indices = indices;
+    fn update_filter_cache(&mut self, matcher: &mut Matcher) {
+        if self.filter().cache.query == self.artist_search.query {
+            return;
         }
+        if self.filter().cache.utfstrings_cache.is_none() {
+            self.filter_mut().cache.utfstrings_cache = Some(
+                self.contents
+                    .iter()
+                    .map(|i| Utf32String::from(i.to_fuzzy_find_str()))
+                    .collect(),
+            );
+        }
+        self.filter_mut().cache.order = compute_orders(
+            &self.filter().query,
+            self.filter().cache.utfstrings_cache.as_ref().unwrap(),
+            matcher,
+        );
+
+        let strings_for_indices: Vec<&Utf32String> = self
+            .filter()
+            .cache
+            .order
+            .iter()
+            .take_while(|i| i.is_some())
+            .map(|i| {
+                &self.artist_search.cache.utfstrings_cache.as_ref().unwrap()
+                    [i.unwrap()]
+            })
+            .collect();
+        self.filter_mut().cache.indices =
+            compute_indices(&self.filter().query, strings_for_indices, matcher);
     }
 }

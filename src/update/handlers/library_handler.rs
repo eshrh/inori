@@ -2,6 +2,7 @@ use super::*;
 use crate::event_handler::Result;
 use crate::model::LibActiveSelector::*;
 use crate::model::TrackSelItem::*;
+use crate::model::*;
 use mpd::Query;
 use mpd::Term;
 use std::borrow::Cow::Borrowed;
@@ -57,9 +58,11 @@ pub fn handle_search(model: &mut Model, k: KeyEvent) -> Result<Update> {
         model.library.global_search.search.active,
     ) {
         (_, true) => {
-            if let Some(m) =
-                handle_search_k(&mut model.library.global_search, k)
-            {
+            if let Some(m) = handle_search_k(
+                &mut model.library.global_search,
+                k,
+                &mut model.matcher,
+            ) {
                 handle_msg(model, m)
             } else {
                 if let Some(item) = model.library.global_search.selected_item()
@@ -70,7 +73,9 @@ pub fn handle_search(model: &mut Model, k: KeyEvent) -> Result<Update> {
             }
         }
         (ArtistSelector, _) => {
-            if let Some(m) = handle_search_k(&mut model.library, k) {
+            if let Some(m) =
+                handle_search_k(&mut model.library, k, &mut model.matcher)
+            {
                 handle_msg(model, m)
             } else {
                 Ok(Update::empty())

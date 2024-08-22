@@ -1,7 +1,9 @@
 use super::*;
 use nucleo_matcher::pattern::{AtomKind, CaseMatching, Normalization, Pattern};
+use nucleo_matcher::Matcher;
 use nucleo_matcher::Utf32Str;
 use proto::*;
+use search_utils::*;
 
 impl FilterCache {
     pub fn new() -> Self {
@@ -9,6 +11,7 @@ impl FilterCache {
             query: String::new(),
             order: Vec::new(),
             indices: Vec::new(),
+            utfstrings_cache: None,
         }
     }
 }
@@ -125,7 +128,7 @@ impl Searchable<InfoEntry> for GlobalSearchState {
         // }
         unimplemented!();
     }
-    fn update_filter_cache(&mut self) {
+    fn update_filter_cache(&mut self, matcher: &mut Matcher) {
         if self.search.query == self.search.cache.query {
             return;
         }
@@ -134,42 +137,21 @@ impl Searchable<InfoEntry> for GlobalSearchState {
             self.search.cache.indices = Vec::new();
             return;
         }
-        let pattern = Pattern::new(
-            self.search.query.as_str(),
-            CaseMatching::Ignore,
-            Normalization::Smart,
-            AtomKind::Fuzzy,
-        );
-        let scores = self
-            .contents
-            .as_ref()
-            .unwrap()
-            .iter()
-            .map(|i| {
-                pattern.score(
-                    Utf32Str::new(&i.to_string(), &mut Vec::new()),
-                    &mut self.matcher,
-                )
-            })
-            .collect::<Vec<Option<u32>>>();
-        let mut order = scores
-            .into_iter()
-            .enumerate()
-            .collect::<Vec<(usize, Option<u32>)>>();
-        order.sort_by(|a, b| b.1.unwrap_or(0).cmp(&a.1.unwrap_or(0)));
+        if self.filter().cache.utfstrings_cache.is_none() {
+            self.filter_mut().cache.utfstrings_cache = Some(
+                self.contents
+                    .iter()
+                    .flatten()
+                    .map(|i| Utf32String::from(i.to_string()))
+                    .collect(),
+            );
+        }
 
-        // include the index only if the score is Some(nonzero)
-        let order = order
-            .iter()
-            .map(|i| {
-                if i.1.is_some_and(|score| score > 0) {
-                    Some(i.0)
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<Option<usize>>>();
         self.filter_mut().cache.query = self.filter().query.clone();
-        self.filter_mut().cache.order = order;
+        self.filter_mut().cache.order = compute_orders(
+            &self.filter().query,
+            self.filter().cache.utfstrings_cache.as_ref().unwrap(),
+            matcher,
+        );
     }
 }

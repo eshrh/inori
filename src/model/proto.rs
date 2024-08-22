@@ -1,6 +1,10 @@
 extern crate mpd;
 use super::*;
+use nucleo_matcher::pattern::{AtomKind, CaseMatching, Normalization, Pattern};
+use nucleo_matcher::Utf32Str;
+use nucleo_matcher::{Config, Matcher};
 use ratatui::widgets::{ListState, TableState};
+use std::iter::{repeat, repeat_with};
 
 pub trait SelectorState {
     fn selected(&self) -> Option<usize>;
@@ -63,5 +67,5 @@ pub trait Searchable<T>: Selector {
     fn contents_vec(&self) -> Vec<&T> {
         self.contents().collect()
     }
-    fn update_filter_cache(&mut self);
+    fn update_filter_cache(&mut self, matcher: &mut Matcher);
 }

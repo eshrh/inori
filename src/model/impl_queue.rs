@@ -1,3 +1,5 @@
+use nucleo_matcher::Matcher;
+
 use super::proto::*;
 use super::*;
 
@@ -28,7 +30,7 @@ impl Searchable<Song> for QueueSelector {
             .selected()
             .and_then(|i| self.contents.get_mut(i))
     }
-    fn update_filter_cache(&mut self) {
+    fn update_filter_cache(&mut self, matcher: &mut Matcher) {
         unimplemented!();
     }
 }

@@ -1,6 +1,7 @@
 use super::*;
 use crate::model::*;
 use event::KeyModifiers;
+use nucleo_matcher::Matcher;
 use proto::*;
 
 pub mod library_handler;
@@ -23,6 +24,7 @@ pub fn handle_vertical(msg: Vertical, selector: &mut impl Selector) {
 pub fn handle_search_k<T>(
     s: &mut impl Searchable<T>,
     k: KeyEvent,
+    matcher: &mut Matcher,
 ) -> Option<Message> {
     if k.modifiers.contains(KeyModifiers::CONTROL) {
         match k.code {
@@ -46,7 +48,7 @@ pub fn handle_search_k<T>(
             _ => {}
         }
     }
-    s.update_filter_cache();
+    s.update_filter_cache(matcher);
     s.watch_oob();
     None
 }

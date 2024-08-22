@@ -1,6 +1,9 @@
 extern crate mpd;
 use mpd::error::Result;
 use mpd::{Client, Song, Status};
+use nucleo_matcher::Config;
+use nucleo_matcher::Matcher;
+use nucleo_matcher::{Utf32Str, Utf32String};
 use ratatui::widgets::*;
 use std::env;
 mod impl_album_song;
@@ -9,6 +12,7 @@ mod impl_library;
 mod impl_queue;
 mod impl_searchstate;
 pub mod proto;
+mod search_utils;
 use crate::model::proto::*;
 use crate::update::build_library;
 
@@ -51,6 +55,7 @@ pub struct FilterCache {
     pub query: String,
     pub order: Vec<Option<usize>>,
     pub indices: Vec<Option<Vec<u32>>>,
+    pub utfstrings_cache: Option<Vec<Utf32String>>,
 }
 
 pub struct Filter {
@@ -68,7 +73,6 @@ pub struct InfoEntry {
 }
 pub struct GlobalSearchState {
     pub search: Filter,
-    pub matcher: nucleo_matcher::Matcher,
     pub contents: Option<Vec<InfoEntry>>,
     pub results_state: ListState,
 }
@@ -79,7 +83,6 @@ pub struct LibraryState {
     pub active: LibActiveSelector,
     pub contents: Vec<ArtistData>,
     pub artist_state: ListState,
-    pub matcher: nucleo_matcher::Matcher,
 }
 
 pub struct QueueSelector {
@@ -96,6 +99,7 @@ pub struct Model {
     pub library: LibraryState,
     pub queue: QueueSelector,
     pub currentsong: Option<Song>,
+    pub matcher: nucleo_matcher::Matcher,
 }
 
 impl Model {
@@ -116,6 +120,11 @@ impl Model {
             library: LibraryState::new(),
             queue: QueueSelector::new(),
             currentsong: None,
+            matcher: {
+                let mut default_config = Config::DEFAULT;
+                default_config.prefer_prefix = true;
+                Matcher::new(default_config)
+            },
         })
     }
     pub fn update_status(&mut self) -> Result<()> {
