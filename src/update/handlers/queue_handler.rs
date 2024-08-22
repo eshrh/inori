@@ -48,6 +48,31 @@ pub fn handle_queue(model: &mut Model, msg: Message) -> Result<Update> {
             }
             Ok(Update::STATUS | Update::QUEUE)
         }
+        Message::LocalSearch(SearchMsg::Start) => {
+            model.queue.search.active = true;
+            model.state = State::Searching;
+            if model.queue.len() != 0 {
+                model.queue.set_selected(Some(0));
+            }
+            Ok(Update::empty())
+        }
+        Message::LocalSearch(SearchMsg::End) => {
+            model.state = State::Running;
+            Ok(Update::empty())
+        }
+        Message::Escape => {
+            model.queue.search.active = false;
+            model.queue.search.query = String::new();
+            Ok(Update::empty())
+        }
         _ => Ok(Update::empty()),
+    }
+}
+
+pub fn handle_search(model: &mut Model, k: KeyEvent) -> Result<Update> {
+    if let Some(m) = handle_search_k(&mut model.queue, k, &mut model.matcher) {
+        handle_msg(model, m)
+    } else {
+        Ok(Update::empty())
     }
 }

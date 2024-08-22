@@ -1,4 +1,6 @@
+use super::search_renderer::make_search_box;
 use super::Theme;
+use crate::model::proto::Searchable;
 use crate::model::*;
 use crate::util::{format_time, song_album};
 use ratatui::prelude::Constraint::*;
@@ -26,8 +28,7 @@ pub fn make_progress_bar<'a>(ratio: f64) -> LineGauge<'a> {
 pub fn make_queue<'a>(model: &mut Model, theme: &Theme) -> Table<'a> {
     let rows: Vec<Row> = model
         .queue
-        .contents
-        .iter()
+        .contents()
         .map(|song| {
             Row::new(vec![
                 Cell::from(song.title.clone().unwrap_or("".to_string())),
@@ -79,11 +80,28 @@ pub fn render(model: &mut Model, frame: &mut Frame, theme: &Theme) {
         .direction(Direction::Vertical)
         .constraints(vec![Max(4), Min(1), Max(3)])
         .split(frame.size());
+    let queue_and_search =
+        Layout::vertical(vec![Max(3), Min(1)]).split(layout[1]);
 
     render_status(model, frame, layout[0], theme);
-
     let table = make_queue(model, theme);
-    frame.render_stateful_widget(table, layout[1], &mut model.queue.state);
+    if model.queue.search.active {
+        frame.render_widget(
+            make_search_box(
+                &model.queue.search.query,
+                matches!(model.state, State::Searching),
+                theme,
+            ),
+            queue_and_search[0],
+        );
+        frame.render_stateful_widget(
+            table,
+            queue_and_search[1],
+            &mut model.queue.state,
+        );
+    } else {
+        frame.render_stateful_widget(table, layout[1], &mut model.queue.state);
+    }
 
     let ratio: f64 = match (model.status.elapsed, model.status.duration) {
         (Some(e), Some(t)) => e.as_secs_f64() / t.as_secs_f64(),

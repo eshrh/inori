@@ -151,7 +151,9 @@ pub fn handle_key(model: &mut Model, k: KeyEvent) -> Result<Update> {
             Screen::Library => {
                 Ok(handlers::library_handler::handle_search(model, k)?)
             }
-            Screen::Queue => unimplemented!(),
+            Screen::Queue => {
+                Ok(handlers::queue_handler::handle_search(model, k)?)
+            }
         },
         State::Running => {
             if let Some(m) = parse_msg(k) {

@@ -1,7 +1,7 @@
-use nucleo_matcher::Matcher;
-
 use super::proto::*;
 use super::*;
+use crate::util;
+use nucleo_matcher::Matcher;
 
 impl Selector for QueueSelector {
     fn selector(&self) -> &impl SelectorState {
@@ -23,7 +23,17 @@ impl Searchable<Song> for QueueSelector {
         &mut self.search
     }
     fn contents(&self) -> Box<dyn Iterator<Item = &Song> + '_> {
-        Box::new(self.contents.iter())
+        if self.filter().active {
+            Box::new(
+                self.filter()
+                    .cache
+                    .order
+                    .iter()
+                    .filter_map(|idx| idx.map(|i| &self.contents[i])),
+            )
+        } else {
+            Box::new(self.contents.iter())
+        }
     }
     fn selected_item_mut(&mut self) -> Option<&mut Song> {
         self.selector()
@@ -31,8 +41,39 @@ impl Searchable<Song> for QueueSelector {
             .and_then(|i| self.contents.get_mut(i))
     }
     fn update_filter_cache(&mut self, matcher: &mut Matcher) {
-        unimplemented!();
+        if self.filter().cache.query == self.filter().query {
+            return;
+        }
+        if self.filter().cache.utfstrings_cache.is_none() {
+            self.filter_mut().cache.utfstrings_cache = Some(
+                self.contents
+                    .iter()
+                    .map(|i| Utf32String::from(song_to_str(i)))
+                    .collect(),
+            );
+        }
+        self.filter_mut().cache.order = search_utils::compute_orders(
+            &self.filter().query,
+            self.filter().cache.utfstrings_cache.as_ref().unwrap(),
+            matcher,
+        );
     }
+}
+
+fn song_to_str(song: &Song) -> String {
+    let mut out = String::new();
+    if let Some(title) = &song.title {
+        out.push_str(title);
+    }
+    if let Some(artist) = &song.artist {
+        out.push(' ');
+        out.push_str(artist);
+    }
+    if let Some(album) = util::song_album(song) {
+        out.push(' ');
+        out.push_str(album);
+    }
+    out
 }
 
 impl QueueSelector {
