@@ -1,9 +1,7 @@
 use super::proto::*;
 use super::*;
 use crate::model::TrackSelItem;
-use nucleo_matcher::pattern::{AtomKind, CaseMatching, Normalization, Pattern};
-use nucleo_matcher::Utf32Str;
-use nucleo_matcher::{Config, Matcher};
+use nucleo_matcher::Matcher;
 use search_utils::{compute_indices, compute_orders};
 
 impl LibraryState {

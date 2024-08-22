@@ -1,10 +1,5 @@
 extern crate mpd;
 use super::*;
-use nucleo_matcher::pattern::{AtomKind, CaseMatching, Normalization, Pattern};
-use nucleo_matcher::Utf32Str;
-use nucleo_matcher::{Config, Matcher};
-use ratatui::widgets::{ListState, TableState};
-use std::iter::{repeat, repeat_with};
 
 pub trait SelectorState {
     fn selected(&self) -> Option<usize>;

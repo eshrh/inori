@@ -1,6 +1,6 @@
 use nucleo_matcher::pattern::{AtomKind, CaseMatching, Normalization, Pattern};
-use nucleo_matcher::{Config, Matcher};
-use nucleo_matcher::{Utf32Str, Utf32String};
+use nucleo_matcher::Matcher;
+use nucleo_matcher::Utf32String;
 
 pub fn compute_orders(
     query: &str,

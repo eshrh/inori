@@ -2,7 +2,6 @@ use super::*;
 use crate::event_handler::Result;
 use crate::model::LibActiveSelector::*;
 use crate::model::TrackSelItem::*;
-use crate::model::*;
 use mpd::Query;
 use mpd::Term;
 use std::borrow::Cow::Borrowed;
@@ -11,7 +10,7 @@ pub fn handle_library(model: &mut Model, msg: Message) -> Result<Update> {
     match msg {
         Message::LocalSearch(SearchMsg::Start) => match model.library.active {
             ArtistSelector => {
-                model.library.artist_search.active = true;
+                model.library.artist_search.set_on();
                 model.state = State::Searching;
                 if model.library.len() != 0 {
                     model.library.set_selected(Some(0))
@@ -23,22 +22,24 @@ pub fn handle_library(model: &mut Model, msg: Message) -> Result<Update> {
         Message::LocalSearch(SearchMsg::End) => {
             model.state = State::Running;
             if model.library.global_search.search.active {
-                model.library.global_search.search.active = false;
+                model.library.global_search.search.set_off();
             }
             Ok(Update::empty())
         }
         Message::GlobalSearch(SearchMsg::Start) => {
             model.state = State::Searching;
-            model.library.artist_search.active = false;
-            model.library.global_search.search.active = true;
+            model.library.artist_search.set_off();
+            model.library.global_search.search.set_on();
             if model.library.global_search.contents.is_none() {
                 model.update_global_search_contents()?;
             }
             Ok(Update::empty())
         }
         Message::Escape => {
-            model.library.artist_search.active = false;
-            model.library.artist_search.query = String::new();
+            match model.library.active {
+                ArtistSelector => model.library.artist_search.set_off(),
+                TrackSelector => unimplemented!(),
+            }
             Ok(Update::empty())
         }
         Message::Tab => {

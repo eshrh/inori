@@ -1,7 +1,5 @@
 use super::*;
-use nucleo_matcher::pattern::{AtomKind, CaseMatching, Normalization, Pattern};
 use nucleo_matcher::Matcher;
-use nucleo_matcher::Utf32Str;
 use proto::*;
 use search_utils::*;
 
@@ -14,6 +12,11 @@ impl FilterCache {
             utfstrings_cache: None,
         }
     }
+    pub fn clear_matches(&mut self) {
+        self.query.clear();
+        self.order.clear();
+        self.indices.clear();
+    }
 }
 
 impl Filter {
@@ -23,6 +26,14 @@ impl Filter {
             query: String::new(),
             cache: FilterCache::new(),
         }
+    }
+    pub fn set_on(&mut self) {
+        self.active = true;
+    }
+    pub fn set_off(&mut self) {
+        self.active = false;
+        self.query.clear();
+        self.cache.clear_matches();
     }
 }
 

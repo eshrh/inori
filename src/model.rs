@@ -1,9 +1,7 @@
 extern crate mpd;
 use mpd::error::Result;
 use mpd::{Client, Song, Status};
-use nucleo_matcher::Config;
-use nucleo_matcher::Matcher;
-use nucleo_matcher::{Utf32Str, Utf32String};
+use nucleo_matcher::{Config, Matcher, Utf32String};
 use ratatui::widgets::*;
 use std::env;
 mod impl_album_song;
@@ -166,6 +164,12 @@ impl Model {
             .position(|i| i.name == target.artist);
         self.library.artist_state.set_selected(artist_idx);
 
+        if target.album.is_some() || target.title.is_some() {
+            self.library.active = LibActiveSelector::TrackSelector;
+        } else {
+            self.library.active = LibActiveSelector::ArtistSelector;
+        }
+
         if target.album.is_none() {
             return;
         }
@@ -174,9 +178,6 @@ impl Model {
         if self.library.selected_item().is_some_and(|i| !i.fetched) {
             build_library::add_tracks(self)
                 .expect("couldn't add tracks on the fly while searching");
-        }
-        if target.album.is_some() || target.title.is_some() {
-            self.library.active = LibActiveSelector::TrackSelector;
         }
         if let Some(artist) = self.library.selected_item_mut() {
             let mut idx: Option<usize> = None;
