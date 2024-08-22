@@ -1,10 +1,7 @@
-use std::str::FromStr;
-
 use super::Theme;
 use crate::model::Model;
 use crate::util::*;
 use mpd::State::*;
-use ratatui::prelude::Color;
 use ratatui::prelude::Constraint::*;
 use ratatui::prelude::*;
 use ratatui::style::Styled;
@@ -49,7 +46,7 @@ pub fn render_status(
                 Cell::from(match model.status.state {
                     Play => Text::from("[playing]").style(theme.playing),
                     Pause => Text::from("[paused]").style(theme.paused),
-                    Stop => "[stopped]".into(),
+                    Stop => Text::from("[stopped]").style(theme.stopped),
                 }),
                 Cell::from(
                     match &model.currentsong {

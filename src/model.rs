@@ -1,8 +1,6 @@
 extern crate mpd;
 use mpd::error::Result;
-// use crate::event_handler::Result;
 use mpd::{Client, Song, Status};
-use nucleo_matcher::Config;
 use ratatui::widgets::*;
 use std::env;
 mod impl_album_song;
@@ -17,8 +15,7 @@ use crate::update::build_library;
 #[derive(Clone)]
 pub enum Screen {
     Library,
-    Queue,
-    Playlist,
+    Queue
 }
 
 pub enum State {
@@ -93,8 +90,6 @@ pub struct QueueSelector {
     pub state: TableState,
 }
 
-pub struct PlaylistState;
-
 pub struct Model {
     pub state: State,
     pub status: Status,
@@ -102,7 +97,6 @@ pub struct Model {
     pub screen: Screen,
     pub library: LibraryState,
     pub queue: QueueSelector,
-    pub playlist: PlaylistState,
     pub currentsong: Option<Song>,
 }
 
@@ -123,7 +117,6 @@ impl Model {
             screen: Screen::Library,
             library: LibraryState::new(),
             queue: QueueSelector::new(),
-            playlist: PlaylistState,
             currentsong: None,
         })
     }
@@ -188,8 +181,6 @@ impl Model {
                     _ => false,
                 });
             } else {
-                // dbg!(target);
-                // panic!();
                 if let Some(album_name) = target.album {
                     idx = artist.contents().iter().position(|i| match i {
                         TrackSelItem::Album(a) => a.name == *album_name,

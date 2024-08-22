@@ -28,7 +28,3 @@ pub fn update_queue(model: &mut Model) -> Result<()> {
     }
     Ok(())
 }
-
-pub fn update_playlist(model: &mut Model) -> Result<()> {
-    Ok(())
-}

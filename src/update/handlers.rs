@@ -1,5 +1,4 @@
 use super::*;
-use crate::event_handler::Result;
 use crate::model::*;
 use event::KeyModifiers;
 use selector_state::*;
@@ -50,8 +49,4 @@ pub fn handle_search_k<T>(
     s.update_filter_cache();
     s.watch_oob();
     None
-}
-
-pub fn handle_playlist(model: &mut Model, msg: Message) -> Result<Update> {
-    unimplemented!()
 }

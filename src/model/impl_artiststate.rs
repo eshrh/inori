@@ -1,5 +1,4 @@
 use super::*;
-use nucleo_matcher::Utf32Str;
 use selector_state::*;
 impl Selector for ArtistData {
     fn selector(&self) -> &impl SelectorState {

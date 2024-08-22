@@ -1,11 +1,13 @@
 use crate::model::*;
 use ratatui::prelude::*;
 use ratatui::style::Color::*;
-use ratatui::style::{Color, Modifier, Style};
-use ratatui::widgets::*;
+use ratatui::style::Style;
+mod artist_select_renderer;
 pub mod library_renderer;
 pub mod queue_renderer;
+mod search_renderer;
 mod status_renderer;
+mod track_select_renderer;
 
 pub struct Theme {
     pub item_highlight_active: Style,
@@ -20,6 +22,8 @@ pub struct Theme {
     pub paused: Style,
     pub stopped: Style,
     pub slash_span: Style,
+    pub search_query_active: Style,
+    pub search_query_inactive: Style,
 }
 
 pub fn view(model: &mut Model, frame: &mut Frame) {
@@ -39,10 +43,11 @@ pub fn view(model: &mut Model, frame: &mut Frame) {
         stopped: Style::new().fg(Red),
         artist_sort: Style::new().fg(DarkGray),
         slash_span: Style::new().fg(LightMagenta),
+        search_query_active: Style::new().bg(White).fg(Black),
+        search_query_inactive: Style::new().bg(DarkGray).fg(Black),
     };
     match model.screen {
         Screen::Library => library_renderer::render(model, frame, &theme),
-        Screen::Queue => queue_renderer::render(model, frame, &theme),
-        Screen::Playlist => library_renderer::render(model, frame, &theme),
+        Screen::Queue => queue_renderer::render(model, frame, &theme)
     }
 }

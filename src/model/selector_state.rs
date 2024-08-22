@@ -5,8 +5,6 @@ use ratatui::widgets::{ListState, TableState};
 pub trait SelectorState {
     fn selected(&self) -> Option<usize>;
     fn set_selected(&mut self, s: Option<usize>);
-    fn offset(&self) -> usize;
-    fn set_offset(&mut self, o: usize);
 }
 
 impl SelectorState for ListState {
@@ -16,12 +14,6 @@ impl SelectorState for ListState {
     fn set_selected(&mut self, s: Option<usize>) {
         *self.selected_mut() = s;
     }
-    fn offset(&self) -> usize {
-        self.offset()
-    }
-    fn set_offset(&mut self, o: usize) {
-        *self.offset_mut() = o;
-    }
 }
 
 impl SelectorState for TableState {
@@ -30,12 +22,6 @@ impl SelectorState for TableState {
     }
     fn set_selected(&mut self, s: Option<usize>) {
         *self.selected_mut() = s;
-    }
-    fn offset(&self) -> usize {
-        self.offset()
-    }
-    fn set_offset(&mut self, o: usize) {
-        *self.offset_mut() = o;
     }
 }
 

@@ -1,9 +1,7 @@
 use super::*;
 use crate::event_handler::Result;
-use crate::model::selector_state::*;
 use crate::model::LibActiveSelector::*;
 use crate::model::TrackSelItem::*;
-use crate::util::song_album;
 use mpd::Query;
 use mpd::Term;
 use std::borrow::Cow::Borrowed;

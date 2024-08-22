@@ -2,8 +2,7 @@ extern crate mpd;
 use crate::event_handler::Result;
 use crate::model::selector_state::*;
 use crate::model::{AlbumData, ArtistData, Model};
-use mpd::{Query, Song, Term};
-use ratatui::widgets::ListState;
+use mpd::{Query, Term};
 use std::borrow::Cow::Borrowed;
 
 pub fn build_library(model: &mut Model) -> Result<()> {

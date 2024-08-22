@@ -1,7 +1,6 @@
 use super::Theme;
 use crate::model::*;
 use crate::util::{format_time, song_album};
-use mpd::Song;
 use ratatui::prelude::Constraint::*;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
