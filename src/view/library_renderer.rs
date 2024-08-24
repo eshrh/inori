@@ -9,22 +9,6 @@ use ratatui::prelude::Constraint::*;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
 
-pub fn render_filter(
-    model: &mut Model,
-    frame: &mut Frame,
-    area: Rect,
-    theme: &Theme,
-) {
-    frame.render_widget(
-        make_search_box(
-            &model.library.artist_search.query,
-            matches!(model.state, State::Searching),
-            theme,
-        ),
-        area,
-    );
-}
-
 pub fn render_artist_sort<'a>(text: String, style: Style) -> Span<'a> {
     Span::from(format!(" {}{}{}", "[", text, "]")).style(style)
 }
@@ -81,23 +65,48 @@ pub fn render(model: &mut Model, frame: &mut Frame, theme: &Theme) {
     let header_layout = Layout::horizontal(vec![Ratio(1, 1)]).split(layout[0]);
     let left_panel =
         Layout::vertical(vec![Max(3), Min(1)]).split(menu_layout[0]);
-
+    let right_panel =
+        Layout::vertical(vec![Max(3), Min(1)]).split(menu_layout[1]);
     let center_popup_h = Layout::horizontal(vec![
         Percentage(20),
         Percentage(60),
         Percentage(20),
     ])
     .split(frame.size());
+
     let center_popup_v =
         Layout::vertical(vec![Percentage(20), Percentage(60), Percentage(20)])
             .split(center_popup_h[1]);
     let center_popup = center_popup_v[1];
-
-    render_track_list(model, frame, menu_layout[1], theme);
     render_status(model, frame, header_layout[0], theme);
 
+    if model
+        .library
+        .selected_item()
+        .is_some_and(|a| a.search.active)
+    {
+        frame.render_widget(
+            make_search_box(
+                &model.library.selected_item().unwrap().search.query,
+                matches!(model.state, State::Searching),
+                theme,
+            ),
+            right_panel[0],
+        );
+        render_track_list(model, frame, right_panel[1], theme);
+    } else {
+        render_track_list(model, frame, menu_layout[1], theme);
+    }
+
     if model.library.artist_search.active {
-        render_filter(model, frame, left_panel[0], theme);
+        frame.render_widget(
+            make_search_box(
+                &model.library.artist_search.query,
+                matches!(model.state, State::Searching),
+                theme,
+            ),
+            left_panel[0],
+        );
         render_artist_list(model, frame, left_panel[1], theme);
     } else {
         render_artist_list(model, frame, menu_layout[0], theme);

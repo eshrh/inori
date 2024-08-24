@@ -10,7 +10,7 @@ pub fn render_str_with_idxs<'a>(
     idxs: &Vec<u32>,
     len: usize,
     theme: &Theme,
-) -> Line<'a> {
+) -> Vec<Span<'a>> {
     let spans: Vec<Span> = str
         .chars()
         .enumerate()
@@ -28,22 +28,22 @@ pub fn render_str_with_idxs<'a>(
             })
         })
         .collect();
-    Line::from(spans)
+    spans
 }
 
 pub fn get_artist_list<'a>(model: &Model, theme: &Theme) -> List<'a> {
-    if model.library.artist_search.active {
+    if model.library.should_filter() {
         let indices = &model.library.artist_search.cache.indices;
         List::new(model.library.contents().zip(indices).map(
             |(artist, idxs_o)| {
                 let len = artist.name.chars().count();
                 if let Some(idxs) = idxs_o {
-                    render_str_with_idxs(
+                    Line::from(render_str_with_idxs(
                         artist.to_fuzzy_find_str(),
                         idxs,
                         len,
                         theme,
-                    )
+                    ))
                 } else {
                     Line::from(vec![
                         Span::from(artist.name[0..len].to_string()),

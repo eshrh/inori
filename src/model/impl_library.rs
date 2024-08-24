@@ -43,9 +43,9 @@ impl Searchable<ArtistData> for LibraryState {
         &mut self.artist_search
     }
     fn contents(&self) -> Box<dyn Iterator<Item = &ArtistData> + '_> {
-        if self.filter().active {
+        if self.should_filter() {
             Box::new(
-                self.artist_search
+                self.filter()
                     .cache
                     .order
                     .iter()
@@ -56,7 +56,7 @@ impl Searchable<ArtistData> for LibraryState {
         }
     }
     fn selected_item_mut(&mut self) -> Option<&mut ArtistData> {
-        if self.filter().active {
+        if self.should_filter() {
             self.selector().selected().and_then(|i| {
                 self.artist_search.cache.order[i]
                     .and_then(|j| self.contents.get_mut(j))
@@ -83,6 +83,7 @@ impl Searchable<ArtistData> for LibraryState {
             &self.filter().query,
             self.filter().cache.utfstrings_cache.as_ref().unwrap(),
             matcher,
+            0,
         );
 
         let strings_for_indices: Vec<&Utf32String> = self

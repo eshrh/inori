@@ -41,3 +41,18 @@ pub fn format_progress(s: &Status) -> String {
         String::new()
     }
 }
+pub fn song_to_str(song: &Song) -> String {
+    let mut out = String::new();
+    if let Some(title) = &song.title {
+        out.push_str(title);
+    }
+    if let Some(artist) = &song.artist {
+        out.push(' ');
+        out.push_str(artist);
+    }
+    if let Some(album) = song_album(song) {
+        out.push(' ');
+        out.push_str(album);
+    }
+    out
+}

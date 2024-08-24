@@ -1,6 +1,6 @@
 use super::proto::*;
 use super::*;
-use crate::util;
+use crate::util::song_to_str;
 use nucleo_matcher::Matcher;
 
 impl Selector for QueueSelector {
@@ -23,7 +23,7 @@ impl Searchable<Song> for QueueSelector {
         &mut self.search
     }
     fn contents(&self) -> Box<dyn Iterator<Item = &Song> + '_> {
-        if self.filter().active {
+        if self.should_filter() {
             Box::new(
                 self.filter()
                     .cache
@@ -36,9 +36,16 @@ impl Searchable<Song> for QueueSelector {
         }
     }
     fn selected_item_mut(&mut self) -> Option<&mut Song> {
-        self.selector()
-            .selected()
-            .and_then(|i| self.contents.get_mut(i))
+        if self.should_filter() {
+            self.selector()
+                .selected()
+                .and_then(|i| self.filter().cache.order.get(i).cloned())
+                .and_then(|i| self.contents.get_mut(i?))
+        } else {
+            self.selector()
+                .selected()
+                .and_then(|i| self.contents.get_mut(i))
+        }
     }
     fn update_filter_cache(&mut self, matcher: &mut Matcher) {
         if self.filter().cache.query == self.filter().query {
@@ -56,24 +63,9 @@ impl Searchable<Song> for QueueSelector {
             &self.filter().query,
             self.filter().cache.utfstrings_cache.as_ref().unwrap(),
             matcher,
+            0,
         );
     }
-}
-
-fn song_to_str(song: &Song) -> String {
-    let mut out = String::new();
-    if let Some(title) = &song.title {
-        out.push_str(title);
-    }
-    if let Some(artist) = &song.artist {
-        out.push(' ');
-        out.push_str(artist);
-    }
-    if let Some(album) = util::song_album(song) {
-        out.push(' ');
-        out.push_str(album);
-    }
-    out
 }
 
 impl QueueSelector {

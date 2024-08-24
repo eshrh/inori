@@ -1,24 +1,30 @@
 use super::*;
 use crate::event_handler::Result;
+use crate::model::ItemRef::*;
 use crate::model::LibActiveSelector::*;
-use crate::model::TrackSelItem::*;
 use mpd::Query;
 use mpd::Term;
 use std::borrow::Cow::Borrowed;
 
 pub fn handle_library(model: &mut Model, msg: Message) -> Result<Update> {
     match msg {
-        Message::LocalSearch(SearchMsg::Start) => match model.library.active {
-            ArtistSelector => {
-                model.library.artist_search.set_on();
-                model.state = State::Searching;
-                if model.library.len() != 0 {
-                    model.library.set_selected(Some(0))
+        Message::LocalSearch(SearchMsg::Start) => {
+            match model.library.active {
+                ArtistSelector => {
+                    model.library.artist_search.set_on();
+                    if model.library.len() != 0 {
+                        model.library.set_selected(Some(0))
+                    }
                 }
-                Ok(Update::empty())
-            }
-            TrackSelector => unimplemented!(),
-        },
+                TrackSelector => {
+                    if let Some(a) = model.library.selected_item_mut() {
+                        a.search.set_on();
+                    }
+                }
+            };
+            model.state = State::Searching;
+            Ok(Update::empty())
+        }
         Message::LocalSearch(SearchMsg::End) => {
             model.state = State::Running;
             if model.library.global_search.search.active {
@@ -38,8 +44,13 @@ pub fn handle_library(model: &mut Model, msg: Message) -> Result<Update> {
         Message::Escape => {
             match model.library.active {
                 ArtistSelector => model.library.artist_search.set_off(),
-                TrackSelector => unimplemented!(),
-            }
+                TrackSelector => {
+                    if let Some(a) = model.library.selected_item_mut() {
+                        a.search.set_off();
+                        a.expand_all();
+                    }
+                }
+            };
             Ok(Update::empty())
         }
         Message::Tab => {
@@ -82,7 +93,19 @@ pub fn handle_search(model: &mut Model, k: KeyEvent) -> Result<Update> {
                 Ok(Update::empty())
             }
         }
-        (TrackSelector, _) => unimplemented!(),
+        (TrackSelector, _) => {
+            if let Some(artist) = model.library.selected_item_mut() {
+                let msg =
+                    handle_search_k_tracksel(artist, k, &mut model.matcher);
+                if let Some(m) = msg {
+                    handle_msg(model, m)
+                } else {
+                    Ok(Update::empty())
+                }
+            } else {
+                Ok(Update::empty())
+            }
+        }
     }
 }
 
@@ -118,7 +141,7 @@ pub fn handle_library_artist(
 
 pub fn add_item(model: &mut Model) -> Result<Update> {
     if let Some(artist) = model.library.selected_item_mut() {
-        match artist.selected_item() {
+        match artist.selected_item().map(|i| i.item) {
             Some(Album(album)) => model.conn.findadd(
                 Query::new()
                     .and(
@@ -156,7 +179,9 @@ pub fn handle_library_track(model: &mut Model, msg: Message) -> Result<Update> {
                 } else {
                     if let Some(idx) = art.selected() {
                         for i in (0..idx).rev() {
-                            if let Some(Album(_)) = art.contents().get(i) {
+                            if let Some(Album(_)) =
+                                art.contents().get(i).map(|i| &i.item)
+                            {
                                 art.set_selected(Some(i));
                             }
                             if let Some(album) = art.selected_album_mut() {

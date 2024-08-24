@@ -111,9 +111,9 @@ impl Searchable<InfoEntry> for GlobalSearchState {
     fn contents(&self) -> Box<dyn Iterator<Item = &InfoEntry> + '_> {
         match &self.contents {
             Some(c) => {
-                if self.filter().active {
+                if self.should_filter() {
                     Box::new(
-                        self.search
+                        self.filter()
                             .cache
                             .order
                             .iter()
@@ -126,19 +126,11 @@ impl Searchable<InfoEntry> for GlobalSearchState {
             None => Box::new(std::iter::empty()),
         }
     }
+
     fn selected_item_mut(&mut self) -> Option<&mut InfoEntry> {
-        // if self.filter().active {
-        //     self.selector().selected().and_then(|i| {
-        //         self.search.cache.order[i]
-        //             .and_then(|j| self.contents_get_mut(j))
-        //     })
-        // } else {
-        //     self.selector()
-        //         .selected()
-        //         .and_then(|i| self.contents_get_mut(i))
-        // }
         unimplemented!();
     }
+
     fn update_filter_cache(&mut self, matcher: &mut Matcher) {
         if self.search.query == self.search.cache.query {
             return;
@@ -163,6 +155,7 @@ impl Searchable<InfoEntry> for GlobalSearchState {
             &self.filter().query,
             self.filter().cache.utfstrings_cache.as_ref().unwrap(),
             matcher,
+            0,
         );
     }
 }

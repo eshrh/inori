@@ -6,6 +6,7 @@ pub fn compute_orders(
     query: &str,
     strings: &Vec<Utf32String>,
     matcher: &mut Matcher,
+    score_threshold: u32,
 ) -> Vec<Option<usize>> {
     let pattern = Pattern::new(
         query,
@@ -25,7 +26,7 @@ pub fn compute_orders(
     let order = order
         .iter()
         .map(|i| {
-            if i.1.is_some_and(|score| score > 0) {
+            if i.1.is_some_and(|score| score > score_threshold) {
                 Some(i.0)
             } else {
                 None

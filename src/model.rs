@@ -25,15 +25,23 @@ pub enum State {
     Done,
 }
 
+#[derive(Debug)]
 pub struct AlbumData {
     pub expanded: bool,
     pub name: String,
     pub tracks: Vec<Song>,
 }
 
-pub enum TrackSelItem<'a> {
+#[derive(Debug)]
+pub enum ItemRef<'a> {
     Album(&'a AlbumData),
     Song(&'a Song),
+}
+
+#[derive(Debug)]
+pub struct TrackSelItem<'a> {
+    pub item: ItemRef<'a>,
+    pub rank: Option<usize>,
 }
 
 pub struct ArtistData {
@@ -42,6 +50,7 @@ pub struct ArtistData {
     pub sort_names: Vec<String>,
     pub albums: Vec<AlbumData>,
     pub track_sel_state: TableState,
+    pub search: Filter,
 }
 
 pub enum LibActiveSelector {
@@ -173,25 +182,24 @@ impl Model {
         if target.album.is_none() {
             return;
         }
-        // 3 -> album
-        // 4 -> track
         if self.library.selected_item().is_some_and(|i| !i.fetched) {
             build_library::add_tracks(self)
                 .expect("couldn't add tracks on the fly while searching");
         }
         if let Some(artist) = self.library.selected_item_mut() {
             let mut idx: Option<usize> = None;
+            artist.expand_all();
             if let Some(track_name) = target.title {
-                idx = artist.contents().iter().position(|i| match i {
-                    TrackSelItem::Song(s) => {
+                idx = artist.contents().iter().position(|i| match i.item {
+                    ItemRef::Song(s) => {
                         *s.title.as_ref().unwrap() == track_name
                     }
                     _ => false,
                 });
             } else {
                 if let Some(album_name) = target.album {
-                    idx = artist.contents().iter().position(|i| match i {
-                        TrackSelItem::Album(a) => a.name == *album_name,
+                    idx = artist.contents().iter().position(|i| match i.item {
+                        ItemRef::Album(a) => a.name == *album_name,
                         _ => false,
                     });
                 }
