@@ -16,8 +16,7 @@ fn itemref_to_row<'a>(
     theme: &Theme,
 ) -> Row<'a> {
     let idxs = item.rank.and_then(|r| artist.search.cache.indices.get(r));
-    let mut row =
-    match item.item {
+    let row = match item.item {
         ItemRef::Album(a) => {
             let mut album_line = vec![Span::from(" ")];
             if let Some(Some(idxs)) = idxs {

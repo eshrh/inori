@@ -36,6 +36,7 @@ pub fn make_queue<'a>(model: &mut Model, theme: &Theme) -> Table<'a> {
                     Text::from(
                         song.artist.clone().unwrap_or("Unknown Artist".into()),
                     )
+                    .style(theme.status_artist)
                     .left_aligned(),
                 ),
                 Cell::from(
@@ -44,6 +45,7 @@ pub fn make_queue<'a>(model: &mut Model, theme: &Theme) -> Table<'a> {
                             .cloned()
                             .unwrap_or("Unknown Album".into()),
                     )
+                    .style(theme.album)
                     .left_aligned(),
                 ),
                 Cell::from(

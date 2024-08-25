@@ -83,7 +83,7 @@ pub fn update_screens(model: &mut Model, update: Update) -> Result<()> {
         model.queue.contents = model.conn.queue().unwrap_or(vec![]);
     }
     if update.contains(Update::CURRENT_ARTIST) {
-        if !model.library.selected_item_mut().is_some_and(|i| i.fetched) {
+        if model.library.selected_item_mut().is_some() {
             build_library::add_tracks(model)?;
         }
     }

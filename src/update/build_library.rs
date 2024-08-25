@@ -18,7 +18,11 @@ pub fn build_library(model: &mut Model) -> Result<()> {
             ));
         }
     }
-    model.library.contents.sort_by(|a, b| a.name.cmp(&b.name));
+    model.library.contents.sort_by(|a, b| {
+        let a_name = a.sort_names.first().unwrap_or(&a.name);
+        let b_name = b.sort_names.first().unwrap_or(&a.name);
+        a_name.to_lowercase().cmp(&b_name.to_lowercase())
+    });
     Ok(())
 }
 
