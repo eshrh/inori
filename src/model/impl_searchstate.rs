@@ -91,7 +91,12 @@ impl Selector for GlobalSearchState {
     }
     fn len(&self) -> usize {
         if self.filter().active {
-            self.filter().cache.order.len()
+            self.filter()
+                .cache
+                .order
+                .iter()
+                .take_while(|i| i.is_some())
+                .count()
         } else {
             match &self.contents {
                 Some(v) => v.len(),
