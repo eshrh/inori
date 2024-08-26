@@ -1,5 +1,6 @@
 * inori
 Client for the Music Player Daemon ([[https://www.musicpd.org/][MPD]])
+
 ** Features
 - Fuzzy search everywhere with [[https://github.com/helix-editor/nucleo][nucleo]]
   - Fully unicode aware, with special attention to the "albumartistsort"
@@ -8,7 +9,22 @@ Client for the Music Player Daemon ([[https://www.musicpd.org/][MPD]])
 - Folding library interface inspired by [[https://cmus.github.io/][cmus]]
 - Queue viewer and manipulation interface
 - Configurable, chainable keybindings
+** Usage/Installation
+Run =cargo install --path .=
+
+The default keybindings use dvorak-convenient movement keys
+(=dhtn=). Build/install with the command line args
+=--features qwerty_movement_keys --no-default-features=
+for qwerty-vim style movement.
+
+See [[./CONFIGURATION.org][configuration.org]] for config options, as well as a full list of
+all default keybindings.
+
 ** Screenshots
 [[./images/library.png]]
 [[./images/search.png]]
 [[./images/queue.png]]
+** Acknowledgements
+- authors of [[https://ratatui.rs/][ratatui]] and [[https://docs.rs/mpd/latest/mpd/][rust-mpd]]
+- [[https://github.com/figsoda/mmtc][mmtc]] and [[https://github.com/krolyxon/rmptui][rmptui]], two other rust mpd clients, helped me learn rust
+- @stephen-huan: here from day one
