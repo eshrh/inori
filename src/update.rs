@@ -25,6 +25,8 @@ bitflags! {
 pub enum Vertical {
     Up,
     Down,
+    Top,
+    Bottom,
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -62,6 +64,7 @@ pub enum Message {
     SwitchScreen(Screen),
     Delete,
     ToggleScreen,
+    TogglePanel,
     Fold,
     Clear,
     LocalSearch(SearchMsg),

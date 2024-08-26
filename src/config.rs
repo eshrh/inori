@@ -1,6 +1,5 @@
 use crate::model::*;
-use crate::update::*;
-use crate::{update::Message, view::Theme};
+use crate::view::Theme;
 use ratatui::style::Style;
 use std::env;
 use std::fs;
@@ -8,37 +7,11 @@ use std::path::PathBuf;
 use toml::Table;
 use toml::Value;
 pub mod keybind;
-use keybind::KeybindMap;
+use keybind::{get_message, KeybindMap};
 
 pub struct Config {
     pub keybindings: KeybindMap,
     pub theme: Theme,
-}
-
-fn get_message(s: &str) -> Option<Message> {
-    match s {
-        "up" => Some(Message::Direction(Dirs::Vert(Vertical::Up))),
-        "down" => Some(Message::Direction(Dirs::Vert(Vertical::Down))),
-        "left" => Some(Message::Direction(Dirs::Horiz(Horizontal::Left))),
-        "right" => Some(Message::Direction(Dirs::Horiz(Horizontal::Right))),
-        "toggle_playpause" => Some(Message::PlayPause),
-        "select" => Some(Message::Select),
-        "quit" => Some(Message::SwitchState(State::Done)),
-        "switch_to_library" => Some(Message::SwitchScreen(Screen::Library)),
-        "switch_to_queue" => Some(Message::SwitchScreen(Screen::Queue)),
-        "toggle_screen_lq" => Some(Message::ToggleScreen),
-        "fold" => Some(Message::Fold),
-        "clear_queue" => Some(Message::Clear),
-        "local_search" => Some(Message::LocalSearch(SearchMsg::Start)),
-        "global_search" => Some(Message::GlobalSearch(SearchMsg::Start)),
-        "escape" => Some(Message::Escape),
-        "delete" => Some(Message::Delete),
-        "tog_repeat" => Some(Message::Set(Toggle::Repeat)),
-        "tog_single" => Some(Message::Set(Toggle::Single)),
-        "tog_consume" => Some(Message::Set(Toggle::Consume)),
-        "tog_random" => Some(Message::Set(Toggle::Random)),
-        _ => None
-    }
 }
 
 impl Config {

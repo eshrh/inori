@@ -1,5 +1,7 @@
 use crate::event_handler::Result;
+use crate::model::{Screen, State};
 use crate::update::Message::{self, *};
+use crate::update::*;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::collections::HashMap;
 
@@ -14,6 +16,34 @@ pub struct KeybindMap(pub HashMap<KeyEvent, KeybindTarget>);
 #[cfg(all(feature = "dvorak_movement_keys", feature = "qwerty_movement_keys"))]
 compile_error!("Cannot have both default dvorak and qwerty movement keys");
 
+pub fn get_message(s: &str) -> Option<Message> {
+    match s {
+        "up" => Some(Message::Direction(Dirs::Vert(Vertical::Up))),
+        "down" => Some(Message::Direction(Dirs::Vert(Vertical::Down))),
+        "left" => Some(Message::Direction(Dirs::Horiz(Horizontal::Left))),
+        "right" => Some(Message::Direction(Dirs::Horiz(Horizontal::Right))),
+        "toggle_playpause" => Some(Message::PlayPause),
+        "select" => Some(Message::Select),
+        "quit" => Some(Message::SwitchState(State::Done)),
+        "switch_to_library" => Some(Message::SwitchScreen(Screen::Library)),
+        "switch_to_queue" => Some(Message::SwitchScreen(Screen::Queue)),
+        "toggle_screen_lq" => Some(Message::ToggleScreen),
+        "toggle_panel" => Some(Message::TogglePanel),
+        "tog_random" => Some(Message::Set(Toggle::Random)),
+        "fold" => Some(Message::Fold),
+        "clear_queue" => Some(Message::Clear),
+        "local_search" => Some(Message::LocalSearch(SearchMsg::Start)),
+        "global_search" => Some(Message::GlobalSearch(SearchMsg::Start)),
+        "escape" => Some(Message::Escape),
+        "delete" => Some(Message::Delete),
+        "toggle_repeat" => Some(Message::Set(Toggle::Repeat)),
+        "toggle_single" => Some(Message::Set(Toggle::Single)),
+        "toggle_consume" => Some(Message::Set(Toggle::Consume)),
+        "toggle_random" => Some(Message::Set(Toggle::Random)),
+        _ => None,
+    }
+}
+
 impl KeybindMap {
     pub fn default() -> Self {
         let mut keybindings = HashMap::new();
@@ -22,54 +52,46 @@ impl KeybindMap {
         {
             keybindings.insert(
                 KeyEvent::new(KeyCode::Char('t'), empty),
-                Msg(Direction(crate::config::Dirs::Vert(
-                    crate::config::Vertical::Up,
-                ))),
+                Msg(Direction(Dirs::Vert(Vertical::Up))),
             );
             keybindings.insert(
                 KeyEvent::new(KeyCode::Char('h'), empty),
-                Msg(Direction(crate::config::Dirs::Vert(
-                    crate::config::Vertical::Down,
-                ))),
+                Msg(Direction(Dirs::Vert(Vertical::Down))),
             );
             keybindings.insert(
                 KeyEvent::new(KeyCode::Char('d'), empty),
-                Msg(Direction(crate::config::Dirs::Horiz(
-                    crate::config::Horizontal::Left,
-                ))),
+                Msg(Direction(Dirs::Horiz(Horizontal::Left))),
             );
             keybindings.insert(
                 KeyEvent::new(KeyCode::Char('n'), empty),
-                Msg(Direction(crate::config::Dirs::Horiz(
-                    crate::config::Horizontal::Right,
-                ))),
+                Msg(Direction(Dirs::Horiz(Horizontal::Left))),
+            );
+            keybindings.insert(
+                KeyEvent::new(KeyCode::Char('<'), empty),
+                Msg(Direction(Dirs::Vert(Vertical::Top))),
+            );
+            keybindings.insert(
+                KeyEvent::new(KeyCode::Char('>'), empty),
+                Msg(Direction(Dirs::Vert(Vertical::Bottom))),
             );
         }
         #[cfg(feature = "qwerty_movement_keys")]
         {
             keybindings.insert(
                 KeyEvent::new(KeyCode::Char('k'), empty),
-                Msg(Direction(crate::config::Dirs::Vert(
-                    crate::config::Vertical::Up,
-                ))),
+                Msg(Direction(Dirs::Vert(Vertical::Up))),
             );
             keybindings.insert(
                 KeyEvent::new(KeyCode::Char('j'), empty),
-                Msg(Direction(crate::config::Dirs::Vert(
-                    crate::config::Vertical::Down,
-                ))),
+                Msg(Direction(Dirs::Vert(Vertical::Down))),
             );
             keybindings.insert(
                 KeyEvent::new(KeyCode::Char('h'), empty),
-                Msg(Direction(crate::config::Dirs::Horiz(
-                    crate::config::Horizontal::Left,
-                ))),
+                Msg(Direction(Dirs::Horiz(Horizontal::Left))),
             );
             keybindings.insert(
                 KeyEvent::new(KeyCode::Char('l'), empty),
-                Msg(Direction(crate::config::Dirs::Horiz(
-                    crate::config::Horizontal::Right,
-                ))),
+                Msg(Direction(Dirs::Horiz(Horizontal::Left))),
             );
         }
         keybindings
@@ -96,31 +118,47 @@ impl KeybindMap {
             .insert(KeyEvent::new(KeyCode::Char('-'), empty), Msg(Clear));
         keybindings.insert(
             KeyEvent::new(KeyCode::Char('/'), empty),
-            Msg(LocalSearch(super::SearchMsg::Start)),
-        );
-        keybindings.insert(
-            KeyEvent::new(KeyCode::Char('g'), empty),
-            Msg(GlobalSearch(super::SearchMsg::Start)),
+            Msg(LocalSearch(SearchMsg::Start)),
         );
         keybindings.insert(KeyEvent::new(KeyCode::Esc, empty), Msg(Escape));
         keybindings.insert(
             KeyEvent::new(KeyCode::Char('r'), empty),
-            Msg(Set(super::Toggle::Repeat)),
+            Msg(Set(Toggle::Repeat)),
         );
         keybindings.insert(
             KeyEvent::new(KeyCode::Char('z'), empty),
-            Msg(Set(super::Toggle::Random)),
+            Msg(Set(Toggle::Random)),
         );
         keybindings.insert(
             KeyEvent::new(KeyCode::Char('s'), empty),
-            Msg(Set(super::Toggle::Single)),
+            Msg(Set(Toggle::Single)),
         );
         keybindings.insert(
             KeyEvent::new(KeyCode::Char('c'), empty),
-            Msg(Set(super::Toggle::Consume)),
+            Msg(Set(Toggle::Consume)),
         );
 
-        Self(keybindings)
+        if cfg!(feature = "dvorak_movement_keys") {
+            keybindings.insert(
+                KeyEvent::new(KeyCode::Char('g'), empty),
+                Msg(GlobalSearch(SearchMsg::Start)),
+            );
+            Self(keybindings)
+        } else {
+            keybindings.insert(
+                KeyEvent::new(KeyCode::Char('G'), empty),
+                Msg(Direction(Dirs::Vert(Vertical::Bottom))),
+            );
+            let mut k = Self(keybindings);
+            k.insert(
+                Direction(Dirs::Vert(Vertical::Top)),
+                &vec![
+                    KeyEvent::new(KeyCode::Char('g'), empty),
+                    KeyEvent::new(KeyCode::Char('g'), empty),
+                ],
+            );
+            k
+        }
     }
     pub fn insert(&mut self, msg: Message, bind: &[KeyEvent]) {
         if bind.len() == 1 {

@@ -17,6 +17,8 @@ pub fn handle_vertical(msg: Vertical, selector: &mut impl Selector) {
         Some(sel) => selector.set_selected(match msg {
             Vertical::Up => Some(safe_decrement(sel, selector.len())),
             Vertical::Down => Some(safe_increment(sel, selector.len())),
+            Vertical::Top => Some(0),
+            Vertical::Bottom => Some(safe_decrement(selector.len(), selector.len())),
         }),
     }
 }

@@ -57,6 +57,13 @@ pub fn handle_library(model: &mut Model, msg: Message) -> Result<Update> {
             model.screen = Screen::Queue;
             Ok(Update::empty())
         }
+        Message::TogglePanel => {
+            model.library.active = match model.library.active {
+                TrackSelector => ArtistSelector,
+                ArtistSelector => TrackSelector
+            };
+            Ok(Update::empty())
+        }
         other => match model.library.active {
             ArtistSelector => handle_library_artist(model, other),
             TrackSelector => handle_library_track(model, other),
