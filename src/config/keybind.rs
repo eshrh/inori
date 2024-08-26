@@ -20,6 +20,8 @@ pub fn get_message(s: &str) -> Option<Message> {
     match s {
         "up" => Some(Message::Direction(Dirs::Vert(Vertical::Up))),
         "down" => Some(Message::Direction(Dirs::Vert(Vertical::Down))),
+        "top" => Some(Message::Direction(Dirs::Vert(Vertical::Top))),
+        "bottom" => Some(Message::Direction(Dirs::Vert(Vertical::Bottom))),
         "left" => Some(Message::Direction(Dirs::Horiz(Horizontal::Left))),
         "right" => Some(Message::Direction(Dirs::Horiz(Horizontal::Right))),
         "toggle_playpause" => Some(Message::PlayPause),
@@ -29,7 +31,6 @@ pub fn get_message(s: &str) -> Option<Message> {
         "switch_to_queue" => Some(Message::SwitchScreen(Screen::Queue)),
         "toggle_screen_lq" => Some(Message::ToggleScreen),
         "toggle_panel" => Some(Message::TogglePanel),
-        "tog_random" => Some(Message::Set(Toggle::Random)),
         "fold" => Some(Message::Fold),
         "clear_queue" => Some(Message::Clear),
         "local_search" => Some(Message::LocalSearch(SearchMsg::Start)),
@@ -148,6 +149,10 @@ impl KeybindMap {
             keybindings.insert(
                 KeyEvent::new(KeyCode::Char('G'), empty),
                 Msg(Direction(Dirs::Vert(Vertical::Bottom))),
+            );
+            keybindings.insert(
+                KeyEvent::new(KeyCode::Char('G'), KeyModifiers::CONTROL),
+                Msg(GlobalSearch(SearchMsg::Start)),
             );
             let mut k = Self(keybindings);
             k.insert(
