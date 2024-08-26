@@ -6,6 +6,8 @@ use crate::util::{safe_decrement, safe_increment};
 use bitflags::bitflags;
 use ratatui::crossterm::event::{self, KeyCode, KeyEvent};
 use std::option::Option;
+use std::thread;
+use std::time::Duration;
 
 pub mod build_library;
 mod handlers;
@@ -13,11 +15,11 @@ mod updaters;
 
 bitflags! {
     pub struct Update: u8 {
-        const QUEUE = 0x01;
-        const CURRENT_ARTIST = 0x02;
-        const STATUS = 0x04;
-        const CURRENT_SONG = 0x08;
-        const START_PLAYING = 0x10;
+        const QUEUE = 0b00000001;
+        const CURRENT_ARTIST = 0b00000010;
+        const STATUS = 0b00000100;
+        const CURRENT_SONG = 0b00001000;
+        const START_PLAYING = 0b00010000;
     }
 }
 
@@ -87,20 +89,21 @@ pub fn update_screens(model: &mut Model, update: Update) -> Result<()> {
             build_library::add_tracks(model)?;
         }
     }
-    if update.contains(Update::STATUS) {
-        model.update_status()?;
-    }
-    if update.contains(Update::CURRENT_SONG) {
-        model.update_currentsong()?;
-    }
     if update.contains(Update::START_PLAYING) {
         if !update.contains(Update::QUEUE) {
-            model.update_status()?;
+            model.queue.contents = model.conn.queue().unwrap_or(vec![]);
         }
+        model.update_status()?;
         if model.status.queue_len > 0 && model.status.state == mpd::State::Stop
         {
             model.conn.switch(0)?;
         }
+    }
+    if update.contains(Update::CURRENT_SONG) {
+        model.update_currentsong()?;
+    }
+    if update.contains(Update::STATUS) {
+        model.update_status()?;
     }
     match model.screen {
         Screen::Library => updaters::update_library(model)?,
@@ -179,7 +182,7 @@ pub fn handle_msg(model: &mut Model, m: Message) -> Result<Update> {
         }
         Message::Clear => {
             model.conn.clear()?;
-            Ok(Update::STATUS | Update::QUEUE)
+            Ok(Update::STATUS | Update::QUEUE | Update::CURRENT_SONG)
         }
         other => match model.screen {
             Screen::Library => {

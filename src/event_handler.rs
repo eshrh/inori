@@ -15,20 +15,27 @@ pub struct EventHandler {
 impl EventHandler {
     pub fn new() -> Self {
         let poll_time = Duration::from_millis(16);
-        let tick_interval = Duration::from_millis(1000);
+        let tick_interval = Duration::from_millis(500);
 
         let (tx, rx) = std::sync::mpsc::channel();
         let mut now = Instant::now();
+        let mut last_event = Instant::now();
         std::thread::spawn(move || loop {
             if crossterm::event::poll(poll_time).expect("event poll failed") {
                 match crossterm::event::read().expect("event read failed") {
-                    crossterm::event::Event::Key(e) => tx.send(Event::Key(e)),
+                    crossterm::event::Event::Key(e) => {
+                        last_event = Instant::now();
+                        tx.send(Event::Key(e))
+                    }
                     crossterm::event::Event::Resize(_, _) => Ok(()),
                     _ => unimplemented!(),
                 }
                 .expect("event send failed")
             }
-            if now.elapsed() >= tick_interval {
+            // only tick when idle.
+            if now.elapsed() >= tick_interval
+                && (Instant::now() - last_event >= Duration::from_millis(500))
+            {
                 tx.send(Event::Tick).expect("tick send failed");
                 now = Instant::now();
             }
