@@ -1,8 +1,14 @@
-mpd client
+* inori
+Client for the Music Player Daemon ([[https://www.musicpd.org/][MPD]])
+** Features
+- Fuzzy search everywhere with [[https://github.com/helix-editor/nucleo][nucleo]]
+  - Fully unicode aware, with special attention to the "albumartistsort"
+    field
+  - Global search across all tracks, albums, and artists
+- Folding library interface inspired by [[https://cmus.github.io/][cmus]]
+- Queue viewer and manipulation interface
+- Configurable, chainable keybindings
+** Screenshots
 
-* Config options
-** Keybindings
-- "C- M-" notation
-- chaining allowed
-- search interface not customizable for now
--
+#+attr_html: :width 100px
+[[./images/screenshot.png]]
