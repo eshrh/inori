@@ -2,6 +2,7 @@ extern crate mpd;
 use crate::event_handler::Result;
 use crate::model::proto::*;
 use crate::model::{AlbumData, ArtistData, Model};
+use itertools::Itertools;
 use mpd::{Query, Term};
 use std::borrow::Cow::Borrowed;
 
@@ -58,7 +59,13 @@ pub fn add_tracks(model: &mut Model) -> Result<()> {
             });
         }
     }
-
+    if let Some(states) = model.library.selected_item().map(|item| item.albums.iter().map(|i| i.expanded).collect_vec()) {
+        if states.len() == albums.len() {
+            for (i, prev) in albums.iter_mut().zip(states) {
+                i.expanded = prev;
+            }
+        }
+    }
     model.library.selected_item_mut().map(|i| {
         i.albums = albums;
         i.fetched = true;
