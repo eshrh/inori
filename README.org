@@ -9,6 +9,6 @@ Client for the Music Player Daemon ([[https://www.musicpd.org/][MPD]])
 - Queue viewer and manipulation interface
 - Configurable, chainable keybindings
 ** Screenshots
-
-#+attr_html: :width 100px
-[[./images/screenshot.png]]
+[[./images/library.png]]
+[[./images/search.png]]
+[[./images/queue.png]]
