@@ -3,7 +3,7 @@ use crate::event_handler::Result;
 
 pub fn handle_queue(model: &mut Model, msg: Message) -> Result<Update> {
     match msg {
-        Message::Tab => {
+        Message::ToggleScreen => {
             model.screen = Screen::Library;
             Ok(Update::empty())
         }
@@ -11,7 +11,7 @@ pub fn handle_queue(model: &mut Model, msg: Message) -> Result<Update> {
             handle_vertical(d, &mut model.queue);
             Ok(Update::empty())
         }
-        Message::Enter => {
+        Message::Select => {
             if let Some(s) = model.queue.selected_item() {
                 model
                     .conn

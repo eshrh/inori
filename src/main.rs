@@ -14,6 +14,7 @@ use ratatui::{
 };
 use std::io::stdout;
 use update::Update;
+mod config;
 mod event_handler;
 mod model;
 mod update;

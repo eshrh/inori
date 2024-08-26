@@ -53,7 +53,7 @@ pub fn handle_library(model: &mut Model, msg: Message) -> Result<Update> {
             };
             Ok(Update::empty())
         }
-        Message::Tab => {
+        Message::ToggleScreen => {
             model.screen = Screen::Queue;
             Ok(Update::empty())
         }
@@ -126,7 +126,7 @@ pub fn handle_library_artist(
                 .and_then(|f| Some(f.init()));
             Ok(Update::empty())
         }
-        Message::Enter => {
+        Message::Select => {
             if let Some(artist) = model.library.selected_item() {
                 model.conn.findadd(Query::new().and(
                     Term::Tag(Borrowed("AlbumArtist")),
@@ -171,7 +171,7 @@ pub fn handle_library_track(model: &mut Model, msg: Message) -> Result<Update> {
             model.library.active = ArtistSelector;
             Ok(Update::empty())
         }
-        Message::Enter => add_item(model),
+        Message::Select => add_item(model),
         Message::Fold | Message::Direction(Dirs::Horiz(Horizontal::Right)) => {
             if let Some(art) = model.library.selected_item_mut() {
                 if let Some(album) = art.selected_album_mut() {

@@ -1,7 +1,8 @@
 extern crate mpd;
 use mpd::error::Result;
 use mpd::{Client, Song, Status};
-use nucleo_matcher::{Config, Matcher, Utf32String};
+use nucleo_matcher::{Matcher, Utf32String};
+use ratatui::crossterm::event::KeyEvent;
 use ratatui::widgets::*;
 use std::env;
 mod impl_album_song;
@@ -11,14 +12,17 @@ mod impl_queue;
 mod impl_searchstate;
 pub mod proto;
 mod search_utils;
+use crate::config::{self, Config};
 use crate::model::proto::*;
 use crate::update::build_library;
 
+#[derive(Clone, Debug)]
 pub enum Screen {
     Library,
     Queue,
 }
 
+#[derive(Clone, Debug)]
 pub enum State {
     Searching,
     Running,
@@ -107,6 +111,8 @@ pub struct Model {
     pub queue: QueueSelector,
     pub currentsong: Option<Song>,
     pub matcher: nucleo_matcher::Matcher,
+    pub config: Config,
+    pub parse_state: Vec<KeyEvent>,
 }
 
 impl Model {
@@ -128,10 +134,12 @@ impl Model {
             queue: QueueSelector::new(),
             currentsong: None,
             matcher: {
-                let mut default_config = Config::DEFAULT;
+                let mut default_config = nucleo_matcher::Config::DEFAULT;
                 default_config.prefer_prefix = true;
                 Matcher::new(default_config)
             },
+            config: Config::new().expect("failed to get config"),
+            parse_state: Vec::new(),
         })
     }
     pub fn update_status(&mut self) -> Result<()> {

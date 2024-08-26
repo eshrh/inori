@@ -65,7 +65,7 @@ pub fn handle_search_k_tracksel(
             KeyCode::Esc => {
                 return Some(Message::LocalSearch(SearchMsg::End));
             }
-            KeyCode::Enter => return Some(Message::Enter),
+            KeyCode::Enter => return Some(Message::Select),
             _ => {}
         }
     }
@@ -97,7 +97,7 @@ pub fn handle_search_k<T>(
             KeyCode::Esc => {
                 return Some(Message::LocalSearch(SearchMsg::End));
             }
-            KeyCode::Enter => return Some(Message::Enter),
+            KeyCode::Enter => return Some(Message::Select),
             _ => {}
         }
     }

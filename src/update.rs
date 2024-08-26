@@ -1,9 +1,11 @@
+use crate::config::{KeybindMap, KeybindTarget};
 use crate::event_handler::Result;
 use crate::model::proto::Searchable;
 use crate::model::{Model, Screen, State};
 use crate::util::{safe_decrement, safe_increment};
 use bitflags::bitflags;
 use ratatui::crossterm::event::{self, KeyCode, KeyEvent};
+use std::collections::HashMap;
 use std::option::Option;
 
 pub mod build_library;
@@ -20,36 +22,31 @@ bitflags! {
     }
 }
 
-#[derive(PartialEq, Eq)]
-pub enum SwitchTo {
-    Library,
-    Queue,
-}
-
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum Vertical {
     Up,
     Down,
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub enum Horizontal {
     Left,
     Right,
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub enum Dirs {
     Vert(Vertical),
     Horiz(Horizontal),
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub enum SearchMsg {
     Start,
     End,
 }
 
+#[derive(Clone, Debug)]
 pub enum Toggle {
     Repeat,
     Random,
@@ -57,14 +54,15 @@ pub enum Toggle {
     Consume,
 }
 
+#[derive(Clone, Debug)]
 pub enum Message {
     Direction(Dirs),
     PlayPause,
-    Enter,
+    Select,
     SwitchState(State),
-    SwitchScreen(SwitchTo),
+    SwitchScreen(Screen),
     Delete,
-    Tab,
+    ToggleScreen,
     Fold,
     Clear,
     LocalSearch(SearchMsg),
@@ -109,39 +107,22 @@ pub fn update_screens(model: &mut Model, update: Update) -> Result<()> {
     Ok(())
 }
 
-fn parse_msg(key: event::KeyEvent) -> Option<Message> {
-    match key.code {
-        KeyCode::Char('t') => {
-            Some(Message::Direction(Dirs::Vert(Vertical::Up)))
+fn parse_msg(
+    key: event::KeyEvent,
+    state: &mut Vec<KeyEvent>,
+    keybinds: &KeybindMap,
+) -> Option<Message> {
+    state.push(key);
+    match keybinds.lookup(&state) {
+        Some(KeybindTarget::Msg(m)) => {
+            state.clear();
+            Some(m.clone())
         }
-        KeyCode::Char('h') => {
-            Some(Message::Direction(Dirs::Vert(Vertical::Down)))
+        Some(KeybindTarget::Map(m)) => None,
+        None => {
+            state.clear();
+            None
         }
-        KeyCode::Char('n') => {
-            Some(Message::Direction(Dirs::Horiz(Horizontal::Right)))
-        }
-        KeyCode::Char('d') => {
-            Some(Message::Direction(Dirs::Horiz(Horizontal::Left)))
-        }
-        KeyCode::Char('q') => Some(Message::SwitchState(State::Done)),
-        KeyCode::Char('p') => Some(Message::PlayPause),
-
-        KeyCode::Char('r') => Some(Message::Set(Toggle::Repeat)),
-        KeyCode::Char('z') => Some(Message::Set(Toggle::Random)),
-        KeyCode::Char('s') => Some(Message::Set(Toggle::Single)),
-        KeyCode::Char('c') => Some(Message::Set(Toggle::Consume)),
-
-        KeyCode::Char(' ') => Some(Message::Fold),
-        KeyCode::Char('-') => Some(Message::Clear),
-        KeyCode::Char('/') => Some(Message::LocalSearch(SearchMsg::Start)),
-        KeyCode::Char('g') => Some(Message::GlobalSearch(SearchMsg::Start)),
-        KeyCode::Char('1') => Some(Message::SwitchScreen(SwitchTo::Library)),
-        KeyCode::Char('2') => Some(Message::SwitchScreen(SwitchTo::Queue)),
-        KeyCode::Tab => Some(Message::Tab),
-        KeyCode::Enter => Some(Message::Enter),
-        KeyCode::Backspace => Some(Message::Delete),
-        KeyCode::Esc => Some(Message::Escape),
-        _ => None,
     }
 }
 
@@ -156,7 +137,9 @@ pub fn handle_key(model: &mut Model, k: KeyEvent) -> Result<Update> {
             }
         },
         State::Running => {
-            if let Some(m) = parse_msg(k) {
+            if let Some(m) =
+                parse_msg(k, &mut model.parse_state, &model.config.keybindings)
+            {
                 Ok(handle_msg(model, m)?)
             } else {
                 Ok(Update::empty())
@@ -174,8 +157,8 @@ pub fn handle_msg(model: &mut Model, m: Message) -> Result<Update> {
         }
         Message::SwitchScreen(to) => {
             model.screen = match to {
-                SwitchTo::Library => Screen::Library,
-                SwitchTo::Queue => Screen::Queue,
+                Screen::Library => Screen::Library,
+                Screen::Queue => Screen::Queue,
             };
             Ok(Update::empty())
         }
