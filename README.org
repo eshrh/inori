@@ -1,1 +1,8 @@
 mpd client
+
+* Config options
+** Keybindings
+- "C- M-" notation
+- chaining allowed
+- search interface not customizable for now
+-

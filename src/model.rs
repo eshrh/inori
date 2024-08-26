@@ -12,7 +12,7 @@ mod impl_queue;
 mod impl_searchstate;
 pub mod proto;
 mod search_utils;
-use crate::config::{self, Config};
+use crate::config::Config;
 use crate::model::proto::*;
 use crate::update::build_library;
 
@@ -138,7 +138,7 @@ impl Model {
                 default_config.prefer_prefix = true;
                 Matcher::new(default_config)
             },
-            config: Config::new().expect("failed to get config"),
+            config: Config::default().try_read_config(),
             parse_state: Vec::new(),
         })
     }

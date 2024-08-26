@@ -1,11 +1,10 @@
-use crate::config::{KeybindMap, KeybindTarget};
+use crate::config::keybind::{KeybindMap, KeybindTarget};
 use crate::event_handler::Result;
 use crate::model::proto::Searchable;
 use crate::model::{Model, Screen, State};
 use crate::util::{safe_decrement, safe_increment};
 use bitflags::bitflags;
 use ratatui::crossterm::event::{self, KeyCode, KeyEvent};
-use std::collections::HashMap;
 use std::option::Option;
 
 pub mod build_library;
@@ -118,7 +117,7 @@ fn parse_msg(
             state.clear();
             Some(m.clone())
         }
-        Some(KeybindTarget::Map(m)) => None,
+        Some(KeybindTarget::Map(_)) => None,
         None => {
             state.clear();
             None

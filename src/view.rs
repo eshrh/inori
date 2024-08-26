@@ -9,6 +9,7 @@ mod search_renderer;
 mod status_renderer;
 mod track_select_renderer;
 
+#[derive(Clone)]
 pub struct Theme {
     pub item_highlight_active: Style,
     pub item_highlight_inactive: Style,
@@ -50,7 +51,7 @@ pub fn view(model: &mut Model, frame: &mut Frame) {
     // only &mut for ListState/TableState updating.
     // view function should be pure!
 
-    let theme = Theme::new();
+    let theme = model.config.theme.clone();
     match model.screen {
         Screen::Library => library_renderer::render(model, frame, &theme),
         Screen::Queue => queue_renderer::render(model, frame, &theme),
