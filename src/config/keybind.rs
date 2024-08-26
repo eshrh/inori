@@ -170,7 +170,13 @@ impl KeybindMap {
                 KeybindTarget::Map(m) => {
                     return m.insert(msg, &bind[1..]);
                 }
-                KeybindTarget::Msg(_m) => panic!("keybind shadowed"),
+                KeybindTarget::Msg(_m) => {
+                    self.0.insert(
+                        bind[0],
+                        KeybindTarget::Map(KeybindMap(HashMap::new())),
+                    );
+                    return self.insert(msg, bind);
+                }
             }
         } else {
             self.0.insert(
@@ -213,6 +219,7 @@ pub fn parse_keybind_single(s: &str) -> Option<KeyCode> {
             "<down>" => Some(KeyCode::Down),
             "<left>" => Some(KeyCode::Left),
             "<right>" => Some(KeyCode::Right),
+            "<enter>" => Some(KeyCode::Enter),
             _ => None,
         }
     }

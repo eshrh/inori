@@ -59,7 +59,11 @@ pub fn add_tracks(model: &mut Model) -> Result<()> {
             });
         }
     }
-    if let Some(states) = model.library.selected_item().map(|item| item.albums.iter().map(|i| i.expanded).collect_vec()) {
+    if let Some(states) = model
+        .library
+        .selected_item()
+        .map(|item| item.albums.iter().map(|i| i.expanded).collect_vec())
+    {
         if states.len() == albums.len() {
             for (i, prev) in albums.iter_mut().zip(states) {
                 i.expanded = prev;
