@@ -40,18 +40,18 @@ pub fn compute_indices(
     query: &str,
     strings: Vec<&Utf32String>,
     matcher: &mut Matcher,
-) -> Vec<Option<Vec<u32>>> {
+) -> Vec<Vec<u32>> {
     let pattern = Pattern::new(
         query,
         CaseMatching::Ignore,
         Normalization::Smart,
         AtomKind::Fuzzy,
     );
-    let mut indices: Vec<Option<Vec<u32>>> = Vec::new();
+    let mut indices: Vec<Vec<u32>> = Vec::new();
     for s in strings {
         let mut tmp: Vec<u32> = Vec::new();
         pattern.indices(s.slice(..), matcher, &mut tmp);
-        indices.push(Some(tmp));
+        indices.push(tmp);
     }
     indices
 }

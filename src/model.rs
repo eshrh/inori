@@ -65,7 +65,7 @@ pub enum LibActiveSelector {
 pub struct FilterCache {
     pub query: String,
     pub order: Vec<Option<usize>>,
-    pub indices: Vec<Option<Vec<u32>>>,
+    pub indices: Vec<Vec<u32>>,
     pub utfstrings_cache: Option<Vec<Utf32String>>,
 }
 
@@ -113,6 +113,7 @@ pub struct Model {
     pub matcher: nucleo_matcher::Matcher,
     pub config: Config,
     pub parse_state: Vec<KeyEvent>,
+    pub window_height: Option<usize>,
 }
 
 impl Model {
@@ -140,6 +141,7 @@ impl Model {
             },
             config: Config::default().try_read_config(),
             parse_state: Vec::new(),
+            window_height: Some(100),
         })
     }
     pub fn update_status(&mut self) -> Result<()> {

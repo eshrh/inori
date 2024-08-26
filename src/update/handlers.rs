@@ -81,6 +81,7 @@ pub fn handle_search_k<T>(
     s: &mut impl Searchable<T>,
     k: KeyEvent,
     matcher: &mut Matcher,
+    top_k: Option<usize>,
 ) -> Option<Message> {
     if k.modifiers.contains(KeyModifiers::CONTROL) {
         match k.code {
@@ -105,7 +106,7 @@ pub fn handle_search_k<T>(
             _ => {}
         }
     }
-    s.update_filter_cache(matcher);
+    s.update_filter_cache(matcher, top_k);
     s.watch_oob();
     None
 }

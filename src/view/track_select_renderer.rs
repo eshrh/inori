@@ -19,7 +19,7 @@ fn itemref_to_row<'a>(
     let row = match item.item {
         ItemRef::Album(a) => {
             let mut album_line = vec![Span::from(" ")];
-            if let Some(Some(idxs)) = idxs {
+            if let Some(idxs) = idxs {
                 album_line.extend(render_str_with_idxs(
                     a.name.clone(),
                     idxs,
@@ -39,7 +39,7 @@ fn itemref_to_row<'a>(
         ItemRef::Song(s) => {
             let mut track_line = vec![Span::from(str::repeat(" ", 3))];
             if let Some(title) = s.title.clone() {
-                if let Some(Some(idxs)) = idxs {
+                if let Some(idxs) = idxs {
                     track_line.extend(render_str_with_idxs(
                         title.clone(),
                         idxs,
@@ -62,7 +62,7 @@ fn itemref_to_row<'a>(
             ])
         }
     };
-    if idxs.is_some_and(|i| i.is_some()) {
+    if idxs.is_some() {
         row.style(Style::new().bg(Color::DarkGray))
     } else {
         row

@@ -9,8 +9,47 @@ use ratatui::prelude::Constraint::*;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
 
-pub fn render_artist_sort<'a>(text: String, style: Style) -> Span<'a> {
-    Span::from(format!(" {}{}{}", "[", text, "]")).style(style)
+pub fn render_search_item<'a>(
+    ie: &InfoEntry,
+    idx: &Vec<u32>,
+    theme: &Theme,
+) -> Line<'a> {
+    let mut out: Vec<Span> = ie
+        .to_string()
+        .chars()
+        .map(|c| Span::from(c.to_string()))
+        .collect();
+
+    let mut cur = ie.artist.chars().count();
+    if let Some(artist_sort) = &ie.artist_sort {
+        if *artist_sort != ie.artist {
+            let len = artist_sort.chars().count();
+            cur += 1; // for spc
+            //                       [.]
+            for i in cur..cur + len + 2 {
+                out[i].style = theme.artist_sort;
+            }
+            cur += len + 2;
+        }
+    }
+    if let Some(album) = &ie.album {
+        let len = album.chars().count();
+        out[cur].style = theme.slash_span;
+        cur += 1;
+        for i in cur..cur + len {
+            out[i].style = theme.album;
+        }
+        cur += len;
+    }
+    if let Some(_title) = &ie.title {
+        out[cur].style = theme.slash_span;
+    }
+    for i in 0..out.len() {
+        if idx.contains(&u32::try_from(i).unwrap()) {
+           out[i].style = out[i].style.add_modifier(Modifier::UNDERLINED);
+        }
+    }
+    Line::from(out)
 }
 
 pub fn render_global_search(
@@ -33,23 +72,14 @@ pub fn render_global_search(
         make_search_box(&model.library.global_search.search.query, true, theme),
         layout[0],
     );
-    let list = List::new(model.library.global_search.contents().map(|ie| {
-        let mut out = vec![Span::from(ie.artist.clone())];
-        if let Some(artist_sort) = ie.artist_sort.clone() {
-            if artist_sort != ie.artist {
-                out.push(render_artist_sort(artist_sort, theme.artist_sort));
-            }
-        }
-        if let Some(album) = ie.album.clone() {
-            out.push(Span::from("/").style(theme.slash_span));
-            out.push(Span::from(album).style(theme.album));
-        }
-        if let Some(title) = ie.title.clone() {
-            out.push(Span::from("/").style(theme.slash_span));
-            out.push(Span::from(title));
-        }
-        Line::from(out)
-    }));
+    let list = List::new(
+        model
+            .library
+            .global_search
+            .contents()
+            .zip(&model.library.global_search.search.cache.indices)
+            .map(|(ie, idxs)| render_search_item(ie, idxs, theme)),
+    );
     frame.render_stateful_widget(
         list.block(Block::bordered())
             .highlight_style(theme.item_highlight_active),
@@ -78,6 +108,14 @@ pub fn render(model: &mut Model, frame: &mut Frame, theme: &Theme) {
         Layout::vertical(vec![Percentage(20), Percentage(60), Percentage(20)])
             .split(center_popup_h[1]);
     let center_popup = center_popup_v[1];
+
+    if model
+        .window_height
+        .is_some_and(|i| i != frame.size().height.into())
+    {
+        model.window_height = Some(frame.size().height.into());
+    }
+
     render_status(model, frame, header_layout[0], theme);
 
     if model

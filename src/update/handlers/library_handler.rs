@@ -81,6 +81,7 @@ pub fn handle_search(model: &mut Model, k: KeyEvent) -> Result<Update> {
                 &mut model.library.global_search,
                 k,
                 &mut model.matcher,
+                model.window_height,
             ) {
                 handle_msg(model, m)
             } else {
@@ -92,9 +93,12 @@ pub fn handle_search(model: &mut Model, k: KeyEvent) -> Result<Update> {
             }
         }
         (ArtistSelector, _) => {
-            if let Some(m) =
-                handle_search_k(&mut model.library, k, &mut model.matcher)
-            {
+            if let Some(m) = handle_search_k(
+                &mut model.library,
+                k,
+                &mut model.matcher,
+                model.window_height,
+            ) {
                 handle_msg(model, m)
             } else {
                 Ok(Update::empty())

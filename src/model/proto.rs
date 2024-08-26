@@ -53,7 +53,11 @@ pub trait Searchable<T>: Selector {
     fn filter_mut(&mut self) -> &mut Filter;
     fn contents(&self) -> Box<dyn Iterator<Item = &T> + '_>;
     fn selected_item_mut(&mut self) -> Option<&mut T>;
-    fn update_filter_cache(&mut self, matcher: &mut Matcher);
+    fn update_filter_cache(
+        &mut self,
+        matcher: &mut Matcher,
+        top_k: Option<usize>,
+    );
     fn selected_item(&self) -> Option<&T> {
         self.selector()
             .selected()

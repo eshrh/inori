@@ -6,8 +6,6 @@ use crate::util::{safe_decrement, safe_increment};
 use bitflags::bitflags;
 use ratatui::crossterm::event::{self, KeyCode, KeyEvent};
 use std::option::Option;
-use std::thread;
-use std::time::Duration;
 
 pub mod build_library;
 mod handlers;

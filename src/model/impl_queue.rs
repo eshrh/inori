@@ -47,7 +47,13 @@ impl Searchable<Song> for QueueSelector {
                 .and_then(|i| self.contents.get_mut(i))
         }
     }
-    fn update_filter_cache(&mut self, matcher: &mut Matcher) {
+
+    #[allow(unused_variables)]
+    fn update_filter_cache(
+        &mut self,
+        matcher: &mut Matcher,
+        top_k: Option<usize>,
+    ) {
         if self.filter().cache.query == self.filter().query {
             return;
         }

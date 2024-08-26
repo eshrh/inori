@@ -67,7 +67,11 @@ impl Searchable<ArtistData> for LibraryState {
                 .and_then(|i| self.contents.get_mut(i))
         }
     }
-    fn update_filter_cache(&mut self, matcher: &mut Matcher) {
+    fn update_filter_cache(
+        &mut self,
+        matcher: &mut Matcher,
+        top_k: Option<usize>,
+    ) {
         if self.filter().cache.query == self.artist_search.query {
             return;
         }
@@ -86,18 +90,23 @@ impl Searchable<ArtistData> for LibraryState {
             0,
         );
 
-        let strings_for_indices: Vec<&Utf32String> = self
+        let strings_iterator = self
             .filter()
             .cache
             .order
             .iter()
             .take_while(|i| i.is_some())
             .map(|i| {
-                &self.artist_search.cache.utfstrings_cache.as_ref().unwrap()
+                &self.filter().cache.utfstrings_cache.as_ref().unwrap()
                     [i.unwrap()]
-            })
-            .collect();
+            });
+        let strings: Vec<&Utf32String>;
+        if let Some(k) = top_k {
+            strings = strings_iterator.take(k).collect();
+        } else {
+            strings = strings_iterator.collect();
+        }
         self.filter_mut().cache.indices =
-            compute_indices(&self.filter().query, strings_for_indices, matcher);
+            compute_indices(&self.filter().query, strings, matcher);
     }
 }

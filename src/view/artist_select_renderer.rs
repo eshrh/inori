@@ -37,19 +37,13 @@ pub fn get_artist_list<'a>(model: &Model, theme: &Theme) -> List<'a> {
         List::new(model.library.contents().zip(indices).map(
             |(artist, idxs_o)| {
                 let len = artist.name.chars().count();
-                if let Some(idxs) = idxs_o {
-                    Line::from(render_str_with_idxs(
-                        artist.to_fuzzy_find_str(),
-                        idxs,
-                        len,
-                        theme,
-                    ))
-                } else {
-                    Line::from(vec![
-                        Span::from(artist.name[0..len].to_string()),
-                        Span::from(artist.sort_names.join(", ") + "]"),
-                    ])
-                }
+                let l = Line::from(render_str_with_idxs(
+                    artist.to_fuzzy_find_str(),
+                    idxs_o,
+                    len,
+                    theme,
+                ));
+                l
             },
         ))
     } else {

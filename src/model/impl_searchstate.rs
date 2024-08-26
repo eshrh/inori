@@ -66,8 +66,7 @@ impl ToString for InfoEntry {
         let mut out: String = self.artist.clone();
         if let Some(artist_sort) = &self.artist_sort {
             if *artist_sort != out {
-                out.push('/');
-                out.push_str(artist_sort);
+                out.push_str(&format!(" {}{}{}", "[", artist_sort, "]"));
             }
         }
         if let Some(album) = &self.album {
@@ -136,7 +135,11 @@ impl Searchable<InfoEntry> for GlobalSearchState {
         unimplemented!();
     }
 
-    fn update_filter_cache(&mut self, matcher: &mut Matcher) {
+    fn update_filter_cache(
+        &mut self,
+        matcher: &mut Matcher,
+        top_k: Option<usize>,
+    ) {
         if self.search.query == self.search.cache.query {
             return;
         }
@@ -162,5 +165,24 @@ impl Searchable<InfoEntry> for GlobalSearchState {
             matcher,
             0,
         );
+
+        let strings_iterator = self
+            .filter()
+            .cache
+            .order
+            .iter()
+            .take_while(|i| i.is_some())
+            .map(|i| {
+                &self.filter().cache.utfstrings_cache.as_ref().unwrap()
+                    [i.unwrap()]
+            });
+        let strings: Vec<&Utf32String>;
+        if let Some(k) = top_k {
+            strings = strings_iterator.take(k).collect();
+        } else {
+            strings = strings_iterator.collect();
+        }
+        self.filter_mut().cache.indices =
+            compute_indices(&self.filter().query, strings, matcher);
     }
 }

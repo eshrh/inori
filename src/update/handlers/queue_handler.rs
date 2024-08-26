@@ -70,7 +70,12 @@ pub fn handle_queue(model: &mut Model, msg: Message) -> Result<Update> {
 }
 
 pub fn handle_search(model: &mut Model, k: KeyEvent) -> Result<Update> {
-    if let Some(m) = handle_search_k(&mut model.queue, k, &mut model.matcher) {
+    if let Some(m) = handle_search_k(
+        &mut model.queue,
+        k,
+        &mut model.matcher,
+        model.window_height,
+    ) {
         handle_msg(model, m)
     } else {
         Ok(Update::empty())
