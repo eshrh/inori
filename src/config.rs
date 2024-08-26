@@ -1,12 +1,10 @@
-use crate::event_handler::Result;
 use crate::model::*;
 use crate::update::*;
 use crate::{update::Message, view::Theme};
-use phf::phf_map;
 use ratatui::style::Style;
 use std::env;
 use std::fs;
-use std::{collections::HashMap, path::PathBuf};
+use std::path::PathBuf;
 use toml::Table;
 use toml::Value;
 pub mod keybind;
@@ -17,33 +15,36 @@ pub struct Config {
     pub theme: Theme,
 }
 
-static MESSAGES: phf::Map<&'static str, Message> = phf_map! {
-    "up" => Message::Direction(Dirs::Vert(Vertical::Up)),
-    "down" => Message::Direction(Dirs::Vert(Vertical::Down)),
-    "left" => Message::Direction(Dirs::Horiz(Horizontal::Left)),
-    "right" => Message::Direction(Dirs::Horiz(Horizontal::Right)),
-    "toggle_playpause" => Message::PlayPause,
-    "select" => Message::Select,
-    "quit" => Message::SwitchState(State::Done),
-    "switch_to_library" => Message::SwitchScreen(Screen::Library),
-    "switch_to_queue" => Message::SwitchScreen(Screen::Queue),
-    "toggle_screen_lq" => Message::ToggleScreen,
-    "fold" => Message::Fold,
-    "clear_queue" => Message::Clear,
-    "local_search" => Message::LocalSearch(SearchMsg::Start),
-    "global_search" => Message::GlobalSearch(SearchMsg::Start),
-    "escape" => Message::Escape,
-    "delete" => Message::Delete,
-    "tog_repeat" => Message::Set(Toggle::Repeat),
-    "tog_single" => Message::Set(Toggle::Single),
-    "tog_consume" => Message::Set(Toggle::Consume),
-    "tog_random" => Message::Set(Toggle::Random),
-};
+fn get_message(s: &str) -> Option<Message> {
+    match s {
+        "up" => Some(Message::Direction(Dirs::Vert(Vertical::Up))),
+        "down" => Some(Message::Direction(Dirs::Vert(Vertical::Down))),
+        "left" => Some(Message::Direction(Dirs::Horiz(Horizontal::Left))),
+        "right" => Some(Message::Direction(Dirs::Horiz(Horizontal::Right))),
+        "toggle_playpause" => Some(Message::PlayPause),
+        "select" => Some(Message::Select),
+        "quit" => Some(Message::SwitchState(State::Done)),
+        "switch_to_library" => Some(Message::SwitchScreen(Screen::Library)),
+        "switch_to_queue" => Some(Message::SwitchScreen(Screen::Queue)),
+        "toggle_screen_lq" => Some(Message::ToggleScreen),
+        "fold" => Some(Message::Fold),
+        "clear_queue" => Some(Message::Clear),
+        "local_search" => Some(Message::LocalSearch(SearchMsg::Start)),
+        "global_search" => Some(Message::GlobalSearch(SearchMsg::Start)),
+        "escape" => Some(Message::Escape),
+        "delete" => Some(Message::Delete),
+        "tog_repeat" => Some(Message::Set(Toggle::Repeat)),
+        "tog_single" => Some(Message::Set(Toggle::Single)),
+        "tog_consume" => Some(Message::Set(Toggle::Consume)),
+        "tog_random" => Some(Message::Set(Toggle::Random)),
+        _ => None
+    }
+}
 
 impl Config {
     pub fn default() -> Self {
         Config {
-            keybindings: KeybindMap(HashMap::new()),
+            keybindings: KeybindMap::default(),
             theme: Theme::new(),
         }
     }
@@ -72,7 +73,7 @@ impl Config {
     }
     pub fn read_keybinds(&mut self, t: Table) {
         for (key, value) in t {
-            match (MESSAGES.get(&key), value) {
+            match (get_message(&key), value) {
                 (Some(m), Value::String(s)) => {
                     let keybinds = keybind::parse_keybind(s)
                         .unwrap_or_else(|_| panic!("Couldn't parse keybinds"));

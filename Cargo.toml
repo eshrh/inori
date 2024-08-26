@@ -9,7 +9,11 @@ nucleo-matcher = "*"
 itertools = "*"
 bitflags = "*"
 toml = "*"
-phf = {version = "*", features = ["macros"]}
 
 [dependencies.mpd]
 path = "./rust-mpd"
+
+[features]
+default = ["dvorak_movement_keys"]
+dvorak_movement_keys = []
+qwerty_movement_keys = []

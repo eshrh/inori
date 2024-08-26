@@ -1,5 +1,4 @@
 extern crate mpd;
-
 use model::State;
 use ratatui::{
     backend::CrosstermBackend,
@@ -20,7 +19,6 @@ mod model;
 mod update;
 mod util;
 mod view;
-
 use event_handler::{Event, Result};
 
 fn main() -> Result<()> {
