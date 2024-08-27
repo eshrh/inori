@@ -37,4 +37,4 @@ as a full list of all default keybindings.
 - [mmtc](https://github.com/figsoda/mmtc) and
   [rmptui](https://github.com/krolyxon/rmptui), two other rust mpd
   clients, helped me learn rust
-- @stephen-huan: here from day one
+- [@stephen-huan](https://github.com/stephen-huan): here from day one
