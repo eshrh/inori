@@ -22,6 +22,9 @@ Build/install with the command line args
 `--features qwerty_movement_keys --no-default-features` for qwerty-vim
 style movement.
 
+inori is also available on the AUR as [inori](https://aur.archlinux.org/packages/inori).
+The PKGBUILD includes an option to switch between qwerty and dvorak defaults.
+
 See [configuration.md](./CONFIGURATION.md) for config options, as well
 as a full list of all default keybindings.
 
