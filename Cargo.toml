@@ -2,16 +2,28 @@
 name = "inori"
 version = "0.1.0"
 edition = "2021"
+authors = ["esrh <esrh@esrh.me>"]
+description = "mpd client"
+homepage = "https://github.com/eshrh/inori"
+repository = "https://github.com/eshrh/inori"
+license = "GPL-3.0-only"
+readme = "README.md"
+keywords = ["mpd", "music"]
+categories = ["command-line-utilities", "multimedia", "multimedia::audio"]
+
+[lints.rust]
+unsafe_code = "forbid"
 
 [dependencies]
 ratatui = {version = "0.27.0", features = ["serde"]}
-nucleo-matcher = "*"
-itertools = "*"
-bitflags = "*"
-toml = "*"
+nucleo-matcher = "0.3.1"
+itertools = "0.13.0"
+bitflags = "2.6.0"
+toml = "0.8.19"
 
 [dependencies.mpd]
-path = "./rust-mpd"
+version = "0.1.0"
+package = "inori-mpd"
 
 [features]
 default = ["dvorak_movement_keys"]

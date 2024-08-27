@@ -144,11 +144,21 @@ name = "inori"
 version = "0.1.0"
 dependencies = [
  "bitflags",
+ "inori-mpd",
  "itertools",
- "mpd",
  "nucleo-matcher",
  "ratatui",
  "toml",
+]
+
+[[package]]
+name = "inori-mpd"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9d7bf083ae3b28823a8b8f63bbe34b457277e9e189d9d2685ba0a57c39a2d76a"
+dependencies = [
+ "bufstream",
+ "itertools",
 ]
 
 [[package]]
@@ -213,14 +223,6 @@ dependencies = [
  "log",
  "wasi",
  "windows-sys",
-]
-
-[[package]]
-name = "mpd"
-version = "0.1.0"
-dependencies = [
- "bufstream",
- "itertools",
 ]
 
 [[package]]
