@@ -15,7 +15,7 @@ Client for the Music Player Daemon ([MPD](https://www.musicpd.org/))
 
 ## Usage/Installation
 
-Run `cargo install --path .`
+Run `cargo install inori`. inori is published on [crates.io](https://crates.io/crates/inori).
 
 The default keybindings use dvorak-convenient movement keys (`dhtn`).
 Build/install with the command line args
