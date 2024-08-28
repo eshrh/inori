@@ -37,8 +37,8 @@ will be reminiscent to emacs users:
             | <enter>
 
 Each of the modifiers corresponds to a modifier key, `CTRL, META,
-SUPER, CTRL+META`. So, your keybindings will look like "g g" or "C-c
-C-n" or "C-<space>"
+SUPER, CTRL+META`. So, your keybindings will look like `g g` or `C-c
+C-n` or `C-<space>`
 
 Here is the full list of commands, along with their defaults.
 
