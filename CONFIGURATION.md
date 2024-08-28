@@ -20,21 +20,22 @@ command2 = "KEYSTR2"
 where a `"KEYSTR"` describes a keybinding with the following format that
 will be reminiscent to emacs users:
 
-    KEYSTR := <KEYBIND> <KEYSTR> | ""
-    KEYBIND := <MODIFIER><CHARACTER>
-    MODIFIER := C- | M- | S- | C-M- | ""
-    CHARACTER := char | <SPECIAL_KEY>
-    SPECIAL_KEY :=
-            | <space>
-            | <tab>
-            | <esc>
-            | <backspace>
-            | <delete>
-            | <up>
-            | <down>
-            | <left>
-            | <right>
-            | <enter>
+```
+KEYSTR := <KEYBIND> <KEYSTR> | ""
+KEYBIND := <MODIFIER><CHARACTER>
+MODIFIER := C- | M- | S- | C-M- | ""
+CHARACTER := char | <SPECIAL_KEY>
+SPECIAL_KEY := <space>
+  | <tab>
+  | <esc>
+  | <backspace>
+  | <delete>
+  | <up>
+  | <down>
+  | <left>
+  | <right>
+  | <enter>
+```
 
 Each of the modifiers corresponds to a modifier key, `CTRL, META,
 SUPER, CTRL+META`. So, your keybindings will look like `g g` or `C-c
