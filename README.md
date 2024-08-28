@@ -33,6 +33,12 @@ as a full list of all default keybindings.
 ![](./images/library.png) ![](./images/search.png)
 ![](./images/queue.png)
 
+## Todo
+- [ ] Playlist interface
+- [ ] Compile feature flag for Japanese album/track title romanization for search using a tokenizer & dictionary
+- [ ] More thorough customization options, especially for behavior & layout tweaks
+- [ ] Spectrum visualizer like ncmpcpp
+
 ## Acknowledgements
 
 - authors of [ratatui](https://ratatui.rs/) and
