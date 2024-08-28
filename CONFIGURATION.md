@@ -5,13 +5,13 @@ defaulting to `$HOME/.config/inori/config.toml` if it is not set.
 
 ## Keybindings
 
-Keybindings set in the config file *override* the defaults if they are
+Keybindings set in the config file _override_ the defaults if they are
 set, but do not delete them.
 
 Keybindings should be defined in a toml table called `keybindings` like
 so:
 
-``` toml
+```toml
 [keybindings]
 command1 = "KEYSTR1"
 command2 = "KEYSTR2"
@@ -42,10 +42,8 @@ C-n` or `C-<space>`
 
 Here is the full list of commands, along with their defaults.
 
-
-
 | Command name        | Explanation                                        | Default key (dvorak) | Default key (qwerty) |
-|---------------------|----------------------------------------------------|----------------------|----------------------|
+| ------------------- | -------------------------------------------------- | -------------------- | -------------------- |
 | `up`                | move up                                            | t                    | k                    |
 | `down`              | move down                                          | h                    | j                    |
 | `left`              | move left                                          | d                    | h                    |
@@ -77,7 +75,7 @@ multiple keybinds.
 
 Colors should be specified in a table called "theme", like this:
 
-``` toml
+```toml
 [theme.item_to_color]
 fg = COLOR
 bg = COLOR
@@ -86,6 +84,7 @@ sub_modifier = MODIFIERS
 ```
 
 All fields are optional. `COLOR` should be **a string** of either
+
 - rgb hex: "#FF0000"
 - [ansi escape index](https://en.wikipedia.org/wiki/ANSI_escape_code#8-bit): "9"
 - ansi color code: "White", "Red", "LightCyan", etc
@@ -108,7 +107,7 @@ For example, you might write `add_modifier = "BOLD | ITALIC"`.
 Here is the full list of styles available for customization:
 
 | Name                      | Explanation                                    |
-|---------------------------|------------------------------------------------|
+| ------------------------- | ---------------------------------------------- |
 | `item_highlight_active`   | selected item in an active list                |
 | `item_highlight_inactive` | selected item in an inactive list              |
 | `block_active`            | active block border style                      |
