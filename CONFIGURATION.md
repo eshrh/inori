@@ -50,18 +50,18 @@ Here is the full list of commands, along with their defaults.
 | `left`              | move left                                          | d                    | h                    |
 | `right`             | move right                                         | n                    | l                    |
 | `toggle_playpause`  | toggles between play and pause                     | p                    | p                    |
-| `select`            | act on the selected entry                          | <enter>              | <enter>              |
+| `select`            | act on the selected entry                          | `<enter>`            | `<enter>`            |
 | `quit`              | close the program                                  | q                    | q                    |
 | `switch_to_library` | switch to library screen                           | 1                    | 1                    |
 | `switch_to_queue`   | switch to queue screen                             | 2                    | 2                    |
-| `toggle_screen_lq`  | toggle between library/queue                       | <tab>                | <tab>                |
+| `toggle_screen_lq`  | toggle between library/queue                       | `<tab>`              | `<tab>`              |
 | `toggle_panel`      | [library] switch between artist and track selector |                      |                      |
-| `fold`              | [library/track] toggle fold album                  | <space>              | <space>              |
+| `fold`              | [library/track] toggle fold album                  | `<space>`            | `<space>`            |
 | `clear_queue`       | clear queue                                        | -                    | -                    |
 | `local_search`      | search local selector                              | /                    | /                    |
 | `global_search`     | [library] global jumping search                    | g                    | C-g                  |
-| `escape`            | escape                                             | <esc>                | <esc>                |
-| `delete`            | [queue] deletes the selected item off queue        | <backspace>          | <backspace>          |
+| `escape`            | escape                                             | `<esc>`              | `<esc>`              |
+| `delete`            | [queue] deletes the selected item off queue        | `<backspace>`        | `<backspace>`        |
 | `toggle_repeat`     | toggle repeat                                      | r                    | r                    |
 | `toggle_single`     | toggle single                                      | s                    | s                    |
 | `toggle_consume`    | toggle consume                                     | c                    | c                    |
