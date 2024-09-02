@@ -76,7 +76,6 @@ impl InfoEntry {
         }
         out
     }
-
 }
 
 impl Selector for GlobalSearchState {

@@ -131,9 +131,9 @@ pub fn handle_library_artist(
         }
         Message::Direction(Dirs::Horiz(Horizontal::Right)) => {
             model.library.active = TrackSelector;
-            if let Some(f) = model
-                .library
-                .selected_item_mut() { f.init(); }
+            if let Some(f) = model.library.selected_item_mut() {
+                f.init();
+            }
             Ok(Update::empty())
         }
         Message::Select => {
