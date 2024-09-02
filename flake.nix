@@ -13,22 +13,34 @@
     eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        formatter = pkgs.nixpkgs-fmt;
-        linters = [ pkgs.statix ];
+        formatters = [ pkgs.cargo pkgs.rustfmt pkgs.nixpkgs-fmt ];
+        linters = [ pkgs.clippy pkgs.statix ];
       in
       {
         legacyPackages.${system} = self.packages.${system};
 
         packages.${system} = import ./pkgs { inherit pkgs; };
 
-        formatter.${system} = formatter;
+        formatter.${system} = pkgs.writeShellApplication {
+          name = "formatter";
+          runtimeInputs = formatters;
+          text = ''
+            cargo fmt
+            nixpkgs-fmt "$@"
+          '';
+        };
 
-        checks.${system}.lint = pkgs.stdenvNoCC.mkDerivation {
+        checks.${system}.lint = pkgs.rustPlatform.buildRustPackage {
           name = "lint";
           src = ./.;
+          cargoLock.lockFile = ./Cargo.lock;
           doCheck = true;
-          nativeCheckInputs = linters ++ lib.singleton formatter;
+          nativeCheckInputs = linters ++ formatters;
           checkPhase = ''
+            cargo fmt --check
+            cargo check
+            cargo clippy
+            cargo test
             nixpkgs-fmt --check .
             statix check
           '';
@@ -53,15 +65,13 @@
           };
         };
 
-        devShells.${system}.default = (pkgs.mkShellNoCC.override {
-          stdenv = pkgs.stdenvNoCC.override {
-            initialPath = [ pkgs.coreutils ];
-          };
-        }) {
+        devShells.${system}.default = pkgs.mkShell {
           packages = [
+            pkgs.rust-analyzer
+            pkgs.rustc
           ]
           ++ linters
-          ++ lib.singleton formatter;
+          ++ formatters;
         };
       }
     );
