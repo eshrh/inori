@@ -1,4 +1,4 @@
-{ lib, rustPlatform }:
+{ lib, rustPlatform, qwerty_movement_keys ? false }:
 
 rustPlatform.buildRustPackage {
   pname = "inori";
@@ -6,6 +6,8 @@ rustPlatform.buildRustPackage {
   src = ../..;
 
   cargoLock.lockFile = ../../Cargo.lock;
+  buildNoDefaultFeatures = qwerty_movement_keys;
+  buildFeatures = lib.optional qwerty_movement_keys "qwerty_movement_keys";
 
   meta = with lib; {
     description = "inori client for the Music Player Daemon (MPD)";
