@@ -80,16 +80,14 @@ pub fn update_tick(model: &mut Model) -> Result<()> {
 
 pub fn update_screens(model: &mut Model, update: Update) -> Result<()> {
     if update.contains(Update::QUEUE) {
-        model.queue.contents = model.conn.queue().unwrap_or(vec![]);
+        model.queue.contents = model.conn.queue().unwrap_or_default();
     }
-    if update.contains(Update::CURRENT_ARTIST) {
-        if model.library.selected_item_mut().is_some() {
-            build_library::add_tracks(model)?;
-        }
+    if update.contains(Update::CURRENT_ARTIST) && model.library.selected_item_mut().is_some() {
+        build_library::add_tracks(model)?;
     }
     if update.contains(Update::START_PLAYING) {
         if !update.contains(Update::QUEUE) {
-            model.queue.contents = model.conn.queue().unwrap_or(vec![]);
+            model.queue.contents = model.conn.queue().unwrap_or_default();
         }
         model.update_status()?;
         if model.status.queue_len > 0 && model.status.state == mpd::State::Stop
@@ -116,7 +114,7 @@ fn parse_msg(
     keybinds: &KeybindMap,
 ) -> Option<Message> {
     state.push(key);
-    match keybinds.lookup(&state) {
+    match keybinds.lookup(state) {
         Some(KeybindTarget::Msg(m)) => {
             state.clear();
             Some(m.clone())

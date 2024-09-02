@@ -22,7 +22,7 @@ pub fn make_progress_bar<'a>(ratio: f64) -> LineGauge<'a> {
         .unfilled_style(Style::default().fg(Color::Black))
         .line_set(symbols::line::THICK)
         .ratio(ratio);
-    return progress_bar;
+    progress_bar
 }
 
 pub fn make_queue<'a>(model: &mut Model, theme: &Theme) -> Table<'a> {

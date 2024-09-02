@@ -32,7 +32,7 @@ impl Config {
             },
         };
 
-        if let Some(Ok(contents)) = path.map(|p| fs::read_to_string(p)) {
+        if let Some(Ok(contents)) = path.map(fs::read_to_string) {
             let toml = contents.parse::<Table>().expect("failed to parse toml");
             for (key, value) in toml {
                 match (key.as_str(), value) {

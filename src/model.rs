@@ -124,7 +124,7 @@ impl Model {
             env::var("MPD_PORT").unwrap_or_else(|_| "6600".to_string())
         );
         let mut conn = Client::connect(mpd_url.clone())
-            .expect(&format!("Failed to connect to mpd client at {}", mpd_url));
+            .unwrap_or_else(|_| panic!("Failed to connect to mpd client at {}", mpd_url));
 
         Ok(Model {
             state: State::Running,
@@ -206,13 +206,11 @@ impl Model {
                     }
                     _ => false,
                 });
-            } else {
-                if let Some(album_name) = target.album {
-                    idx = artist.contents().iter().position(|i| match i.item {
-                        ItemRef::Album(a) => a.name == *album_name,
-                        _ => false,
-                    });
-                }
+            } else if let Some(album_name) = target.album {
+                idx = artist.contents().iter().position(|i| match i.item {
+                    ItemRef::Album(a) => a.name == *album_name,
+                    _ => false,
+                });
             }
             artist.set_selected(idx);
         }

@@ -157,10 +157,8 @@ impl KeybindMap {
             let mut k = Self(keybindings);
             k.insert(
                 Direction(Dirs::Vert(Vertical::Top)),
-                &vec![
-                    KeyEvent::new(KeyCode::Char('g'), empty),
-                    KeyEvent::new(KeyCode::Char('g'), empty),
-                ],
+                &[KeyEvent::new(KeyCode::Char('g'), empty),
+                    KeyEvent::new(KeyCode::Char('g'), empty)],
             );
             k
         }
@@ -173,14 +171,14 @@ impl KeybindMap {
         if self.0.contains_key(&bind[0]) {
             match self.0.get_mut(&bind[0]).unwrap() {
                 KeybindTarget::Map(m) => {
-                    return m.insert(msg, &bind[1..]);
+                    m.insert(msg, &bind[1..])
                 }
                 KeybindTarget::Msg(_m) => {
                     self.0.insert(
                         bind[0],
                         KeybindTarget::Map(KeybindMap(HashMap::new())),
                     );
-                    return self.insert(msg, bind);
+                    self.insert(msg, bind)
                 }
             }
         } else {
@@ -192,7 +190,7 @@ impl KeybindMap {
         }
     }
     pub fn lookup(&self, bind: &[KeyEvent]) -> Option<&KeybindTarget> {
-        if bind.len() == 0 {
+        if bind.is_empty() {
             return None;
         }
         if bind.len() == 1 {
@@ -208,11 +206,7 @@ impl KeybindMap {
 
 pub fn parse_keybind_single(s: &str) -> Option<KeyCode> {
     if s.len() == 1 {
-        if let Some(c) = s.chars().nth(0) {
-            Some(KeyCode::Char(c))
-        } else {
-            None
-        }
+        s.chars().next().map(KeyCode::Char)
     } else {
         match s {
             "<space>" => Some(KeyCode::Char(' ')),
@@ -258,7 +252,7 @@ pub fn parse_keybind(s: String) -> Result<Vec<KeyEvent>> {
             ))
         } else {
             out.push(KeyEvent::new(
-                parse_keybind_single(&word)
+                parse_keybind_single(word)
                     .unwrap_or_else(|| panic!("couldn't parse {}", word)),
                 KeyModifiers::empty(),
             ))

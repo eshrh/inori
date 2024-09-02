@@ -69,6 +69,6 @@ pub trait Searchable<T>: Selector {
     fn should_filter(&self) -> bool {
         self.filter().active
             && self.filter().cache.order.iter().any(|i| i.is_some())
-            && self.filter().query.len() != 0
+            && !self.filter().query.is_empty()
     }
 }

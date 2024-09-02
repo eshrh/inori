@@ -51,10 +51,9 @@ pub fn add_tracks(model: &mut Model) -> Result<()> {
                     .tags
                     .iter()
                     .find(|t| t.0 == "Album")
-                    .cloned()
-                    .and_then(|i| Some(i.1))
+                    .cloned().map(|i| i.1)
                     .unwrap_or("<ALBUM NOT FOUND>".into()),
-                tracks: album.iter().cloned().collect(),
+                tracks: album.to_vec(),
                 expanded: true,
             });
         }
