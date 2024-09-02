@@ -136,7 +136,7 @@ pub fn handle_library_artist(
                 .selected_item_mut()
                 .map(|f| {
                     f.init();
-                    ()
+                    
                 });
             Ok(Update::empty())
         }
