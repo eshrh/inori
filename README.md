@@ -1,14 +1,22 @@
 # inori
 
 <p align="center">
-  <picture>
-    <span
-      title="inori = i nor i; nor is sometimes denoted by X and i's
+  <span
+    title="inori = i nor i; nor is sometimes denoted by X and i's
 look like norm bars with major version as a p-norm"
-    >
+  >
+    <picture>
+      <source
+        media="(prefers-color-scheme: light)"
+        srcset="./images/inori-logo.svg"
+      />
+      <source
+        media="(prefers-color-scheme: dark)"
+        srcset="./images/inori-logo-white.svg"
+      />
       <img src="./images/inori-logo.svg" width="128px" alt="inori logo" />
-    </span>
-  </picture>
+    </picture>
+  </span>
 </p>
 
 Client for the Music Player Daemon ([MPD](https://www.musicpd.org/)).

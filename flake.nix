@@ -44,7 +44,10 @@
               text = ''
                 cp ${self.packages.${system}.inori-logo}/inori-logo.svg \
                   -T images/inori-logo.svg
+                cp ${self.packages.${system}.inori-logo}/inori-logo-white.svg \
+                  -T images/inori-logo-white.svg
                 chmod +w images/inori-logo.svg
+                chmod +w images/inori-logo-white.svg
               '';
             });
           };

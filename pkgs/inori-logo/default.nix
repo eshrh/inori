@@ -22,8 +22,12 @@ stdenvNoCC.mkDerivation rec {
     export XDG_CACHE_HOME=$(realpath .cache)
     export TECTONIC_CACHE_DIR=${cache}
     export SOURCE_DATE_EPOCH=0
-    tectonic --only-cached -Z deterministic-mode ${name}.tex
-    pdftocairo -svg ${name}.pdf
+    substitute ${name}.tex ${name}-black.tex --subst-var-by fg 000000
+    tectonic --only-cached -Z deterministic-mode ${name}-black.tex
+    pdftocairo -svg ${name}-black.pdf
+    substitute ${name}.tex ${name}-white.tex --subst-var-by fg ffffff
+    tectonic --only-cached -Z deterministic-mode ${name}-white.tex
+    pdftocairo -svg ${name}-white.pdf
 
     runHook postBuild
   '';
@@ -31,7 +35,8 @@ stdenvNoCC.mkDerivation rec {
   installPhase = ''
     runHook preInstall
 
-    install -Dm644 ${name}.svg -T $out/${name}.svg
+    install -Dm644 ${name}-black.svg -T $out/${name}.svg
+    install -Dm644 ${name}-white.svg -T $out/${name}-white.svg
 
     runHook postInstall
   '';

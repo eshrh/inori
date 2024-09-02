@@ -7,11 +7,13 @@
   <00112233445566778899aabbccddeeff>
 ]}
 
+\definecolor{fg}{HTML}{@fg@}
+
 \begin{document}
 \begin{tikzpicture}
   % https://tikz.dev/tikz-shapes#sec-17.2.3
   \node[inner xsep=0mm, inner ysep=0.07em] {%
-    \( \lvert \mathcal{X} \rvert_0 \)
+    \( \textcolor{fg}{\lvert \mathcal{X} \rvert_0} \)
   };
 \end{tikzpicture}
 \end{document}
