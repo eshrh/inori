@@ -1,6 +1,17 @@
 # inori
 
-Client for the Music Player Daemon ([MPD](https://www.musicpd.org/))
+<p align="center">
+  <picture>
+    <span
+      title="inori = i nor i; nor is sometimes denoted by X and i's
+look like norm bars with major version as a p-norm"
+    >
+      <img src="./images/inori-logo.svg" width="128px" alt="inori logo" />
+    </span>
+  </picture>
+</p>
+
+Client for the Music Player Daemon ([MPD](https://www.musicpd.org/)).
 
 ## Features
 
@@ -30,8 +41,9 @@ as a full list of all default keybindings.
 
 ## Screenshots
 
-![](./images/library.png) ![](./images/search.png)
-![](./images/queue.png)
+![Screenshot showing the library view](./images/library.png)
+![Screenshot showing the search feature](./images/search.png)
+![Screenshot showing the queue view](./images/queue.png)
 
 ## Todo
 
