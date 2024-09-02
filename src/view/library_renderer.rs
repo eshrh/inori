@@ -25,7 +25,7 @@ pub fn render_search_item<'a>(
         if *artist_sort != ie.artist {
             let len = artist_sort.chars().count();
             cur += 1; // for spc
-            //                       [.]
+                      //                       [.]
             for i in cur..cur + len + 2 {
                 out[i].style = theme.artist_sort;
             }
@@ -46,7 +46,7 @@ pub fn render_search_item<'a>(
     }
     for i in 0..out.len() {
         if idx.contains(&u32::try_from(i).unwrap()) {
-           out[i].style = out[i].style.add_modifier(Modifier::UNDERLINED);
+            out[i].style = out[i].style.add_modifier(Modifier::UNDERLINED);
         }
     }
     Line::from(out)
