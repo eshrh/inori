@@ -69,9 +69,9 @@ pub fn add_tracks(model: &mut Model) -> Result<()> {
             }
         }
     }
-    model.library.selected_item_mut().map(|i| {
-        i.albums = albums;
-        i.fetched = true;
-    });
+    if let Some(item) = model.library.selected_item_mut() {
+        item.albums = albums;
+        item.fetched = true;
+    }
     Ok(())
 }

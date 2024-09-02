@@ -7,7 +7,7 @@ use ratatui::widgets::*;
 
 pub fn render_str_with_idxs<'a>(
     str: String,
-    idxs: &Vec<u32>,
+    idxs: &[u32],
     len: usize,
     theme: &Theme,
 ) -> Vec<Span<'a>> {

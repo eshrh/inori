@@ -59,10 +59,7 @@ impl InfoEntry {
             && self.title.is_none()
             && self.artist_sort.as_ref().is_some_and(|i| *i == self.artist)
     }
-}
-
-impl ToString for InfoEntry {
-    fn to_string(&self) -> String {
+    pub fn to_search_string(&self) -> String {
         let mut out: String = self.artist.clone();
         if let Some(artist_sort) = &self.artist_sort {
             if *artist_sort != out {
@@ -79,6 +76,7 @@ impl ToString for InfoEntry {
         }
         out
     }
+
 }
 
 impl Selector for GlobalSearchState {
@@ -153,7 +151,7 @@ impl Searchable<InfoEntry> for GlobalSearchState {
                 self.contents
                     .iter()
                     .flatten()
-                    .map(|i| Utf32String::from(i.to_string()))
+                    .map(|i| Utf32String::from(i.to_search_string()))
                     .collect(),
             );
         }

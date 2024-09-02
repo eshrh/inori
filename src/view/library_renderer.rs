@@ -11,11 +11,11 @@ use ratatui::widgets::*;
 
 pub fn render_search_item<'a>(
     ie: &InfoEntry,
-    idx: &Vec<u32>,
+    idx: &[u32],
     theme: &Theme,
 ) -> Line<'a> {
     let mut out: Vec<Span> = ie
-        .to_string()
+        .to_search_string()
         .chars()
         .map(|c| Span::from(c.to_string()))
         .collect();
@@ -25,9 +25,8 @@ pub fn render_search_item<'a>(
         if *artist_sort != ie.artist {
             let len = artist_sort.chars().count();
             cur += 1; // for spc
-                      //                       [.]
-            for i in cur..cur + len + 2 {
-                out[i].style = theme.artist_sort;
+            for item in out.iter_mut().take(cur + len + 2).skip(cur) {
+                item.style = theme.artist_sort;
             }
             cur += len + 2;
         }
@@ -36,17 +35,17 @@ pub fn render_search_item<'a>(
         let len = album.chars().count();
         out[cur].style = theme.slash_span;
         cur += 1;
-        for i in cur..cur + len {
-            out[i].style = theme.album;
+        for item in out.iter_mut().skip(cur).take(len) {
+            item.style = theme.album;
         }
         cur += len;
     }
     if let Some(_title) = &ie.title {
         out[cur].style = theme.slash_span;
     }
-    for i in 0..out.len() {
+    for (i, item) in out.iter_mut().enumerate() {
         if idx.contains(&u32::try_from(i).unwrap()) {
-            out[i].style = out[i].style.add_modifier(Modifier::UNDERLINED);
+            item.style = item.style.add_modifier(Modifier::UNDERLINED);
         }
     }
     Line::from(out)

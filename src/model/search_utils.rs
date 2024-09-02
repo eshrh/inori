@@ -4,7 +4,7 @@ use nucleo_matcher::Utf32String;
 
 pub fn compute_orders(
     query: &str,
-    strings: &Vec<Utf32String>,
+    strings: &[Utf32String],
     matcher: &mut Matcher,
     score_threshold: u32,
 ) -> Vec<Option<usize>> {

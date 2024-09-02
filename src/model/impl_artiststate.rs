@@ -113,12 +113,10 @@ impl<'a> ArtistData {
         // Tried this and it's busted.
         let sel_idx = self.selector().selected()?;
         let mut i = 0;
-        let mut album_i = 0;
-        for album in &self.albums {
+        for (album_i, album) in self.albums.iter().enumerate() {
             if sel_idx == i {
                 return self.albums.get_mut(album_i);
             }
-            album_i += 1;
             i += 1;
             if album.expanded {
                 i += album.tracks.len()
@@ -233,16 +231,5 @@ impl<'a> TrackSelItem<'a> {
     pub fn rank(mut self, val: Option<usize>) -> Self {
         self.rank = val;
         self
-    }
-}
-
-impl<'a> ToString for TrackSelItem<'a> {
-    fn to_string(&self) -> String {
-        match self.item {
-            ItemRef::Album(a) => a.name.clone(),
-            ItemRef::Song(s) => {
-                s.title.clone().unwrap_or("<SONG TITLE NOT FOUND>".into())
-            }
-        }
     }
 }

@@ -226,27 +226,27 @@ pub fn parse_keybind_single(s: &str) -> Option<KeyCode> {
 pub fn parse_keybind(s: String) -> Result<Vec<KeyEvent>> {
     let mut out: Vec<KeyEvent> = Vec::new();
     for word in s.split(' ') {
-        if word.starts_with("C-") {
+        if let Some(suffix) = word.strip_prefix("C-") {
             out.push(KeyEvent::new(
-                parse_keybind_single(&word[2..])
+                parse_keybind_single(suffix)
                     .unwrap_or_else(|| panic!("couldn't parse {}", word)),
                 KeyModifiers::CONTROL,
             ))
-        } else if word.starts_with("M-") {
+        } else if let Some(suffix) = word.strip_prefix("M-") {
             out.push(KeyEvent::new(
-                parse_keybind_single(&word[2..])
+                parse_keybind_single(suffix)
                     .unwrap_or_else(|| panic!("couldn't parse {}", word)),
                 KeyModifiers::META,
             ))
-        } else if word.starts_with("S-") {
+        } else if let Some(suffix) = word.strip_prefix("S-") {
             out.push(KeyEvent::new(
-                parse_keybind_single(&word[2..])
+                parse_keybind_single(suffix)
                     .unwrap_or_else(|| panic!("couldn't parse {}", word)),
                 KeyModifiers::SUPER,
             ))
-        } else if word.starts_with("C-M-") {
+        } else if let Some(suffix) = word.strip_prefix("C-M-") {
             out.push(KeyEvent::new(
-                parse_keybind_single(&word[4..])
+                parse_keybind_single(suffix)
                     .unwrap_or_else(|| panic!("couldn't parse {}", word)),
                 KeyModifiers::CONTROL | KeyModifiers::META,
             ))
