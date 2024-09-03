@@ -93,8 +93,8 @@ multiple keybinds.
 | `toggle_single`     | toggle single                                      | s             |            |            |
 | `toggle_consume`    | toggle consume                                     | c             |            |            |
 | `toggle_random`     | toggle random                                      | z             |            |            |
-| `top`               | jump to top                                        | `<page_up>`   | <          | g g        |
-| `bottom`            | jump to bottom                                     | `<page-down>` | >          | G          |
+| `top`               | jump to top                                        | `<home>`   | <          | g g        |
+| `bottom`            | jump to bottom                                     | `<end>` | >          | G          |
 
 Note that the dvorak/qwerty sets *do not* delete the default
 keybindings.
