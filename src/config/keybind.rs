@@ -12,9 +12,7 @@ pub enum KeybindTarget {
 use KeybindTarget::*;
 
 pub struct KeybindMap(pub HashMap<KeyEvent, KeybindTarget>);
-
-#[cfg(all(feature = "dvorak_movement_keys", feature = "qwerty_movement_keys"))]
-compile_error!("Cannot have both default dvorak and qwerty movement keys");
+const EMPTY: KeyModifiers = KeyModifiers::empty();
 
 pub fn get_message(s: &str) -> Option<Message> {
     match s {
@@ -48,122 +46,148 @@ pub fn get_message(s: &str) -> Option<Message> {
 impl KeybindMap {
     pub fn default() -> Self {
         let mut keybindings = HashMap::new();
-        let empty = KeyModifiers::empty();
-        #[cfg(feature = "dvorak_movement_keys")]
-        {
-            keybindings.insert(
-                KeyEvent::new(KeyCode::Char('t'), empty),
-                Msg(Direction(Dirs::Vert(Vertical::Up))),
-            );
-            keybindings.insert(
-                KeyEvent::new(KeyCode::Char('h'), empty),
-                Msg(Direction(Dirs::Vert(Vertical::Down))),
-            );
-            keybindings.insert(
-                KeyEvent::new(KeyCode::Char('d'), empty),
-                Msg(Direction(Dirs::Horiz(Horizontal::Left))),
-            );
-            keybindings.insert(
-                KeyEvent::new(KeyCode::Char('n'), empty),
-                Msg(Direction(Dirs::Horiz(Horizontal::Left))),
-            );
-            keybindings.insert(
-                KeyEvent::new(KeyCode::Char('<'), empty),
-                Msg(Direction(Dirs::Vert(Vertical::Top))),
-            );
-            keybindings.insert(
-                KeyEvent::new(KeyCode::Char('>'), empty),
-                Msg(Direction(Dirs::Vert(Vertical::Bottom))),
-            );
-        }
-        #[cfg(feature = "qwerty_movement_keys")]
-        {
-            keybindings.insert(
-                KeyEvent::new(KeyCode::Char('k'), empty),
-                Msg(Direction(Dirs::Vert(Vertical::Up))),
-            );
-            keybindings.insert(
-                KeyEvent::new(KeyCode::Char('j'), empty),
-                Msg(Direction(Dirs::Vert(Vertical::Down))),
-            );
-            keybindings.insert(
-                KeyEvent::new(KeyCode::Char('h'), empty),
-                Msg(Direction(Dirs::Horiz(Horizontal::Left))),
-            );
-            keybindings.insert(
-                KeyEvent::new(KeyCode::Char('l'), empty),
-                Msg(Direction(Dirs::Horiz(Horizontal::Left))),
-            );
-        }
-        keybindings
-            .insert(KeyEvent::new(KeyCode::Char('p'), empty), Msg(PlayPause));
-        keybindings.insert(KeyEvent::new(KeyCode::Enter, empty), Msg(Select));
         keybindings.insert(
-            KeyEvent::new(KeyCode::Char('1'), empty),
+            KeyEvent::new(KeyCode::Up, EMPTY),
+            Msg(Direction(Dirs::Vert(Vertical::Up))),
+        );
+        keybindings.insert(
+            KeyEvent::new(KeyCode::Down, EMPTY),
+            Msg(Direction(Dirs::Vert(Vertical::Down))),
+        );
+        keybindings.insert(
+            KeyEvent::new(KeyCode::Left, EMPTY),
+            Msg(Direction(Dirs::Horiz(Horizontal::Left))),
+        );
+        keybindings.insert(
+            KeyEvent::new(KeyCode::Right, EMPTY),
+            Msg(Direction(Dirs::Horiz(Horizontal::Right))),
+        );
+        keybindings.insert(
+            KeyEvent::new(KeyCode::Home, EMPTY),
+            Msg(Direction(Dirs::Vert(Vertical::Top))),
+        );
+        keybindings.insert(
+            KeyEvent::new(KeyCode::End, EMPTY),
+            Msg(Direction(Dirs::Vert(Vertical::Bottom))),
+        );
+        keybindings.insert(
+            KeyEvent::new(KeyCode::Char('s'), KeyModifiers::CONTROL),
+            Msg(GlobalSearch(SearchMsg::Start)),
+        );
+
+        keybindings
+            .insert(KeyEvent::new(KeyCode::Char('p'), EMPTY), Msg(PlayPause));
+        keybindings.insert(KeyEvent::new(KeyCode::Enter, EMPTY), Msg(Select));
+        keybindings.insert(
+            KeyEvent::new(KeyCode::Char('1'), EMPTY),
             Msg(SwitchScreen(super::Screen::Library)),
         );
         keybindings.insert(
-            KeyEvent::new(KeyCode::Char('2'), empty),
+            KeyEvent::new(KeyCode::Char('2'), EMPTY),
             Msg(SwitchScreen(super::Screen::Queue)),
         );
         keybindings.insert(
-            KeyEvent::new(KeyCode::Char('q'), empty),
+            KeyEvent::new(KeyCode::Char('q'), EMPTY),
             Msg(SwitchState(super::State::Done)),
         );
         keybindings
-            .insert(KeyEvent::new(KeyCode::Backspace, empty), Msg(Delete));
+            .insert(KeyEvent::new(KeyCode::Backspace, EMPTY), Msg(Delete));
         keybindings
-            .insert(KeyEvent::new(KeyCode::Tab, empty), Msg(ToggleScreen));
-        keybindings.insert(KeyEvent::new(KeyCode::Char(' '), empty), Msg(Fold));
+            .insert(KeyEvent::new(KeyCode::Tab, EMPTY), Msg(ToggleScreen));
+        keybindings.insert(KeyEvent::new(KeyCode::Char(' '), EMPTY), Msg(Fold));
         keybindings
-            .insert(KeyEvent::new(KeyCode::Char('-'), empty), Msg(Clear));
+            .insert(KeyEvent::new(KeyCode::Char('-'), EMPTY), Msg(Clear));
         keybindings.insert(
-            KeyEvent::new(KeyCode::Char('/'), empty),
+            KeyEvent::new(KeyCode::Char('/'), EMPTY),
             Msg(LocalSearch(SearchMsg::Start)),
         );
-        keybindings.insert(KeyEvent::new(KeyCode::Esc, empty), Msg(Escape));
+        keybindings.insert(KeyEvent::new(KeyCode::Esc, EMPTY), Msg(Escape));
         keybindings.insert(
-            KeyEvent::new(KeyCode::Char('r'), empty),
+            KeyEvent::new(KeyCode::Char('r'), EMPTY),
             Msg(Set(Toggle::Repeat)),
         );
         keybindings.insert(
-            KeyEvent::new(KeyCode::Char('z'), empty),
+            KeyEvent::new(KeyCode::Char('z'), EMPTY),
             Msg(Set(Toggle::Random)),
         );
         keybindings.insert(
-            KeyEvent::new(KeyCode::Char('s'), empty),
+            KeyEvent::new(KeyCode::Char('s'), EMPTY),
             Msg(Set(Toggle::Single)),
         );
         keybindings.insert(
-            KeyEvent::new(KeyCode::Char('c'), empty),
+            KeyEvent::new(KeyCode::Char('c'), EMPTY),
             Msg(Set(Toggle::Consume)),
         );
-
-        if cfg!(feature = "dvorak_movement_keys") {
-            keybindings.insert(
-                KeyEvent::new(KeyCode::Char('g'), empty),
-                Msg(GlobalSearch(SearchMsg::Start)),
-            );
-            Self(keybindings)
-        } else {
-            keybindings.insert(
-                KeyEvent::new(KeyCode::Char('G'), empty),
-                Msg(Direction(Dirs::Vert(Vertical::Bottom))),
-            );
-            keybindings.insert(
-                KeyEvent::new(KeyCode::Char('G'), KeyModifiers::CONTROL),
-                Msg(GlobalSearch(SearchMsg::Start)),
-            );
-            let mut k = Self(keybindings);
-            k.insert(
-                Direction(Dirs::Vert(Vertical::Top)),
-                &[
-                    KeyEvent::new(KeyCode::Char('g'), empty),
-                    KeyEvent::new(KeyCode::Char('g'), empty),
-                ],
-            );
-            k
-        }
+        Self(keybindings)
+    }
+    pub fn with_dvorak_style(mut self) -> Self {
+        self.0.insert(
+            KeyEvent::new(KeyCode::Char('t'), EMPTY),
+            Msg(Direction(Dirs::Vert(Vertical::Up))),
+        );
+        self.0.insert(
+            KeyEvent::new(KeyCode::Char('h'), EMPTY),
+            Msg(Direction(Dirs::Vert(Vertical::Down))),
+        );
+        self.0.insert(
+            KeyEvent::new(KeyCode::Char('d'), EMPTY),
+            Msg(Direction(Dirs::Horiz(Horizontal::Left))),
+        );
+        self.0.insert(
+            KeyEvent::new(KeyCode::Char('n'), EMPTY),
+            Msg(Direction(Dirs::Horiz(Horizontal::Right))),
+        );
+        self.0.insert(
+            KeyEvent::new(KeyCode::Char('<'), EMPTY),
+            Msg(Direction(Dirs::Vert(Vertical::Top))),
+        );
+        self.0.insert(
+            KeyEvent::new(KeyCode::Char('>'), EMPTY),
+            Msg(Direction(Dirs::Vert(Vertical::Bottom))),
+        );
+        self.0.insert(
+            KeyEvent::new(KeyCode::Char('g'), EMPTY),
+            Msg(GlobalSearch(SearchMsg::Start)),
+        );
+        self.0.insert(
+            KeyEvent::new(KeyCode::Char('g'), KeyModifiers::CONTROL),
+            Msg(Escape),
+        );
+        self
+    }
+    pub fn with_qwerty_style(mut self) -> Self {
+        self.0.insert(
+            KeyEvent::new(KeyCode::Char('k'), EMPTY),
+            Msg(Direction(Dirs::Vert(Vertical::Up))),
+        );
+        self.0.insert(
+            KeyEvent::new(KeyCode::Char('j'), EMPTY),
+            Msg(Direction(Dirs::Vert(Vertical::Down))),
+        );
+        self.0.insert(
+            KeyEvent::new(KeyCode::Char('h'), EMPTY),
+            Msg(Direction(Dirs::Horiz(Horizontal::Left))),
+        );
+        self.0.insert(
+            KeyEvent::new(KeyCode::Char('l'), EMPTY),
+            Msg(Direction(Dirs::Horiz(Horizontal::Right))),
+        );
+        self.0.insert(
+            KeyEvent::new(KeyCode::Char('g'), KeyModifiers::CONTROL),
+            Msg(GlobalSearch(SearchMsg::Start)),
+        );
+        self.0.insert(
+            KeyEvent::new(KeyCode::Char('G'), KeyModifiers::empty()),
+            Msg(Direction(Dirs::Vert(Vertical::Bottom))),
+        );
+        self.insert(
+            Direction(Dirs::Vert(Vertical::Top)),
+            &[
+                KeyEvent::new(KeyCode::Char('g'), EMPTY),
+                KeyEvent::new(KeyCode::Char('g'), EMPTY),
+            ],
+        );
+        self
     }
     pub fn insert(&mut self, msg: Message, bind: &[KeyEvent]) {
         if bind.len() == 1 {
@@ -219,6 +243,8 @@ pub fn parse_keybind_single(s: &str) -> Option<KeyCode> {
             "<left>" => Some(KeyCode::Left),
             "<right>" => Some(KeyCode::Right),
             "<enter>" => Some(KeyCode::Enter),
+            "<home>" => Some(KeyCode::Home),
+            "<end>" => Some(KeyCode::End),
             _ => None,
         }
     }

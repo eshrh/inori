@@ -4,6 +4,28 @@ Config file is read from `$XDG_CONFIG_HOME/inori/config.toml`,
 defaulting to `$HOME/.config/inori/config.toml` if it is not set.
 
 ## Keybindings
+### Keybinding sets
+inori comes with sensible default keybindings for some commands. It
+also includes two extra sets for convenience to hopefully suit most
+users.
+
+To enable the dvorak set, use
+```toml
+dvorak_keybindings = true
+```
+and likewise, to enable the qwerty set, use
+```toml
+qwerty_keybindings = true
+```
+
+Note that if both are set to true, the option set last will shadow the
+option set first.
+
+In general, the dvorak set will be more familiar to emacs users (this
+is what I personally use), and the qwerty set will be familiar to vim
+users.
+
+### Keybinding syntax
 
 Keybindings set in the config file _override_ the defaults if they are
 set, but do not delete them.
@@ -35,42 +57,47 @@ SPECIAL_KEY := <space>
   | <left>
   | <right>
   | <enter>
+  | <home>
+  | <end>
 ```
 
 Each of the modifiers corresponds to a modifier key, `CTRL, META,
 SUPER, CTRL+META`. So, your keybindings will look like `g g` or `C-c
 C-n` or `C-<space>`
 
-Here is the full list of commands, along with their defaults.
-
-| Command name        | Explanation                                        | Default key (dvorak) | Default key (qwerty) |
-| ------------------- | -------------------------------------------------- | -------------------- | -------------------- |
-| `up`                | move up                                            | t                    | k                    |
-| `down`              | move down                                          | h                    | j                    |
-| `left`              | move left                                          | d                    | h                    |
-| `right`             | move right                                         | n                    | l                    |
-| `toggle_playpause`  | toggles between play and pause                     | p                    | p                    |
-| `select`            | act on the selected entry                          | `<enter>`            | `<enter>`            |
-| `quit`              | close the program                                  | q                    | q                    |
-| `switch_to_library` | switch to library screen                           | 1                    | 1                    |
-| `switch_to_queue`   | switch to queue screen                             | 2                    | 2                    |
-| `toggle_screen_lq`  | toggle between library/queue                       | `<tab>`              | `<tab>`              |
-| `toggle_panel`      | [library] switch between artist and track selector |                      |                      |
-| `fold`              | [library/track] toggle fold album                  | `<space>`            | `<space>`            |
-| `clear_queue`       | clear queue                                        | -                    | -                    |
-| `local_search`      | search local selector                              | /                    | /                    |
-| `global_search`     | [library] global jumping search                    | g                    | C-g                  |
-| `escape`            | escape                                             | `<esc>`              | `<esc>`              |
-| `delete`            | [queue] deletes the selected item off queue        | `<backspace>`        | `<backspace>`        |
-| `toggle_repeat`     | toggle repeat                                      | r                    | r                    |
-| `toggle_single`     | toggle single                                      | s                    | s                    |
-| `toggle_consume`    | toggle consume                                     | c                    | c                    |
-| `toggle_random`     | toggle random                                      | z                    | z                    |
-| `top`               | jump to top                                        | <                    | g g                  |
-| `bottom`            | jump to bottom                                     | >                    | G                    |
-
 Note that you can specify multiple entries for each command, creating
 multiple keybinds.
+
+### List of commands and defaults
+
+| Command name        | Explanation                                        | default       | dvorak set | qwerty set |
+|---------------------|----------------------------------------------------|---------------|------------|------------|
+| `up`                | move up                                            | `<up>`        | t          | k          |
+| `down`              | move down                                          | `<down>`      | h          | j          |
+| `left`              | move left                                          | `<left>`      | d          | h          |
+| `right`             | move right                                         | `<right>`     | n          | l          |
+| `toggle_playpause`  | toggles between play and pause                     | p             |            |            |
+| `select`            | act on the selected entry                          | `<enter>`     |            |            |
+| `quit`              | close the program                                  | q             |            |            |
+| `switch_to_library` | switch to library screen                           | 1             |            |            |
+| `switch_to_queue`   | switch to queue screen                             | 2             |            |            |
+| `toggle_screen_lq`  | toggle between library/queue                       | `<tab>`       |            |            |
+| `toggle_panel`      | [library] switch between artist and track selector |               |            |            |
+| `fold`              | [library/track] toggle fold album                  | `<space>`     |            |            |
+| `clear_queue`       | clear queue                                        | -             |            |            |
+| `local_search`      | search local selector                              | /             |            |            |
+| `global_search`     | [library] global jumping search                    | C-s           | g          | C-g        |
+| `escape`            | escape                                             | `<esc>`       | C-g        |            |
+| `delete`            | [queue] deletes the selected item off queue        | `<backspace>` |            |            |
+| `toggle_repeat`     | toggle repeat                                      | r             |            |            |
+| `toggle_single`     | toggle single                                      | s             |            |            |
+| `toggle_consume`    | toggle consume                                     | c             |            |            |
+| `toggle_random`     | toggle random                                      | z             |            |            |
+| `top`               | jump to top                                        | `<page_up>`   | <          | g g        |
+| `bottom`            | jump to bottom                                     | `<page-down>` | >          | G          |
+
+Note that the dvorak/qwerty sets *do not* delete the default
+keybindings.
 
 ## Theme
 

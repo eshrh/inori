@@ -32,6 +32,12 @@ impl Config {
                 match (key.as_str(), value) {
                     ("keybindings", Value::Table(t)) => self.read_keybinds(t),
                     ("theme", Value::Table(t)) => self.read_theme(t),
+                    ("dvorak_keybindings", Value::Boolean(true)) => {
+                        self.keybindings = self.keybindings.with_dvorak_style();
+                    }
+                    ("qwerty_keybindings", Value::Boolean(true)) => {
+                        self.keybindings = self.keybindings.with_qwerty_style();
+                    }
                     (_k, _v) => panic!("unknown key {} or value {}", _k, _v),
                 }
             }

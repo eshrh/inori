@@ -36,11 +36,6 @@ Client for the Music Player Daemon ([MPD](https://www.musicpd.org/)).
 
 Run `cargo install inori`. inori is published on [crates.io](https://crates.io/crates/inori).
 
-The default keybindings use dvorak-convenient movement keys (`dhtn`).
-Build/install with the command line args
-`--features qwerty_movement_keys --no-default-features` for qwerty-vim
-style movement.
-
 inori is also available on the AUR as [inori](https://aur.archlinux.org/packages/inori).
 The PKGBUILD includes an option to switch between qwerty and dvorak defaults.
 
