@@ -1,7 +1,7 @@
+extern crate dirs;
 use crate::model::*;
 use crate::view::Theme;
 use ratatui::style::Style;
-use std::env;
 use std::fs;
 use std::path::PathBuf;
 use toml::Table;
@@ -22,16 +22,10 @@ impl Config {
         }
     }
     pub fn try_read_config(mut self) -> Self {
-        let path = match env::var("XDG_CONFIG_HOME") {
-            Ok(s) => Some(PathBuf::from(s + "/inori/config.toml")),
-            Err(_) => match env::var("HOME") {
-                Ok(home) => {
-                    Some(PathBuf::from(home + "/.config/inori/config.toml"))
-                }
-                Err(_) => None,
-            },
-        };
-
+        let path = dirs::config_dir().map(|mut p| {
+            p.push(PathBuf::from_iter(["inori", "config.toml"]));
+            p
+        });
         if let Some(Ok(contents)) = path.map(fs::read_to_string) {
             let toml = contents.parse::<Table>().expect("failed to parse toml");
             for (key, value) in toml {
