@@ -124,7 +124,7 @@ impl Model {
             env::var("MPD_PORT").unwrap_or_else(|_| "6600".to_string())
         );
         let mut conn = Client::connect(mpd_url.clone()).unwrap_or_else(|_| {
-            panic!("Failed to connect to mpd client at {}", mpd_url)
+            panic!("Failed to connect to mpd server at {}", mpd_url)
         });
 
         Ok(Model {
