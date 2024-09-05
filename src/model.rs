@@ -1,10 +1,12 @@
 extern crate mpd;
 use mpd::error::Result;
+use mpd::search::Window;
 use mpd::{Client, Song, Status};
 use nucleo_matcher::{Matcher, Utf32String};
 use ratatui::crossterm::event::KeyEvent;
 use ratatui::widgets::*;
 use std::env;
+use std::net::TcpStream;
 mod impl_album_song;
 mod impl_artiststate;
 mod impl_library;
@@ -15,6 +17,9 @@ mod search_utils;
 use crate::config::Config;
 use crate::model::proto::*;
 use crate::update::build_library;
+
+#[cfg(unix)]
+use {std::os::unix::net::UnixStream, std::path::PathBuf};
 
 #[derive(Clone, Debug)]
 pub enum Screen {
@@ -102,10 +107,16 @@ pub struct QueueSelector {
     pub state: TableState,
 }
 
+pub enum Connection {
+    #[cfg(unix)]
+    UnixSocket(Client<UnixStream>),
+    TcpSocket(Client<TcpStream>),
+}
+
 pub struct Model {
     pub state: State,
     pub status: Status,
-    pub conn: Client,
+    pub conn: Connection,
     pub screen: Screen,
     pub library: LibraryState,
     pub queue: QueueSelector,
@@ -118,14 +129,29 @@ pub struct Model {
 
 impl Model {
     pub fn new() -> Result<Self> {
-        let mpd_url = format!(
-            "{}:{}",
-            env::var("MPD_HOST").unwrap_or_else(|_| "localhost".to_string()),
-            env::var("MPD_PORT").unwrap_or_else(|_| "6600".to_string())
-        );
-        let mut conn = Client::connect(mpd_url.clone()).unwrap_or_else(|_| {
-            panic!("Failed to connect to mpd server at {}", mpd_url)
-        });
+        let mpd_host =
+            env::var("MPD_HOST").unwrap_or_else(|_| "localhost".to_string());
+        let mpd_port =
+            env::var("MPD_PORT").unwrap_or_else(|_| "6600".to_string());
+        let mpd_url = format!("{mpd_host}:{mpd_port}");
+
+        #[cfg(unix)]
+        let mut conn = if env::var("MPD_HOST").is_ok()
+            && PathBuf::from(&mpd_host).exists()
+        {
+            {
+                let client = Client::<UnixStream>::connect(&mpd_host)?;
+                Connection::UnixSocket(client)
+            }
+        } else {
+            let client = Client::<TcpStream>::connect(&mpd_url)?;
+            Connection::TcpSocket(client)
+        };
+        #[cfg(not(unix))]
+        let mut conn = {
+            let client = Client::<TcpStream>::connect(&mpd_url)?;
+            Connection::TcpSocket(client)
+        };
 
         Ok(Model {
             state: State::Running,
@@ -214,6 +240,146 @@ impl Model {
                 });
             }
             artist.set_selected(idx);
+        }
+    }
+}
+
+impl Connection {
+    fn status(&mut self) -> Result<Status> {
+        match self {
+            #[cfg(unix)]
+            Connection::UnixSocket(conn) => conn.status(),
+            Connection::TcpSocket(conn) => conn.status(),
+        }
+    }
+
+    fn currentsong(&mut self) -> Result<Option<Song>> {
+        match self {
+            #[cfg(unix)]
+            Connection::UnixSocket(conn) => conn.currentsong(),
+            Connection::TcpSocket(conn) => conn.currentsong(),
+        }
+    }
+
+    fn list_groups(&mut self, vec: Vec<&str>) -> Result<Vec<Vec<String>>> {
+        match self {
+            #[cfg(unix)]
+            Connection::UnixSocket(conn) => conn.list_groups(vec),
+            Connection::TcpSocket(conn) => conn.list_groups(vec),
+        }
+    }
+
+    pub(crate) fn queue(&mut self) -> Result<Vec<Song>> {
+        match self {
+            #[cfg(unix)]
+            Connection::UnixSocket(conn) => conn.queue(),
+            Connection::TcpSocket(conn) => conn.queue(),
+        }
+    }
+
+    pub(crate) fn delete(&mut self, p: u32) -> Result<()> {
+        match self {
+            #[cfg(unix)]
+            Connection::UnixSocket(conn) => conn.delete(p),
+            Connection::TcpSocket(conn) => conn.delete(p),
+        }
+    }
+
+    pub(crate) fn swap(&mut self, p: u32, to: u32) -> Result<()> {
+        match self {
+            #[cfg(unix)]
+            Connection::UnixSocket(conn) => conn.swap(p, to),
+            Connection::TcpSocket(conn) => conn.swap(p, to),
+        }
+    }
+
+    pub(crate) fn switch(&mut self, pos: u32) -> Result<()> {
+        match self {
+            #[cfg(unix)]
+            Connection::UnixSocket(conn) => conn.switch(pos),
+            Connection::TcpSocket(conn) => conn.switch(pos),
+        }
+    }
+
+    pub(crate) fn findadd(&mut self, query: &mut mpd::Query) -> Result<()> {
+        match self {
+            #[cfg(unix)]
+            Connection::UnixSocket(conn) => conn.findadd(query),
+            Connection::TcpSocket(conn) => conn.findadd(query),
+        }
+    }
+
+    pub(crate) fn find<W>(
+        &mut self,
+        query: &mut mpd::Query,
+        window: W,
+    ) -> Result<Vec<Song>>
+    where
+        W: Into<Window>,
+    {
+        match self {
+            #[cfg(unix)]
+            Connection::UnixSocket(conn) => conn.find(query, window),
+            Connection::TcpSocket(conn) => conn.find(query, window),
+        }
+    }
+
+    pub(crate) fn list_group_2(
+        &mut self,
+        terms: (String, String),
+    ) -> Result<Vec<(String, String)>> {
+        match self {
+            #[cfg(unix)]
+            Connection::UnixSocket(conn) => conn.list_group_2(terms),
+            Connection::TcpSocket(conn) => conn.list_group_2(terms),
+        }
+    }
+
+    pub(crate) fn clear(&mut self) -> Result<()> {
+        match self {
+            #[cfg(unix)]
+            Connection::UnixSocket(conn) => conn.clear(),
+            Connection::TcpSocket(conn) => conn.clear(),
+        }
+    }
+
+    pub(crate) fn consume(&mut self, value: bool) -> Result<()> {
+        match self {
+            #[cfg(unix)]
+            Connection::UnixSocket(conn) => conn.consume(value),
+            Connection::TcpSocket(conn) => conn.consume(value),
+        }
+    }
+
+    pub(crate) fn random(&mut self, value: bool) -> Result<()> {
+        match self {
+            #[cfg(unix)]
+            Connection::UnixSocket(conn) => conn.random(value),
+            Connection::TcpSocket(conn) => conn.random(value),
+        }
+    }
+
+    pub(crate) fn single(&mut self, value: bool) -> Result<()> {
+        match self {
+            #[cfg(unix)]
+            Connection::UnixSocket(conn) => conn.single(value),
+            Connection::TcpSocket(conn) => conn.single(value),
+        }
+    }
+
+    pub(crate) fn repeat(&mut self, value: bool) -> Result<()> {
+        match self {
+            #[cfg(unix)]
+            Connection::UnixSocket(conn) => conn.repeat(value),
+            Connection::TcpSocket(conn) => conn.repeat(value),
+        }
+    }
+
+    pub(crate) fn toggle_pause(&mut self) -> Result<()> {
+        match self {
+            #[cfg(unix)]
+            Connection::UnixSocket(conn) => conn.toggle_pause(),
+            Connection::TcpSocket(conn) => conn.toggle_pause(),
         }
     }
 }
