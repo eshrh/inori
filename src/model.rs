@@ -139,10 +139,8 @@ impl Model {
         let mut conn = if env::var("MPD_HOST").is_ok()
             && PathBuf::from(&mpd_host).exists()
         {
-            {
-                let client = Client::<UnixStream>::connect(&mpd_host)?;
-                Connection::UnixSocket(client)
-            }
+            let client = Client::<UnixStream>::connect(&mpd_host)?;
+            Connection::UnixSocket(client)
         } else {
             let client = Client::<TcpStream>::connect(&mpd_url)?;
             Connection::TcpSocket(client)
@@ -245,7 +243,7 @@ impl Model {
 }
 
 impl Connection {
-    fn status(&mut self) -> Result<Status> {
+    pub(crate) fn status(&mut self) -> Result<Status> {
         match self {
             #[cfg(unix)]
             Connection::UnixSocket(conn) => conn.status(),
@@ -253,7 +251,7 @@ impl Connection {
         }
     }
 
-    fn currentsong(&mut self) -> Result<Option<Song>> {
+    pub(crate) fn currentsong(&mut self) -> Result<Option<Song>> {
         match self {
             #[cfg(unix)]
             Connection::UnixSocket(conn) => conn.currentsong(),
@@ -261,7 +259,10 @@ impl Connection {
         }
     }
 
-    fn list_groups(&mut self, vec: Vec<&str>) -> Result<Vec<Vec<String>>> {
+    pub(crate) fn list_groups(
+        &mut self,
+        vec: Vec<&str>,
+    ) -> Result<Vec<Vec<String>>> {
         match self {
             #[cfg(unix)]
             Connection::UnixSocket(conn) => conn.list_groups(vec),
