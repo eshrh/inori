@@ -41,8 +41,8 @@ pub fn get_message(s: &str) -> Option<Message> {
         "toggle_random" => Some(Message::Set(Toggle::Random)),
         "next_song" => Some(Message::NextSong),
         "previous_song" => Some(Message::PreviousSong),
-        "seek" => Some(Message::Seek(5)),
-        "seek_backwards" => Some(Message::Seek(-5)),
+        "seek" => Some(Message::Seek(SeekDirection::Forward)),
+        "seek_backwards" => Some(Message::Seek(SeekDirection::Backward)),
         _ => None,
     }
 }

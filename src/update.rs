@@ -57,13 +57,19 @@ pub enum Toggle {
     Consume,
 }
 
+#[derive(PartialEq, Clone, Debug)]
+pub enum SeekDirection {
+    Forward,
+    Backward,
+}
+
 #[derive(Clone, Debug)]
 pub enum Message {
     Direction(Dirs),
     PlayPause,
     NextSong,
     PreviousSong,
-    Seek(i64),
+    Seek(SeekDirection),
     Select,
     SwitchState(State),
     SwitchScreen(Screen),
@@ -188,16 +194,17 @@ pub fn handle_msg(model: &mut Model, m: Message) -> Result<Update> {
                 Ok(Update::CURRENT_SONG | Update::STATUS)
             }
         },
-        Message::Seek(delta) => {
+        Message::Seek(direction) => {
             let mut update_flags = Update::empty();
 
             if let (Some((current_pos, total)), Some(queue_pos)) =
                 (model.status.time, model.status.song)
             {
-                let backwards = delta < 0;
-                let delta = Duration::from_secs(delta.unsigned_abs());
+                let delta = Duration::from_secs(
+                    model.config.seek_seconds.unsigned_abs(),
+                );
 
-                let new_pos = if backwards {
+                let new_pos = if direction == SeekDirection::Backward {
                     (current_pos.checked_sub(delta))
                         .unwrap_or(Duration::default())
                 } else {
