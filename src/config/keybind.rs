@@ -39,6 +39,10 @@ pub fn get_message(s: &str) -> Option<Message> {
         "toggle_single" => Some(Message::Set(Toggle::Single)),
         "toggle_consume" => Some(Message::Set(Toggle::Consume)),
         "toggle_random" => Some(Message::Set(Toggle::Random)),
+        "next_song" => Some(Message::NextSong),
+        "previous_song" => Some(Message::PreviousSong),
+        "seek" => Some(Message::Seek(5)),
+        "seek_backwards" => Some(Message::Seek(-5)),
         _ => None,
     }
 }
