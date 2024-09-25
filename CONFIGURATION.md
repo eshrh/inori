@@ -77,6 +77,10 @@ multiple keybinds.
 | `left`              | move left                                          | `<left>`      | d          | h          |
 | `right`             | move right                                         | `<right>`     | n          | l          |
 | `toggle_playpause`  | toggles between play and pause                     | p             |            |            |
+| `next song`         | jumps to the next song in the queue                |               |            |            |
+| `previous song`     | jumps to the previous song in the queue            |               |            |            |
+| `seek`              | seeks forward by 5 seconds                         |               |            |            |
+| `seek_backwards`    | seeks backwards by 5 seconds                       |               |            |            |
 | `select`            | act on the selected entry                          | `<enter>`     |            |            |
 | `quit`              | close the program                                  | q             |            |            |
 | `switch_to_library` | switch to library screen                           | 1             |            |            |
@@ -93,8 +97,8 @@ multiple keybinds.
 | `toggle_single`     | toggle single                                      | s             |            |            |
 | `toggle_consume`    | toggle consume                                     | c             |            |            |
 | `toggle_random`     | toggle random                                      | z             |            |            |
-| `top`               | jump to top                                        | `<home>`   | <          | g g        |
-| `bottom`            | jump to bottom                                     | `<end>` | >          | G          |
+| `top`               | jump to top                                        | `<home>`      | <          | g g        |
+| `bottom`            | jump to bottom                                     | `<end>`       | >          | G          |
 
 Note that the dvorak/qwerty sets *do not* delete the default
 keybindings.

@@ -4,8 +4,10 @@ use crate::model::proto::Searchable;
 use crate::model::{Model, Screen, State};
 use crate::util::{safe_decrement, safe_increment};
 use bitflags::bitflags;
+use mpd::status::State as PlayState;
 use ratatui::crossterm::event::{self, KeyCode, KeyEvent};
 use std::option::Option;
+use std::time::Duration;
 
 pub mod build_library;
 mod handlers;
@@ -55,10 +57,19 @@ pub enum Toggle {
     Consume,
 }
 
+#[derive(PartialEq, Clone, Debug)]
+pub enum SeekDirection {
+    Forward,
+    Backward,
+}
+
 #[derive(Clone, Debug)]
 pub enum Message {
     Direction(Dirs),
     PlayPause,
+    NextSong,
+    PreviousSong,
+    Seek(SeekDirection),
     Select,
     SwitchState(State),
     SwitchScreen(Screen),
@@ -168,6 +179,47 @@ pub fn handle_msg(model: &mut Model, m: Message) -> Result<Update> {
         Message::PlayPause => {
             model.conn.toggle_pause()?;
             Ok(Update::STATUS)
+        }
+        Message::NextSong => match model.status.state {
+            PlayState::Stop => Ok(Update::empty()),
+            _ => {
+                model.conn.next()?;
+                Ok(Update::CURRENT_SONG | Update::STATUS)
+            }
+        },
+        Message::PreviousSong => match model.status.state {
+            PlayState::Stop => Ok(Update::empty()),
+            _ => {
+                model.conn.prev()?;
+                Ok(Update::CURRENT_SONG | Update::STATUS)
+            }
+        },
+        Message::Seek(direction) => {
+            let mut update_flags = Update::empty();
+
+            if let (Some((current_pos, total)), Some(queue_pos)) =
+                (model.status.time, model.status.song)
+            {
+                let delta = Duration::from_secs(
+                    model.config.seek_seconds.unsigned_abs(),
+                );
+
+                let new_pos = if direction == SeekDirection::Backward {
+                    (current_pos.checked_sub(delta))
+                        .unwrap_or(Duration::default())
+                } else {
+                    (current_pos.checked_add(delta)).unwrap_or(total).min(total)
+                };
+
+                if new_pos >= total {
+                    model.conn.next()?;
+                    update_flags |= Update::CURRENT_SONG | Update::STATUS;
+                } else {
+                    model.conn.seek(queue_pos.pos, new_pos)?;
+                    update_flags |= Update::STATUS;
+                }
+            }
+            Ok(update_flags)
         }
         Message::Set(t) => {
             match t {

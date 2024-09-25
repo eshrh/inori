@@ -12,6 +12,7 @@ use keybind::{get_message, KeybindMap};
 pub struct Config {
     pub keybindings: KeybindMap,
     pub theme: Theme,
+    pub seek_seconds: i64,
 }
 
 impl Config {
@@ -19,6 +20,7 @@ impl Config {
         Config {
             keybindings: KeybindMap::default(),
             theme: Theme::new(),
+            seek_seconds: 5,
         }
     }
     pub fn try_read_config(mut self) -> Self {
@@ -31,6 +33,9 @@ impl Config {
             for (key, value) in toml {
                 match (key.as_str(), value) {
                     ("keybindings", Value::Table(t)) => self.read_keybinds(t),
+                    ("seek_seconds", Value::Integer(k)) if k > 0 => {
+                        self.seek_seconds = k
+                    }
                     ("theme", Value::Table(t)) => self.read_theme(t),
                     ("dvorak_keybindings", Value::Boolean(true)) => {
                         self.keybindings = self.keybindings.with_dvorak_style();
