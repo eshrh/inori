@@ -7,6 +7,7 @@ use ratatui::crossterm::event::KeyEvent;
 use ratatui::widgets::*;
 use std::env;
 use std::net::TcpStream;
+use std::time::Duration;
 mod impl_album_song;
 mod impl_artiststate;
 mod impl_library;
@@ -107,6 +108,7 @@ pub struct QueueSelector {
     pub state: TableState,
 }
 
+// thin wrapper around all supported ways to communicate with MPD
 pub enum Connection {
     #[cfg(unix)]
     UnixSocket(Client<UnixStream>),
@@ -381,6 +383,30 @@ impl Connection {
             #[cfg(unix)]
             Connection::UnixSocket(conn) => conn.toggle_pause(),
             Connection::TcpSocket(conn) => conn.toggle_pause(),
+        }
+    }
+
+    pub(crate) fn next(&mut self) -> Result<()> {
+        match self {
+            #[cfg(unix)]
+            Connection::UnixSocket(conn) => conn.next(),
+            Connection::TcpSocket(conn) => conn.next(),
+        }
+    }
+
+    pub(crate) fn prev(&mut self) -> Result<()> {
+        match self {
+            #[cfg(unix)]
+            Connection::UnixSocket(conn) => conn.prev(),
+            Connection::TcpSocket(conn) => conn.prev(),
+        }
+    }
+
+    pub(crate) fn seek(&mut self, place: u32, pos: Duration) -> Result<()> {
+        match self {
+            #[cfg(unix)]
+            Connection::UnixSocket(conn) => conn.seek(place, pos),
+            Connection::TcpSocket(conn) => conn.seek(place, pos),
         }
     }
 }
