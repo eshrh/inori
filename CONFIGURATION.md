@@ -4,16 +4,21 @@ Config file is read from `$XDG_CONFIG_HOME/inori/config.toml`,
 defaulting to `$HOME/.config/inori/config.toml` if it is not set.
 
 ## Keybindings
+
 ### Keybinding sets
+
 inori comes with sensible default keybindings for some commands. It
 also includes two extra sets for convenience to hopefully suit most
 users.
 
 To enable the dvorak set, use
+
 ```toml
 dvorak_keybindings = true
 ```
+
 and likewise, to enable the qwerty set, use
+
 ```toml
 qwerty_keybindings = true
 ```
@@ -71,7 +76,7 @@ multiple keybinds.
 ### List of commands and defaults
 
 | Command name        | Explanation                                        | default       | dvorak set | qwerty set |
-|---------------------|----------------------------------------------------|---------------|------------|------------|
+| ------------------- | -------------------------------------------------- | ------------- | ---------- | ---------- |
 | `up`                | move up                                            | `<up>`        | t          | k          |
 | `down`              | move down                                          | `<down>`      | h          | j          |
 | `left`              | move left                                          | `<left>`      | d          | h          |
@@ -100,7 +105,7 @@ multiple keybinds.
 | `top`               | jump to top                                        | `<home>`      | <          | g g        |
 | `bottom`            | jump to bottom                                     | `<end>`       | >          | G          |
 
-Note that the dvorak/qwerty sets *do not* delete the default
+Note that the dvorak/qwerty sets _do not_ delete the default
 keybindings.
 
 ## Theme
