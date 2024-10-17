@@ -19,7 +19,9 @@
       {
         legacyPackages.${system} = self.packages.${system};
 
-        packages.${system} = import ./pkgs { inherit pkgs; };
+        packages.${system} = (import ./pkgs { inherit pkgs; }) // {
+          default = self.packages.${system}.inori;
+        };
 
         formatter.${system} = pkgs.writeShellApplication {
           name = "formatter";
