@@ -8,11 +8,11 @@ look like norm bars with major version as a p-norm"
     <picture>
       <source
         media="(prefers-color-scheme: light)"
-        srcset="./images/inori-logo.svg"
+        srcset="https://github.com/eshrh/inori/raw/HEAD/images/inori-logo.svg"
       />
       <source
         media="(prefers-color-scheme: dark)"
-        srcset="./images/inori-logo-white.svg"
+        srcset="https://github.com/eshrh/inori/raw/HEAD/images/inori-logo-white.svg"
       />
       <img src="./images/inori-logo.svg" width="128px" alt="inori logo" />
     </picture>
