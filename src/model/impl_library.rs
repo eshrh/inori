@@ -1,6 +1,5 @@
 use super::proto::*;
 use super::*;
-use crate::model::TrackSelItem;
 use nucleo_matcher::Matcher;
 use search_utils::{compute_indices, compute_orders};
 
@@ -17,9 +16,6 @@ impl LibraryState {
             contents: Vec::new(),
             artist_state: ListState::default(),
         }
-    }
-    pub fn selected_track(&self) -> Option<TrackSelItem> {
-        self.selected_item()?.selected_item()
     }
 }
 
