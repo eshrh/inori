@@ -70,8 +70,9 @@ Each of the modifiers corresponds to a modifier key, `CTRL, META,
 SUPER, CTRL+META`. So, your keybindings will look like `g g` or `C-c
 C-n` or `C-<space>`
 
-Note that you can specify multiple entries for each command, creating
-multiple keybinds.
+You can create multiple keybinds for the same command by either
+creating multiple entries for it or by having one entry that is
+an array of `KEYSTR`.
 
 ### List of commands and defaults
 
