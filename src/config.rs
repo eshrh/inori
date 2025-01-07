@@ -56,9 +56,20 @@ impl Config {
                     let keybinds = keybind::parse_keybind(s)
                         .unwrap_or_else(|_| panic!("Couldn't parse keybinds"));
                     self.keybindings.insert(m.clone(), &keybinds);
-                }
+                },
+                (Some(m), Value::Array(a)) => {
+                    for s in a {
+                        if let Value::String(s) = s {
+                            let keybinds = keybind::parse_keybind(s)
+                                .unwrap_or_else(|_| panic!("Couldn't parse keybinds"));
+                            self.keybindings.insert(m.clone(), &keybinds);
+                        } else {
+                            panic!("keybind {} for command {} must be a string", s, key)
+                        }
+                    }
+                },
                 (Some(_), other) => panic!(
-                    "keybind {} for command {} must be a string",
+                    "keybind {} for command {} must be a string or an array",
                     other, key
                 ),
                 (None, _) => panic!("message {} does not exist", key),
