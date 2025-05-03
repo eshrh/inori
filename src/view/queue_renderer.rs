@@ -10,16 +10,11 @@ use std::time::Duration;
 
 use super::status_renderer::render_status;
 
-pub fn make_progress_bar<'a>(ratio: f64) -> LineGauge<'a> {
+pub fn make_progress_bar<'a>(ratio: f64, theme: &Theme) -> LineGauge<'a> {
     let progress_bar = LineGauge::default()
         .block(Block::bordered().title("Progress"))
-        .filled_style(
-            Style::default()
-                .fg(Color::LightYellow)
-                .bg(Color::Black)
-                .add_modifier(Modifier::BOLD),
-        )
-        .unfilled_style(Style::default().fg(Color::Black))
+        .filled_style(theme.progress_bar_filled)
+        .unfilled_style(theme.progress_bar_unfilled)
         .line_set(symbols::line::THICK)
         .ratio(ratio);
     progress_bar
@@ -110,5 +105,5 @@ pub fn render(model: &mut Model, frame: &mut Frame, theme: &Theme) {
         _ => 0 as f64,
     };
 
-    frame.render_widget(make_progress_bar(ratio), layout[2])
+    frame.render_widget(make_progress_bar(ratio, theme), layout[2])
 }

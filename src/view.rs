@@ -25,6 +25,8 @@ pub struct Theme {
     pub slash_span: Style,
     pub search_query_active: Style,
     pub search_query_inactive: Style,
+    pub progress_bar_filled: Style,
+    pub progress_bar_unfilled: Style,
 }
 impl Theme {
     pub fn new() -> Self {
@@ -43,6 +45,12 @@ impl Theme {
             slash_span: Style::new().fg(LightMagenta),
             search_query_active: Style::new().bg(White).fg(Black),
             search_query_inactive: Style::new().bg(DarkGray).fg(Black),
+
+            progress_bar_filled: Style::default()
+                .fg(LightYellow)
+                .bg(Black)
+                .add_modifier(Modifier::BOLD),
+            progress_bar_unfilled: Style::default().fg(Black),
         }
     }
 }

@@ -127,6 +127,12 @@ impl Config {
                 ("search_query_inactive", Value::Table(t)) => {
                     self.theme.search_query_inactive = deserialize_style(t);
                 }
+                ("progress_bar_filled", Value::Table(t)) => {
+                    self.theme.progress_bar_filled = deserialize_style(t)
+                }
+                ("progress_bar_unfilled", Value::Table(t)) => {
+                    self.theme.progress_bar_unfilled = deserialize_style(t)
+                }
                 (other, _) => panic!("theme option {} not found", other),
             }
         }
