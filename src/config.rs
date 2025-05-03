@@ -14,6 +14,7 @@ pub struct Config {
     pub theme: Theme,
     pub seek_seconds: i64,
     pub mpd_address: Option<String>,
+    pub start_in_queue: bool,
 }
 
 impl Config {
@@ -23,6 +24,7 @@ impl Config {
             theme: Theme::new(),
             seek_seconds: 5,
             mpd_address: None,
+            start_in_queue: false,
         }
     }
     pub fn try_read_config(mut self) -> Self {
@@ -47,6 +49,9 @@ impl Config {
                     }
                     ("mpd_address", Value::String(addr)) => {
                         self.mpd_address = Some(addr);
+                    }
+                    ("start_in_queue", Value::Boolean(true)) => {
+                        self.start_in_queue = true
                     }
                     (_k, _v) => panic!("unknown key {} or value {}", _k, _v),
                 }

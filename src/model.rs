@@ -126,12 +126,17 @@ impl Model {
             Self::make_connection(&config),
             &[Subsystem::Database, Subsystem::Player, Subsystem::Options],
         )?;
+        let screen = if config.start_in_queue {
+            Screen::Queue
+        } else {
+            Screen::Library
+        };
         Ok(Model {
             state: State::Running,
             status: conn.status()?,
             conn,
             idle_conn,
-            screen: Screen::Library,
+            screen,
             library: LibraryState::new(),
             queue: QueueSelector::new(),
             currentsong: None,
