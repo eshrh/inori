@@ -56,7 +56,7 @@ pub fn make_queue<'a>(model: &mut Model, theme: &Theme) -> Table<'a> {
         .collect();
     let table = Table::new(
         rows,
-        vec![Percentage(50), Percentage(30), Percentage(20), Min(5)],
+        vec![Percentage(50), Percentage(30), Percentage(20), Min(7)],
     )
     .row_highlight_style(theme.item_highlight_active)
     .block(Block::bordered().title("Queue"));
