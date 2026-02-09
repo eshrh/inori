@@ -1,6 +1,6 @@
 [package]
 name = "inori"
-version = "0.2.5"
+version = "0.2.6"
 edition = "2021"
 rust-version = "1.82"
 authors = ["esrh <esrh@esrh.me>"]
@@ -24,5 +24,5 @@ toml = "0.9.8"
 platform-dirs = "0.3.0"
 
 [dependencies.mpd]
-version = "0.2.2"
+version = "0.2.3"
 package = "inori-mpd"
