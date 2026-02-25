@@ -232,7 +232,7 @@ impl Model {
             if let Some(track_name) = target.title {
                 idx = artist.contents().iter().position(|i| match i.item {
                     ItemRef::Song(s) => {
-                        *s.title.as_ref().unwrap() == track_name
+                        s.title.as_ref().is_some_and(|i| *i == track_name)
                     }
                     _ => false,
                 });
