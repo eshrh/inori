@@ -64,7 +64,6 @@ pub enum SeekDirection {
     Backward,
 }
 
-
 #[derive(Clone, Debug)]
 pub enum Message {
     Direction(Dirs),

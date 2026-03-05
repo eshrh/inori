@@ -168,10 +168,10 @@ pub fn handle_library_artist(
 
 pub fn add_artist(model: &mut Model) -> Result<Update> {
     if let Some(artist) = model.library.selected_item() {
-        model.conn.findadd(Query::new().and(
-            Term::Tag(Borrowed("AlbumArtist")),
-            artist.name.clone(),
-        ))?;
+        model.conn.findadd(
+            Query::new()
+                .and(Term::Tag(Borrowed("AlbumArtist")), artist.name.clone()),
+        )?;
     }
     Ok(Update::STATUS
         | Update::QUEUE
@@ -223,9 +223,7 @@ pub fn handle_library_track(model: &mut Model, msg: Message) -> Result<Update> {
             model.library.active = ArtistSelector;
             Ok(Update::empty())
         }
-        Message::Select => {
-            add_item(model)
-        },
+        Message::Select => add_item(model),
         Message::SelectAndNext => {
             let res = add_item(model);
             if let Some(art) = model.library.selected_item_mut() {
