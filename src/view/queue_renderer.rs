@@ -93,7 +93,6 @@ pub fn render(model: &mut Model, frame: &mut Frame, theme: &Theme) {
             .block(Block::bordered().title("Progress"))
             .filled_style(theme.progress_bar_filled)
             .unfilled_style(theme.progress_bar_unfilled)
-            .line_set(symbols::line::THICK)
             .ratio(ratio),
         layout.progress,
     );
