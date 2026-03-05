@@ -61,11 +61,6 @@ impl<'a> ArtistData {
                 i += album.tracks.len();
             }
         }
-        // if self.search.active && self.search.query.len() > 0 {
-        //     println!("{:?}", new.iter().map(|i| i.rank).collect::<Vec<Option<usize>>>());
-        //     // println!("{:?}", self.search.cache.order);
-        //     panic!();
-        // }
         new
     }
     pub fn selected_item(&'_ self) -> Option<TrackSelItem<'_>> {
