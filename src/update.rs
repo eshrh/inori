@@ -205,6 +205,7 @@ pub fn handle_msg(model: &mut Model, m: Message) -> Result<Update> {
                 {
                     break;
                 }
+                std::thread::sleep(Duration::from_millis(50));
             }
             build_library::build_library(model)?;
             Ok(Update::empty())
