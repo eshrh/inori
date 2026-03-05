@@ -46,7 +46,7 @@ pub fn render_search_item<'a>(
         out[cur].style = theme.slash_span;
     }
     for (i, item) in out.iter_mut().enumerate() {
-        if idx.contains(&u32::try_from(i).unwrap()) {
+        if u32::try_from(i).ok().is_some_and(|i| idx.contains(&i)) {
             item.style = item.style.add_modifier(Modifier::UNDERLINED);
         }
     }

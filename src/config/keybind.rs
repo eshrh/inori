@@ -238,8 +238,8 @@ impl KeybindMap {
             self.0.insert(bind[0], KeybindTarget::Msg(msg));
             return;
         }
-        if self.0.contains_key(&bind[0]) {
-            match self.0.get_mut(&bind[0]).unwrap() {
+        if let Some(target) = self.0.get_mut(&bind[0]) {
+            match target {
                 KeybindTarget::Map(m) => m.insert(msg, &bind[1..]),
                 KeybindTarget::Msg(_m) => {
                     self.0.insert(

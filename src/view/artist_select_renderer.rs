@@ -15,7 +15,7 @@ pub fn render_str_with_idxs<'a>(
         .chars()
         .enumerate()
         .map(|(i, c)| {
-            if idxs.contains(&u32::try_from(i).unwrap()) {
+            if u32::try_from(i).ok().is_some_and(|i| idxs.contains(&i)) {
                 Span::from(c.to_string())
                     .style(Style::default().add_modifier(Modifier::UNDERLINED))
             } else {
