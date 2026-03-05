@@ -64,7 +64,6 @@ pub enum SeekDirection {
     Backward,
 }
 
-
 #[derive(Clone, Debug)]
 pub enum Message {
     Direction(Dirs),
@@ -107,7 +106,7 @@ pub fn update_screens(model: &mut Model, mut update: Update) -> Result<()> {
         }
     }
     if update.contains(Update::QUEUE) {
-        model.queue.contents = model.conn.queue().unwrap_or_default();
+        model.queue.songs.replace_items(model.conn.queue()?);
     }
     if update.contains(Update::CURRENT_ARTIST)
         && model.library.selected_item_mut().is_some()
@@ -116,7 +115,7 @@ pub fn update_screens(model: &mut Model, mut update: Update) -> Result<()> {
     }
     if update.contains(Update::START_PLAYING) {
         if !update.contains(Update::QUEUE) {
-            model.queue.contents = model.conn.queue().unwrap_or_default();
+            model.queue.songs.replace_items(model.conn.queue()?);
         }
         model.update_status()?;
         if model.status.queue_len > 0 && model.status.state == mpd::State::Stop
@@ -187,7 +186,6 @@ pub fn handle_msg(model: &mut Model, m: Message) -> Result<Update> {
         }
         Message::SwitchScreen(to) => {
             if let Some(screen) = model.config.screens.get(to - 1) {
-                model.toggle_screen = model.screen.clone();
                 model.screen = screen.clone();
             }
             Ok(Update::empty())
@@ -205,6 +203,7 @@ pub fn handle_msg(model: &mut Model, m: Message) -> Result<Update> {
                 {
                     break;
                 }
+                std::thread::sleep(Duration::from_millis(50));
             }
             build_library::build_library(model)?;
             Ok(Update::empty())

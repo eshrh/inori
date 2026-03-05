@@ -13,7 +13,7 @@ pub fn handle_library(model: &mut Model, msg: Message) -> Result<Update> {
         Message::LocalSearch(SearchMsg::Start) => {
             match model.library.active {
                 ArtistSelector => {
-                    model.library.artist_search.set_on();
+                    model.library.artists.filter.set_on();
                     if model.library.len() != 0 {
                         model.library.set_selected(Some(0))
                     }
@@ -29,23 +29,23 @@ pub fn handle_library(model: &mut Model, msg: Message) -> Result<Update> {
         }
         Message::LocalSearch(SearchMsg::End) => {
             model.state = State::Running;
-            if model.library.global_search.search.active {
-                model.library.global_search.search.set_off();
+            if model.library.global_search.entries.filter.active {
+                model.library.global_search.entries.filter.set_off();
             }
             Ok(Update::empty())
         }
         Message::GlobalSearch(SearchMsg::Start) => {
             model.state = State::Searching;
-            model.library.artist_search.set_off();
-            model.library.global_search.search.set_on();
-            if model.library.global_search.contents.is_none() {
+            model.library.artists.filter.set_off();
+            model.library.global_search.entries.filter.set_on();
+            if !model.library.global_search.loaded {
                 model.update_global_search_contents()?;
             }
             Ok(Update::empty())
         }
         Message::Escape => {
             match model.library.active {
-                ArtistSelector => model.library.artist_search.set_off(),
+                ArtistSelector => model.library.artists.filter.set_off(),
                 TrackSelector => {
                     if let Some(a) = model.library.selected_item_mut() {
                         a.search.set_off();
@@ -76,7 +76,7 @@ pub fn handle_library(model: &mut Model, msg: Message) -> Result<Update> {
 pub fn handle_search(model: &mut Model, k: KeyEvent) -> Result<Update> {
     match (
         &model.library.active,
-        model.library.global_search.search.active,
+        model.library.global_search.entries.filter.active,
     ) {
         (_, true) => {
             if let Some(m) = handle_search_k(
@@ -87,19 +87,14 @@ pub fn handle_search(model: &mut Model, k: KeyEvent) -> Result<Update> {
             ) {
                 handle_msg(model, m)
             } else {
-                if model
-                    .library
-                    .global_search
-                    .contents
-                    .as_ref()
-                    .is_some_and(|i| !i.is_empty())
+                if model.library.global_search.storage_len() != 0
                     && model.library.global_search.selected_item().is_none()
                 {
                     model.library.global_search.set_selected(Some(0));
                 }
                 if let Some(item) = model.library.global_search.selected_item()
                 {
-                    model.jump_to(item.clone());
+                    model.jump_to(item.clone())?;
                 }
                 Ok(Update::empty())
             }
@@ -168,10 +163,10 @@ pub fn handle_library_artist(
 
 pub fn add_artist(model: &mut Model) -> Result<Update> {
     if let Some(artist) = model.library.selected_item() {
-        model.conn.findadd(Query::new().and(
-            Term::Tag(Borrowed("AlbumArtist")),
-            artist.name.clone(),
-        ))?;
+        model.conn.findadd(
+            Query::new()
+                .and(Term::Tag(Borrowed("AlbumArtist")), artist.name.clone()),
+        )?;
     }
     Ok(Update::STATUS
         | Update::QUEUE
@@ -223,9 +218,7 @@ pub fn handle_library_track(model: &mut Model, msg: Message) -> Result<Update> {
             model.library.active = ArtistSelector;
             Ok(Update::empty())
         }
-        Message::Select => {
-            add_item(model)
-        },
+        Message::Select => add_item(model),
         Message::SelectAndNext => {
             let res = add_item(model);
             if let Some(art) = model.library.selected_item_mut() {

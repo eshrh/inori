@@ -22,7 +22,7 @@ impl InoriLayout for QueueLayout {
         let content = Layout::vertical(vec![Max(3), Min(1)]).split(layout[1]);
         new.header = layout[0];
 
-        if model.queue.search.active {
+        if model.queue.songs.filter.active {
             new.search = Some(content[0]);
             new.queue = content[1];
         } else {

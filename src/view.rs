@@ -138,10 +138,11 @@ impl Theme {
     }
 }
 
-impl From<Table> for Theme {
-    fn from(value: Table) -> Self {
-        let table = Self::default();
-        table.apply_theme(value).unwrap()
+impl TryFrom<Table> for Theme {
+    type Error = Box<dyn Error>;
+
+    fn try_from(value: Table) -> Result<Self> {
+        Self::default().apply_theme(value)
     }
 }
 

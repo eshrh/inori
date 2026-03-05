@@ -27,12 +27,12 @@ pub enum Screen {
     Queue,
 }
 
-impl From<&String> for Screen {
-    fn from(s: &String) -> Self {
-        match s.as_str() {
-            "library" | "Library" => Screen::Library,
-            "queue" | "Queue" => Screen::Queue,
-            _ => panic!("unknown screen: {}", s),
+impl Screen {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "library" | "Library" => Some(Screen::Library),
+            "queue" | "Queue" => Some(Screen::Queue),
+            _ => None,
         }
     }
 }
@@ -90,6 +90,25 @@ pub struct Filter {
     pub cache: FilterCache,
 }
 
+pub struct FilteredView<T> {
+    pub filter: Filter,
+    pub items: Vec<T>,
+}
+
+impl<T> FilteredView<T> {
+    pub fn new() -> Self {
+        Self {
+            filter: Filter::new(),
+            items: Vec::new(),
+        }
+    }
+
+    pub fn replace_items(&mut self, items: Vec<T>) {
+        self.items = items;
+        self.filter.reset_cache();
+    }
+}
+
 #[derive(Clone)]
 pub struct InfoEntry {
     pub artist: String,
@@ -98,22 +117,20 @@ pub struct InfoEntry {
     pub title: Option<String>,
 }
 pub struct GlobalSearchState {
-    pub search: Filter,
-    pub contents: Option<Vec<InfoEntry>>,
+    pub entries: FilteredView<InfoEntry>,
+    pub loaded: bool,
     pub results_state: ListState,
 }
 
 pub struct LibraryState {
-    pub artist_search: Filter,
+    pub artists: FilteredView<ArtistData>,
     pub global_search: GlobalSearchState,
     pub active: LibActiveSelector,
-    pub contents: Vec<ArtistData>,
     pub artist_state: ListState,
 }
 
 pub struct QueueSelector {
-    pub search: Filter,
-    pub contents: Vec<Song>,
+    pub songs: FilteredView<Song>,
     pub state: TableState,
 }
 
@@ -123,7 +140,6 @@ pub struct Model {
     pub conn: Client<StreamTypes>,
     pub idle_conn: IdleClient<StreamTypes>,
     pub screen: Screen,
-    pub toggle_screen: Screen,
     pub library: LibraryState,
     pub queue: QueueSelector,
     pub currentsong: Option<Song>,
@@ -136,9 +152,9 @@ pub struct Model {
 impl Model {
     pub fn new(frame_size: Rect) -> Result<Self> {
         let config = Config::default().try_read_config()?;
-        let mut conn = Self::make_connection(&config);
+        let mut conn = Self::make_connection(&config)?;
         let idle_conn = IdleClient::new(
-            Self::make_connection(&config),
+            Self::make_connection(&config)?,
             &[Subsystem::Database, Subsystem::Player, Subsystem::Options],
         )?;
         Ok(Model {
@@ -147,11 +163,6 @@ impl Model {
             conn,
             idle_conn,
             screen: config.screens.first().cloned().unwrap_or(Screen::Library),
-            toggle_screen: config
-                .screens
-                .last()
-                .cloned()
-                .unwrap_or(Screen::Queue),
             library: LibraryState::new(),
             queue: QueueSelector::new(),
             currentsong: None,
@@ -166,11 +177,13 @@ impl Model {
         })
     }
 
-    pub fn make_connection(conf: &Config) -> Client<StreamTypes> {
+    pub fn make_connection(conf: &Config) -> Result<Client<StreamTypes>> {
         if let Some(mpd_url) = &conf.mpd_address {
-            Client::<StreamTypes>::connect(mpd_url).unwrap()
+            Client::<StreamTypes>::connect(mpd_url).map_err(|e| {
+                format!("failed to connect to MPD at {}: {}", mpd_url, e).into()
+            })
         } else {
-            Client::<StreamTypes>::default()
+            Ok(Client::<StreamTypes>::default())
         }
     }
 
@@ -190,27 +203,26 @@ impl Model {
             "albumartistsort",
             "albumartist",
         ])?;
-        self.library.global_search.contents = Some(
-            res.iter_mut()
-                .filter_map(|vec| {
-                    let ie = InfoEntry::from(vec);
-                    if !ie.is_redundant() {
-                        Some(ie)
-                    } else {
-                        None
-                    }
-                })
-                .collect::<Vec<InfoEntry>>(),
-        );
+        let mut entries = Vec::new();
+        for vec in res.iter_mut() {
+            let ie = InfoEntry::try_from(vec)
+                .map_err(|e| Box::new(e) as Box<dyn Error>)?;
+            if !ie.is_redundant() {
+                entries.push(ie);
+            }
+        }
+        self.library.global_search.entries.replace_items(entries);
+        self.library.global_search.loaded = true;
         Ok(())
     }
 
-    pub fn jump_to(&mut self, target: InfoEntry) {
+    pub fn jump_to(&mut self, target: InfoEntry) -> Result<()> {
         // order: albumartist albumartistsort album title
-        let artist_idx = self
-            .library
-            .contents()
-            .position(|i| i.name == target.artist);
+        let artist_idx = (0..self.library.display_len()).find(|&i| {
+            self.library
+                .display_get(i)
+                .is_some_and(|artist| artist.name == target.artist)
+        });
         self.library.artist_state.set_selected(artist_idx);
 
         if target.album.is_some() || target.title.is_some() {
@@ -220,11 +232,10 @@ impl Model {
         }
 
         if target.album.is_none() {
-            return;
+            return Ok(());
         }
         if self.library.selected_item().is_some_and(|i| !i.fetched) {
-            build_library::add_tracks(self)
-                .expect("couldn't add tracks on the fly while searching");
+            build_library::add_tracks(self)?;
         }
         if let Some(artist) = self.library.selected_item_mut() {
             let mut idx: Option<usize> = None;
@@ -232,7 +243,7 @@ impl Model {
             if let Some(track_name) = target.title {
                 idx = artist.contents().iter().position(|i| match i.item {
                     ItemRef::Song(s) => {
-                        *s.title.as_ref().unwrap() == track_name
+                        s.title.as_ref().is_some_and(|i| *i == track_name)
                     }
                     _ => false,
                 });
@@ -244,5 +255,6 @@ impl Model {
             }
             artist.set_selected(idx);
         }
+        Ok(())
     }
 }

@@ -21,22 +21,27 @@ impl EventHandler {
         let mut now = Instant::now();
         let mut last_event = Instant::now();
         std::thread::spawn(move || loop {
-            if crossterm::event::poll(POLL_TIME).expect("event poll failed") {
-                match crossterm::event::read().expect("event read failed") {
-                    crossterm::event::Event::Key(e) => {
+            if let Ok(true) = crossterm::event::poll(poll_time) {
+                let send_res = match crossterm::event::read() {
+                    Ok(crossterm::event::Event::Key(e)) => {
                         last_event = Instant::now();
                         tx.send(Event::Key(e))
                     }
-                    crossterm::event::Event::Resize(_, _) => Ok(()),
-                    _ => unimplemented!(),
+                    Ok(crossterm::event::Event::Resize(_, _)) => Ok(()),
+                    Ok(_) => Ok(()),
+                    Err(_) => Ok(()),
+                };
+                if send_res.is_err() {
+                    break;
                 }
-                .expect("event send failed")
             }
             // only tick when idle.
             let time_since_last_event: Duration = Instant::now() - last_event;
             if now.elapsed() >= TICK_INTERVAL && time_since_last_event >= TICK_INTERVAL
             {
-                tx.send(Event::Tick).expect("tick send failed");
+                if tx.send(Event::Tick).is_err() {
+                    break;
+                }
                 now = Instant::now();
             }
         });

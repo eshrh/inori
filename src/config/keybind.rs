@@ -1,4 +1,3 @@
-use crate::event_handler::Result;
 use crate::model::State;
 use crate::update::Message::{self, *};
 use crate::update::*;
@@ -239,8 +238,8 @@ impl KeybindMap {
             self.0.insert(bind[0], KeybindTarget::Msg(msg));
             return;
         }
-        if self.0.contains_key(&bind[0]) {
-            match self.0.get_mut(&bind[0]).unwrap() {
+        if let Some(target) = self.0.get_mut(&bind[0]) {
+            match target {
                 KeybindTarget::Map(m) => m.insert(msg, &bind[1..]),
                 KeybindTarget::Msg(_m) => {
                     self.0.insert(
@@ -319,7 +318,9 @@ impl fmt::Display for KeybindParseError {
     }
 }
 
-pub fn parse_keybind(s: String) -> Result<Vec<KeyEvent>> {
+pub fn parse_keybind(
+    s: &str,
+) -> std::result::Result<Vec<KeyEvent>, KeybindParseError> {
     let mut out: Vec<KeyEvent> = Vec::new();
     for word in s.split(' ') {
         if let Some(keycode) =
@@ -344,9 +345,9 @@ pub fn parse_keybind(s: String) -> Result<Vec<KeyEvent>> {
         } else if let Some(keycode) = parse_keybind_single(word) {
             out.push(KeyEvent::new(keycode, EMPTY))
         } else if word.is_empty() {
-            return Err(Box::new(KeybindParseError::EmptyKeybindParseError));
+            return Err(KeybindParseError::EmptyKeybindParseError);
         } else {
-            return Err(Box::new(KeybindParseError::ParseError(word.into())));
+            return Err(KeybindParseError::ParseError(word.into()));
         }
     }
     Ok(out)

@@ -1,7 +1,5 @@
 use super::*;
-use nucleo_matcher::Matcher;
 use proto::*;
-use search_utils::*;
 
 impl FilterCache {
     pub fn new() -> Self {
@@ -35,21 +33,47 @@ impl Filter {
         self.query.clear();
         self.cache.clear_matches();
     }
+    pub fn reset_cache(&mut self) {
+        self.cache = FilterCache::new();
+    }
 }
 
-impl From<&mut Vec<String>> for InfoEntry {
-    fn from(v: &mut Vec<String>) -> Self {
-        if v.len() > 4 {
-            panic!("too much info given to infoentry");
-        } else {
-            let mut drained = v.drain(..);
-            InfoEntry {
-                artist: drained.nth(0).unwrap(),
-                artist_sort: drained.nth(0),
-                album: drained.nth(0),
-                title: drained.nth(0),
+#[derive(Debug)]
+pub enum InfoEntryError {
+    MissingArtist,
+    TooManyFields(usize),
+}
+
+impl std::fmt::Display for InfoEntryError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            InfoEntryError::MissingArtist => {
+                write!(f, "missing artist field in search entry")
+            }
+            InfoEntryError::TooManyFields(len) => {
+                write!(f, "too many fields in search entry: {}", len)
             }
         }
+    }
+}
+
+impl std::error::Error for InfoEntryError {}
+
+impl TryFrom<&mut Vec<String>> for InfoEntry {
+    type Error = InfoEntryError;
+
+    fn try_from(v: &mut Vec<String>) -> std::result::Result<Self, Self::Error> {
+        if v.len() > 4 {
+            return Err(InfoEntryError::TooManyFields(v.len()));
+        }
+        let mut drained = v.drain(..);
+        let artist = drained.nth(0).ok_or(InfoEntryError::MissingArtist)?;
+        Ok(InfoEntry {
+            artist,
+            artist_sort: drained.nth(0),
+            album: drained.nth(0),
+            title: drained.nth(0),
+        })
     }
 }
 
@@ -86,100 +110,33 @@ impl Selector for GlobalSearchState {
         &mut self.results_state
     }
     fn len(&self) -> usize {
-        if self.filter().active {
-            self.filter()
-                .cache
-                .order
-                .iter()
-                .take_while(|i| i.is_some())
-                .count()
-        } else {
-            match &self.contents {
-                Some(v) => v.len(),
-                None => 0,
-            }
-        }
+        self.display_len()
     }
 }
 
 impl Searchable<InfoEntry> for GlobalSearchState {
     fn filter(&self) -> &Filter {
-        &self.search
+        &self.entries.filter
     }
     fn filter_mut(&mut self) -> &mut Filter {
-        &mut self.search
+        &mut self.entries.filter
     }
-    fn contents(&self) -> Box<dyn Iterator<Item = &InfoEntry> + '_> {
-        match &self.contents {
-            Some(c) => {
-                if self.should_filter() {
-                    Box::new(
-                        self.filter()
-                            .cache
-                            .order
-                            .iter()
-                            .filter_map(|idx| idx.map(|i| &c[i])),
-                    )
-                } else {
-                    Box::new(c.iter())
-                }
-            }
-            None => Box::new(std::iter::empty()),
-        }
+    fn build_utfstrings_cache(&self) -> Option<Vec<Utf32String>> {
+        self.loaded.then(|| {
+            self.entries
+                .items
+                .iter()
+                .map(|i| Utf32String::from(i.to_search_string()))
+                .collect()
+        })
     }
-
-    fn selected_item_mut(&mut self) -> Option<&mut InfoEntry> {
-        unimplemented!();
+    fn storage_len(&self) -> usize {
+        self.entries.items.len()
     }
-
-    fn update_filter_cache(
-        &mut self,
-        matcher: &mut Matcher,
-        top_k: Option<usize>,
-    ) {
-        if self.search.query == self.search.cache.query {
-            return;
-        }
-        if self.contents.is_none() {
-            self.search.cache.order = Vec::new();
-            self.search.cache.indices = Vec::new();
-            return;
-        }
-        if self.filter().cache.utfstrings_cache.is_none() {
-            self.filter_mut().cache.utfstrings_cache = Some(
-                self.contents
-                    .iter()
-                    .flatten()
-                    .map(|i| Utf32String::from(i.to_search_string()))
-                    .collect(),
-            );
-        }
-
-        self.filter_mut().cache.query = self.filter().query.clone();
-        self.filter_mut().cache.order = compute_orders(
-            &self.filter().query,
-            self.filter().cache.utfstrings_cache.as_ref().unwrap(),
-            matcher,
-            0,
-        );
-
-        let strings_iterator = self
-            .filter()
-            .cache
-            .order
-            .iter()
-            .take_while(|i| i.is_some())
-            .map(|i| {
-                &self.filter().cache.utfstrings_cache.as_ref().unwrap()
-                    [i.unwrap()]
-            });
-        let strings: Vec<&Utf32String>;
-        if let Some(k) = top_k {
-            strings = strings_iterator.take(k).collect();
-        } else {
-            strings = strings_iterator.collect();
-        }
-        self.filter_mut().cache.indices =
-            compute_indices(&self.filter().query, strings, matcher);
+    fn storage_get(&self, idx: usize) -> Option<&InfoEntry> {
+        self.entries.items.get(idx)
+    }
+    fn storage_get_mut(&mut self, idx: usize) -> Option<&mut InfoEntry> {
+        self.entries.items.get_mut(idx)
     }
 }

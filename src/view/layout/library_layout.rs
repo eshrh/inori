@@ -29,7 +29,7 @@ impl InoriLayout for LibraryLayout {
         let right_panel =
             Layout::vertical(vec![Max(3), Min(1)]).split(menu_layout[1]);
 
-        if model.library.artist_search.active {
+        if model.library.artists.filter.active {
             new.artist_select = left_panel[1];
             new.artist_search = Some(left_panel[0]);
         } else {
@@ -61,7 +61,7 @@ impl InoriLayout for LibraryLayout {
         ])
         .split(center_popup_h[1]);
 
-        if model.library.global_search.search.active {
+        if model.library.global_search.entries.filter.active {
             new.center_popup = Some(center_popup_v[1]);
         }
 

@@ -9,6 +9,52 @@ use proto::*;
 pub mod library_handler;
 pub mod queue_handler;
 
+enum SearchEditOutcome {
+    Message(Message),
+    Continue,
+}
+
+fn apply_search_edit(
+    query: &mut String,
+    k: KeyEvent,
+    allow_tab_toggle: bool,
+) -> SearchEditOutcome {
+    match k.code {
+        KeyCode::Char(c) => {
+            query.push(c);
+            SearchEditOutcome::Continue
+        }
+        KeyCode::Backspace => {
+            let _ = query.pop();
+            SearchEditOutcome::Continue
+        }
+        KeyCode::Tab if allow_tab_toggle => {
+            SearchEditOutcome::Message(Message::ToggleScreen)
+        }
+        KeyCode::Esc => {
+            SearchEditOutcome::Message(Message::LocalSearch(SearchMsg::End))
+        }
+        KeyCode::Enter => SearchEditOutcome::Message(Message::Select),
+        _ => SearchEditOutcome::Continue,
+    }
+}
+
+fn delete_previous_word(query: &mut String) {
+    let trimmed_len = query.trim_end().len();
+    query.truncate(trimmed_len);
+    if query.is_empty() {
+        return;
+    }
+
+    let mut split_at = 0usize;
+    for (i, c) in query.char_indices() {
+        if c.is_whitespace() {
+            split_at = i;
+        }
+    }
+    query.truncate(split_at);
+}
+
 pub fn handle_vertical(msg: Vertical, selector: &mut impl Selector) {
     match selector.selected() {
         None => {
@@ -50,7 +96,6 @@ pub fn scroll_screenful(
     }
 }
 
-// TODO: Figure out a way to eliminate code duplication here
 pub fn handle_search_k_tracksel(
     artist: &mut ArtistData,
     k: KeyEvent,
@@ -60,6 +105,9 @@ pub fn handle_search_k_tracksel(
         match k.code {
             // TODO: keep track of cursor and implement AEFB
             KeyCode::Char('u') => artist.search.query.clear(),
+            KeyCode::Char('w') => {
+                delete_previous_word(&mut artist.search.query)
+            }
             KeyCode::Char('n') => {
                 if let Some(Some(r)) = artist.selected_item().map(|i| i.rank) {
                     let idx = artist
@@ -86,16 +134,9 @@ pub fn handle_search_k_tracksel(
             _ => {}
         }
     } else {
-        match k.code {
-            KeyCode::Char(c) => artist.search.query.push(c),
-            KeyCode::Backspace => {
-                let _ = artist.search.query.pop();
-            }
-            KeyCode::Esc => {
-                return Some(Message::LocalSearch(SearchMsg::End));
-            }
-            KeyCode::Enter => return Some(Message::Select),
-            _ => {}
+        match apply_search_edit(&mut artist.search.query, k, false) {
+            SearchEditOutcome::Message(m) => return Some(m),
+            SearchEditOutcome::Continue => {}
         }
     }
     artist.update_search(matcher);
@@ -112,26 +153,17 @@ pub fn handle_search_k<T>(
         match k.code {
             // TODO: keep track of cursor and implement AEFB
             KeyCode::Char('u') => s.filter_mut().query.clear(),
+            KeyCode::Char('w') => {
+                delete_previous_word(&mut s.filter_mut().query)
+            }
             KeyCode::Char('n') => handle_vertical(Vertical::Down, s),
             KeyCode::Char('p') => handle_vertical(Vertical::Up, s),
             _ => {}
         }
     } else {
-        match k.code {
-            KeyCode::Char(c) => {
-                s.filter_mut().query.push(c);
-            }
-            KeyCode::Backspace => {
-                let _ = s.filter_mut().query.pop();
-            }
-            KeyCode::Tab => {
-                return Some(Message::ToggleScreen);
-            }
-            KeyCode::Esc => {
-                return Some(Message::LocalSearch(SearchMsg::End));
-            }
-            KeyCode::Enter => return Some(Message::Select),
-            _ => {}
+        match apply_search_edit(&mut s.filter_mut().query, k, true) {
+            SearchEditOutcome::Message(m) => return Some(m),
+            SearchEditOutcome::Continue => {}
         }
     }
     s.update_filter_cache(matcher, Some(top_k));

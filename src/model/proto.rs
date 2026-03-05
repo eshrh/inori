@@ -1,4 +1,5 @@
 extern crate mpd;
+use super::search_utils::{compute_indices, compute_orders};
 use super::*;
 
 pub trait SelectorState {
@@ -71,20 +72,100 @@ pub trait Selector {
 pub trait Searchable<T>: Selector {
     fn filter(&self) -> &Filter;
     fn filter_mut(&mut self) -> &mut Filter;
-    fn contents(&self) -> Box<dyn Iterator<Item = &T> + '_>;
-    fn selected_item_mut(&mut self) -> Option<&mut T>;
+    fn build_utfstrings_cache(&self) -> Option<Vec<Utf32String>>;
+    fn storage_len(&self) -> usize;
+    fn storage_get(&self, idx: usize) -> Option<&T>;
+    fn storage_get_mut(&mut self, idx: usize) -> Option<&mut T>;
     fn update_filter_cache(
         &mut self,
         matcher: &mut Matcher,
         top_k: Option<usize>,
-    );
-    fn selected_item(&self) -> Option<&T> {
-        self.selector()
-            .selected()
-            .and_then(|i| self.contents().nth(i))
+    ) {
+        if self.filter().cache.query == self.filter().query {
+            return;
+        }
+
+        if self.filter().cache.utfstrings_cache.is_none() {
+            let Some(cache) = self.build_utfstrings_cache() else {
+                self.filter_mut().cache.order.clear();
+                self.filter_mut().cache.indices.clear();
+                return;
+            };
+            self.filter_mut().cache.utfstrings_cache = Some(cache);
+        }
+
+        let query = self.filter().query.clone();
+        let order = {
+            let Some(cache) = self.filter().cache.utfstrings_cache.as_ref()
+            else {
+                return;
+            };
+            compute_orders(&query, cache, matcher, 0)
+        };
+        let strings: Vec<&Utf32String> = {
+            let Some(cache) = self.filter().cache.utfstrings_cache.as_ref()
+            else {
+                return;
+            };
+            let strings_iterator = order
+                .iter()
+                .take_while(|i| i.is_some())
+                .filter_map(|i| i.and_then(|idx| cache.get(idx)));
+            if let Some(k) = top_k {
+                strings_iterator.take(k).collect()
+            } else {
+                strings_iterator.collect()
+            }
+        };
+        let indices = compute_indices(&query, strings, matcher);
+
+        self.filter_mut().cache.query = query;
+        self.filter_mut().cache.order = order;
+        self.filter_mut().cache.indices = indices;
     }
-    fn contents_vec(&self) -> Vec<&T> {
-        self.contents().collect()
+
+    fn display_to_storage(&self, display_idx: usize) -> Option<usize> {
+        if self.should_filter() {
+            self.filter()
+                .cache
+                .order
+                .get(display_idx)
+                .copied()
+                .flatten()
+        } else {
+            Some(display_idx)
+        }
+    }
+
+    fn display_len(&self) -> usize {
+        if self.should_filter() {
+            self.filter()
+                .cache
+                .order
+                .iter()
+                .filter(|i| i.is_some())
+                .count()
+        } else {
+            self.storage_len()
+        }
+    }
+
+    fn display_get(&self, display_idx: usize) -> Option<&T> {
+        let storage_idx = self.display_to_storage(display_idx)?;
+        self.storage_get(storage_idx)
+    }
+
+    fn display_get_mut(&mut self, display_idx: usize) -> Option<&mut T> {
+        let storage_idx = self.display_to_storage(display_idx)?;
+        self.storage_get_mut(storage_idx)
+    }
+
+    fn selected_item(&self) -> Option<&T> {
+        self.selected().and_then(|i| self.display_get(i))
+    }
+    fn selected_item_mut(&mut self) -> Option<&mut T> {
+        let selected = self.selected()?;
+        self.display_get_mut(selected)
     }
     fn should_filter(&self) -> bool {
         self.filter().active

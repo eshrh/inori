@@ -13,9 +13,8 @@ use std::time::Duration;
 use super::status_renderer::render_status;
 
 pub fn make_queue<'a>(model: &mut Model, theme: &Theme) -> Table<'a> {
-    let rows: Vec<Row> = model
-        .queue
-        .contents()
+    let rows: Vec<Row> = (0..model.queue.display_len())
+        .filter_map(|i| model.queue.display_get(i))
         .map(|song| {
             Row::new(vec![
                 Cell::from(song.title.clone().unwrap_or("".to_string())),
@@ -72,7 +71,7 @@ pub fn render(model: &mut Model, frame: &mut Frame, theme: &Theme) {
     if let Some(a) = layout.search {
         frame.render_widget(
             make_search_box(
-                &model.queue.search.query,
+                &model.queue.songs.filter.query,
                 matches!(model.state, State::Searching),
                 theme,
             ),
@@ -83,8 +82,10 @@ pub fn render(model: &mut Model, frame: &mut Frame, theme: &Theme) {
     frame.render_stateful_widget(table, layout.queue, &mut model.queue.state);
 
     let ratio: f64 = match (model.status.elapsed, model.status.duration) {
-        (Some(e), Some(t)) => e.as_secs_f64() / t.as_secs_f64(),
-        _ => 0 as f64,
+        (Some(e), Some(t)) if t.as_secs_f64() > 0.0 => {
+            e.as_secs_f64() / t.as_secs_f64()
+        }
+        _ => 0.0,
     };
 
     frame.render_widget(
@@ -92,7 +93,6 @@ pub fn render(model: &mut Model, frame: &mut Frame, theme: &Theme) {
             .block(Block::bordered().title("Progress"))
             .filled_style(theme.progress_bar_filled)
             .unfilled_style(theme.progress_bar_unfilled)
-            .line_set(symbols::line::THICK)
             .ratio(ratio),
         layout.progress,
     );
