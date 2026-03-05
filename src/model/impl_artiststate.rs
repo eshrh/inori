@@ -141,22 +141,18 @@ impl<'a> ArtistData {
             }
             self.search.cache.utfstrings_cache = Some(tmp);
         }
-        self.search.cache.order = compute_orders(
-            &self.search.query,
-            self.search.cache.utfstrings_cache.as_ref().unwrap(),
-            matcher,
-            0,
-        );
+        let Some(cache) = self.search.cache.utfstrings_cache.as_ref() else {
+            return;
+        };
+        self.search.cache.order =
+            compute_orders(&self.search.query, cache, matcher, 0);
         let strings_for_indices: Vec<&Utf32String> = self
             .search
             .cache
             .order
             .iter()
             .take_while(|i| i.is_some())
-            .map(|i| {
-                &self.search.cache.utfstrings_cache.as_ref().unwrap()
-                    [i.unwrap()]
-            })
+            .filter_map(|i| i.and_then(|idx| cache.get(idx)))
             .collect();
 
         self.search.cache.indices =

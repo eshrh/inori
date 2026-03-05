@@ -65,12 +65,16 @@ impl Searchable<Song> for QueueSelector {
                     .collect(),
             );
         }
-        self.filter_mut().cache.order = search_utils::compute_orders(
-            &self.filter().query,
-            self.filter().cache.utfstrings_cache.as_ref().unwrap(),
-            matcher,
-            0,
-        );
+        let query = self.filter().query.clone();
+        let order = {
+            let Some(cache) = self.filter().cache.utfstrings_cache.as_ref()
+            else {
+                return;
+            };
+            search_utils::compute_orders(&query, cache, matcher, 0)
+        };
+        self.filter_mut().cache.query = query;
+        self.filter_mut().cache.order = order;
     }
 }
 

@@ -79,30 +79,33 @@ impl Searchable<ArtistData> for LibraryState {
                     .collect(),
             );
         }
-        self.filter_mut().cache.order = compute_orders(
-            &self.filter().query,
-            self.filter().cache.utfstrings_cache.as_ref().unwrap(),
-            matcher,
-            0,
-        );
+        let query = self.filter().query.clone();
+        let order = {
+            let Some(cache) = self.filter().cache.utfstrings_cache.as_ref()
+            else {
+                return;
+            };
+            compute_orders(&query, cache, matcher, 0)
+        };
+        let strings: Vec<&Utf32String> = {
+            let Some(cache) = self.filter().cache.utfstrings_cache.as_ref()
+            else {
+                return;
+            };
+            let strings_iterator = order
+                .iter()
+                .take_while(|i| i.is_some())
+                .filter_map(|i| i.and_then(|idx| cache.get(idx)));
+            if let Some(k) = top_k {
+                strings_iterator.take(k).collect()
+            } else {
+                strings_iterator.collect()
+            }
+        };
+        let indices = compute_indices(&query, strings, matcher);
 
-        let strings_iterator = self
-            .filter()
-            .cache
-            .order
-            .iter()
-            .take_while(|i| i.is_some())
-            .map(|i| {
-                &self.filter().cache.utfstrings_cache.as_ref().unwrap()
-                    [i.unwrap()]
-            });
-        let strings: Vec<&Utf32String>;
-        if let Some(k) = top_k {
-            strings = strings_iterator.take(k).collect();
-        } else {
-            strings = strings_iterator.collect();
-        }
-        self.filter_mut().cache.indices =
-            compute_indices(&self.filter().query, strings, matcher);
+        self.filter_mut().cache.query = query;
+        self.filter_mut().cache.order = order;
+        self.filter_mut().cache.indices = indices;
     }
 }
