@@ -23,7 +23,7 @@ pub fn build_library(model: &mut Model) -> Result<()> {
     // sort by sort name
     model.library.contents.sort_by(|a, b| {
         let a_name = a.sort_names.first().unwrap_or(&a.name);
-        let b_name = b.sort_names.first().unwrap_or(&a.name);
+        let b_name = b.sort_names.first().unwrap_or(&b.name);
         a_name.to_lowercase().cmp(&b_name.to_lowercase())
     });
     model.library.contents.shrink_to_fit();
