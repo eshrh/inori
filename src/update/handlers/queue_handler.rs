@@ -44,11 +44,13 @@ pub fn handle_queue(model: &mut Model, msg: Message) -> Result<Update> {
         Message::Delete => {
             if let Some(p) = model.queue.selected() {
                 model.conn.delete(p as u32)?;
-                model.queue.set_selected(Some(safe_subtract(
-                    p,
-                    1,
-                    model.queue.len() - 1,
-                )));
+                let len = model.queue.len();
+                let next = if len == 0 {
+                    None
+                } else {
+                    Some(safe_subtract(p, 1, len))
+                };
+                model.queue.set_selected(next);
                 model.queue.watch_oob();
             }
             Ok(Update::STATUS | Update::QUEUE)
