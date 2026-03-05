@@ -26,6 +26,14 @@ For other operating systems, check the
   - The only two currently available screens are `"library"` and `"queue"`.
 - `nucleo_prefer_prefix`
   - See [relevant nucleo docs](https://docs.rs/nucleo/latest/nucleo/struct.Config.html#structfield.prefer_prefix).
+- `status_indicator_enabled`
+  - Type: String
+  - Default: `"#"`
+  - Symbol shown when repeat/random/single/consume is enabled in the status bar.
+- `status_indicator_disabled`
+  - Type: String
+  - Default: `"-"`
+  - Symbol shown when repeat/random/single/consume is disabled in the status bar.
 
 ## Keybindings
 

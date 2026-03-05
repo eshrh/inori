@@ -7,11 +7,11 @@ use ratatui::prelude::*;
 use ratatui::style::Styled;
 use ratatui::widgets::*;
 
-pub fn format_status(state: bool) -> String {
+pub fn format_status<'a>(state: bool, on: &'a str, off: &'a str) -> &'a str {
     if state {
-        "#".to_string()
+        on
     } else {
-        "-".to_string()
+        off
     }
 }
 
@@ -72,10 +72,26 @@ pub fn render_status(
                 Cell::from(
                     Line::from(format!(
                         "⎣{} {} {} {}⎦",
-                        format_status(model.status.repeat),
-                        format_status(model.status.random),
-                        format_status(model.status.single),
-                        format_status(model.status.consume)
+                        format_status(
+                            model.status.repeat,
+                            &model.config.status_indicator_enabled,
+                            &model.config.status_indicator_disabled
+                        ),
+                        format_status(
+                            model.status.random,
+                            &model.config.status_indicator_enabled,
+                            &model.config.status_indicator_disabled
+                        ),
+                        format_status(
+                            model.status.single,
+                            &model.config.status_indicator_enabled,
+                            &model.config.status_indicator_disabled
+                        ),
+                        format_status(
+                            model.status.consume,
+                            &model.config.status_indicator_enabled,
+                            &model.config.status_indicator_disabled
+                        )
                     ))
                     .right_aligned(),
                 ),

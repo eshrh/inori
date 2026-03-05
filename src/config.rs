@@ -18,6 +18,8 @@ pub struct Config {
     pub mpd_address: Option<String>,
     pub screens: Vec<Screen>,
     pub nucleo_prefer_prefix: bool,
+    pub status_indicator_enabled: String,
+    pub status_indicator_disabled: String,
 }
 
 impl Config {
@@ -29,6 +31,8 @@ impl Config {
             mpd_address: None,
             screens: vec![Screen::Library, Screen::Queue],
             nucleo_prefer_prefix: false,
+            status_indicator_enabled: "#".into(),
+            status_indicator_disabled: "-".into(),
         }
     }
 
@@ -123,6 +127,24 @@ impl Config {
                         self.nucleo_prefer_prefix = t
                     }
                     ("nucleo_prefer_prefix", other) => {
+                        return Err(Box::new(ConfigError::WrongKeyValueType {
+                            key,
+                            value: other,
+                        }));
+                    }
+                    ("status_indicator_enabled", Value::String(s)) => {
+                        self.status_indicator_enabled = s;
+                    }
+                    ("status_indicator_enabled", other) => {
+                        return Err(Box::new(ConfigError::WrongKeyValueType {
+                            key,
+                            value: other,
+                        }));
+                    }
+                    ("status_indicator_disabled", Value::String(s)) => {
+                        self.status_indicator_disabled = s;
+                    }
+                    ("status_indicator_disabled", other) => {
                         return Err(Box::new(ConfigError::WrongKeyValueType {
                             key,
                             value: other,
