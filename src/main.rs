@@ -30,7 +30,7 @@ fn main() -> Result<()> {
 
     let hook = panic::take_hook();
     panic::set_hook(Box::new(move |panic| {
-        reset_terminal().expect("Failed to reset the terminal.");
+        let _ = reset_terminal();
         hook(panic);
     }));
 
@@ -54,7 +54,7 @@ fn main() -> Result<()> {
             break;
         }
     }
-    reset_terminal().expect("Failed to reset terminal.");
+    let _ = reset_terminal();
     Ok(())
 }
 
