@@ -19,9 +19,9 @@ pub fn handle_queue(model: &mut Model, msg: Message) -> Result<Update> {
         }
         Message::Select => {
             if let Some(s) = model.queue.selected_item() {
-                model
-                    .conn
-                    .switch(s.place.expect("Selected song has no place").pos)?;
+                if let Some(place) = s.place {
+                    model.conn.switch(place.pos)?;
+                }
             }
             Ok(Update::STATUS | Update::CURRENT_SONG)
         }
