@@ -129,7 +129,14 @@ impl Searchable<InfoEntry> for GlobalSearchState {
     }
 
     fn selected_item_mut(&mut self) -> Option<&mut InfoEntry> {
-        unimplemented!();
+        let selected = self.selector().selected()?;
+        let contents = self.contents.as_mut()?;
+        if self.should_filter() {
+            let idx = self.filter().cache.order.get(selected).cloned()??;
+            contents.get_mut(idx)
+        } else {
+            contents.get_mut(selected)
+        }
     }
 
     fn update_filter_cache(
