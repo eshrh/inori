@@ -39,6 +39,22 @@ fn apply_search_edit(
     }
 }
 
+fn delete_previous_word(query: &mut String) {
+    let trimmed_len = query.trim_end().len();
+    query.truncate(trimmed_len);
+    if query.is_empty() {
+        return;
+    }
+
+    let mut split_at = 0usize;
+    for (i, c) in query.char_indices() {
+        if c.is_whitespace() {
+            split_at = i;
+        }
+    }
+    query.truncate(split_at);
+}
+
 pub fn handle_vertical(msg: Vertical, selector: &mut impl Selector) {
     match selector.selected() {
         None => {
@@ -89,6 +105,9 @@ pub fn handle_search_k_tracksel(
         match k.code {
             // TODO: keep track of cursor and implement AEFB
             KeyCode::Char('u') => artist.search.query.clear(),
+            KeyCode::Char('w') => {
+                delete_previous_word(&mut artist.search.query)
+            }
             KeyCode::Char('n') => {
                 if let Some(Some(r)) = artist.selected_item().map(|i| i.rank) {
                     let idx = artist
@@ -134,6 +153,9 @@ pub fn handle_search_k<T>(
         match k.code {
             // TODO: keep track of cursor and implement AEFB
             KeyCode::Char('u') => s.filter_mut().query.clear(),
+            KeyCode::Char('w') => {
+                delete_previous_word(&mut s.filter_mut().query)
+            }
             KeyCode::Char('n') => handle_vertical(Vertical::Down, s),
             KeyCode::Char('p') => handle_vertical(Vertical::Up, s),
             _ => {}

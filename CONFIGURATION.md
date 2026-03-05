@@ -148,6 +148,7 @@ keybindings.
 In any search field, `C-n` (down) and `C-p` (up) are always available for
 navigation. In the global search, these are the *only* navigation
 keys. `C-u` can be used to reset any search field without closing it.
+`C-w` deletes the previous word in the active search query.
 
 ## Theme
 
