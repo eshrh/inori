@@ -37,19 +37,42 @@ impl Filter {
     }
 }
 
-impl From<&mut Vec<String>> for InfoEntry {
-    fn from(v: &mut Vec<String>) -> Self {
-        if v.len() > 4 {
-            panic!("too much info given to infoentry");
-        } else {
-            let mut drained = v.drain(..);
-            InfoEntry {
-                artist: drained.nth(0).unwrap(),
-                artist_sort: drained.nth(0),
-                album: drained.nth(0),
-                title: drained.nth(0),
+#[derive(Debug)]
+pub enum InfoEntryError {
+    MissingArtist,
+    TooManyFields(usize),
+}
+
+impl std::fmt::Display for InfoEntryError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            InfoEntryError::MissingArtist => {
+                write!(f, "missing artist field in search entry")
+            }
+            InfoEntryError::TooManyFields(len) => {
+                write!(f, "too many fields in search entry: {}", len)
             }
         }
+    }
+}
+
+impl std::error::Error for InfoEntryError {}
+
+impl TryFrom<&mut Vec<String>> for InfoEntry {
+    type Error = InfoEntryError;
+
+    fn try_from(v: &mut Vec<String>) -> std::result::Result<Self, Self::Error> {
+        if v.len() > 4 {
+            return Err(InfoEntryError::TooManyFields(v.len()));
+        }
+        let mut drained = v.drain(..);
+        let artist = drained.nth(0).ok_or(InfoEntryError::MissingArtist)?;
+        Ok(InfoEntry {
+            artist,
+            artist_sort: drained.nth(0),
+            album: drained.nth(0),
+            title: drained.nth(0),
+        })
     }
 }
 
@@ -130,12 +153,12 @@ impl Searchable<InfoEntry> for GlobalSearchState {
 
     fn selected_item_mut(&mut self) -> Option<&mut InfoEntry> {
         let selected = self.selector().selected()?;
-        let contents = self.contents.as_mut()?;
-        if self.should_filter() {
+        let use_filter = self.should_filter();
+        if use_filter {
             let idx = self.filter().cache.order.get(selected).cloned()??;
-            contents.get_mut(idx)
+            self.contents.as_mut()?.get_mut(idx)
         } else {
-            contents.get_mut(selected)
+            self.contents.as_mut()?.get_mut(selected)
         }
     }
 

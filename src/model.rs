@@ -192,18 +192,15 @@ impl Model {
             "albumartistsort",
             "albumartist",
         ])?;
-        self.library.global_search.contents = Some(
-            res.iter_mut()
-                .filter_map(|vec| {
-                    let ie = InfoEntry::from(vec);
-                    if !ie.is_redundant() {
-                        Some(ie)
-                    } else {
-                        None
-                    }
-                })
-                .collect::<Vec<InfoEntry>>(),
-        );
+        let mut entries = Vec::new();
+        for vec in res.iter_mut() {
+            let ie = InfoEntry::try_from(vec)
+                .map_err(|e| Box::new(e) as Box<dyn Error>)?;
+            if !ie.is_redundant() {
+                entries.push(ie);
+            }
+        }
+        self.library.global_search.contents = Some(entries);
         Ok(())
     }
 
