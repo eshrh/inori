@@ -83,8 +83,10 @@ pub fn render(model: &mut Model, frame: &mut Frame, theme: &Theme) {
     frame.render_stateful_widget(table, layout.queue, &mut model.queue.state);
 
     let ratio: f64 = match (model.status.elapsed, model.status.duration) {
-        (Some(e), Some(t)) => e.as_secs_f64() / t.as_secs_f64(),
-        _ => 0 as f64,
+        (Some(e), Some(t)) if t.as_secs_f64() > 0.0 => {
+            e.as_secs_f64() / t.as_secs_f64()
+        }
+        _ => 0.0,
     };
 
     frame.render_widget(
