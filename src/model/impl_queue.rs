@@ -1,7 +1,6 @@
 use super::proto::*;
 use super::*;
 use crate::util::song_to_str;
-use nucleo_matcher::Matcher;
 
 impl Selector for QueueSelector {
     fn selector(&self) -> &impl SelectorState {
@@ -21,6 +20,14 @@ impl Searchable<Song> for QueueSelector {
     }
     fn filter_mut(&mut self) -> &mut Filter {
         &mut self.search
+    }
+    fn build_utfstrings_cache(&self) -> Option<Vec<Utf32String>> {
+        Some(
+            self.contents
+                .iter()
+                .map(|i| Utf32String::from(song_to_str(i)))
+                .collect(),
+        )
     }
     fn contents(&self) -> Box<dyn Iterator<Item = &Song> + '_> {
         if self.should_filter() {
@@ -46,35 +53,6 @@ impl Searchable<Song> for QueueSelector {
                 .selected()
                 .and_then(|i| self.contents.get_mut(i))
         }
-    }
-
-    #[allow(unused_variables)]
-    fn update_filter_cache(
-        &mut self,
-        matcher: &mut Matcher,
-        top_k: Option<usize>,
-    ) {
-        if self.filter().cache.query == self.filter().query {
-            return;
-        }
-        if self.filter().cache.utfstrings_cache.is_none() {
-            self.filter_mut().cache.utfstrings_cache = Some(
-                self.contents
-                    .iter()
-                    .map(|i| Utf32String::from(song_to_str(i)))
-                    .collect(),
-            );
-        }
-        let query = self.filter().query.clone();
-        let order = {
-            let Some(cache) = self.filter().cache.utfstrings_cache.as_ref()
-            else {
-                return;
-            };
-            search_utils::compute_orders(&query, cache, matcher, 0)
-        };
-        self.filter_mut().cache.query = query;
-        self.filter_mut().cache.order = order;
     }
 }
 

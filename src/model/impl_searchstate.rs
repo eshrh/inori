@@ -1,7 +1,5 @@
 use super::*;
-use nucleo_matcher::Matcher;
 use proto::*;
-use search_utils::*;
 
 impl FilterCache {
     pub fn new() -> Self {
@@ -135,6 +133,14 @@ impl Searchable<InfoEntry> for GlobalSearchState {
     fn filter_mut(&mut self) -> &mut Filter {
         &mut self.search
     }
+    fn build_utfstrings_cache(&self) -> Option<Vec<Utf32String>> {
+        self.contents.as_ref().map(|contents| {
+            contents
+                .iter()
+                .map(|i| Utf32String::from(i.to_search_string()))
+                .collect()
+        })
+    }
     fn contents(&self) -> Box<dyn Iterator<Item = &InfoEntry> + '_> {
         match &self.contents {
             Some(c) => {
@@ -163,57 +169,5 @@ impl Searchable<InfoEntry> for GlobalSearchState {
         } else {
             self.contents.as_mut()?.get_mut(selected)
         }
-    }
-
-    fn update_filter_cache(
-        &mut self,
-        matcher: &mut Matcher,
-        top_k: Option<usize>,
-    ) {
-        if self.search.query == self.search.cache.query {
-            return;
-        }
-        if self.contents.is_none() {
-            self.search.cache.order = Vec::new();
-            self.search.cache.indices = Vec::new();
-            return;
-        }
-        if self.filter().cache.utfstrings_cache.is_none() {
-            self.filter_mut().cache.utfstrings_cache = Some(
-                self.contents
-                    .iter()
-                    .flatten()
-                    .map(|i| Utf32String::from(i.to_search_string()))
-                    .collect(),
-            );
-        }
-        let query = self.filter().query.clone();
-        let order = {
-            let Some(cache) = self.filter().cache.utfstrings_cache.as_ref()
-            else {
-                return;
-            };
-            compute_orders(&query, cache, matcher, 0)
-        };
-        let strings: Vec<&Utf32String> = {
-            let Some(cache) = self.filter().cache.utfstrings_cache.as_ref()
-            else {
-                return;
-            };
-            let strings_iterator = order
-                .iter()
-                .take_while(|i| i.is_some())
-                .filter_map(|i| i.and_then(|idx| cache.get(idx)));
-            if let Some(k) = top_k {
-                strings_iterator.take(k).collect()
-            } else {
-                strings_iterator.collect()
-            }
-        };
-        let indices = compute_indices(&query, strings, matcher);
-
-        self.filter_mut().cache.query = query;
-        self.filter_mut().cache.order = order;
-        self.filter_mut().cache.indices = indices;
     }
 }

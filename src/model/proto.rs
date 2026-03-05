@@ -1,4 +1,5 @@
 extern crate mpd;
+use super::search_utils::{compute_indices, compute_orders};
 use super::*;
 
 pub trait SelectorState {
@@ -71,13 +72,56 @@ pub trait Selector {
 pub trait Searchable<T>: Selector {
     fn filter(&self) -> &Filter;
     fn filter_mut(&mut self) -> &mut Filter;
+    fn build_utfstrings_cache(&self) -> Option<Vec<Utf32String>>;
     fn contents(&self) -> Box<dyn Iterator<Item = &T> + '_>;
     fn selected_item_mut(&mut self) -> Option<&mut T>;
     fn update_filter_cache(
         &mut self,
         matcher: &mut Matcher,
         top_k: Option<usize>,
-    );
+    ) {
+        if self.filter().cache.query == self.filter().query {
+            return;
+        }
+
+        if self.filter().cache.utfstrings_cache.is_none() {
+            let Some(cache) = self.build_utfstrings_cache() else {
+                self.filter_mut().cache.order.clear();
+                self.filter_mut().cache.indices.clear();
+                return;
+            };
+            self.filter_mut().cache.utfstrings_cache = Some(cache);
+        }
+
+        let query = self.filter().query.clone();
+        let order = {
+            let Some(cache) = self.filter().cache.utfstrings_cache.as_ref()
+            else {
+                return;
+            };
+            compute_orders(&query, cache, matcher, 0)
+        };
+        let strings: Vec<&Utf32String> = {
+            let Some(cache) = self.filter().cache.utfstrings_cache.as_ref()
+            else {
+                return;
+            };
+            let strings_iterator = order
+                .iter()
+                .take_while(|i| i.is_some())
+                .filter_map(|i| i.and_then(|idx| cache.get(idx)));
+            if let Some(k) = top_k {
+                strings_iterator.take(k).collect()
+            } else {
+                strings_iterator.collect()
+            }
+        };
+        let indices = compute_indices(&query, strings, matcher);
+
+        self.filter_mut().cache.query = query;
+        self.filter_mut().cache.order = order;
+        self.filter_mut().cache.indices = indices;
+    }
     fn selected_item(&self) -> Option<&T> {
         self.selector()
             .selected()
