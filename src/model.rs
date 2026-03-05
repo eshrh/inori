@@ -204,7 +204,7 @@ impl Model {
         Ok(())
     }
 
-    pub fn jump_to(&mut self, target: InfoEntry) {
+    pub fn jump_to(&mut self, target: InfoEntry) -> Result<()> {
         // order: albumartist albumartistsort album title
         let artist_idx = self
             .library
@@ -219,11 +219,10 @@ impl Model {
         }
 
         if target.album.is_none() {
-            return;
+            return Ok(());
         }
         if self.library.selected_item().is_some_and(|i| !i.fetched) {
-            build_library::add_tracks(self)
-                .expect("couldn't add tracks on the fly while searching");
+            build_library::add_tracks(self)?;
         }
         if let Some(artist) = self.library.selected_item_mut() {
             let mut idx: Option<usize> = None;
@@ -243,5 +242,6 @@ impl Model {
             }
             artist.set_selected(idx);
         }
+        Ok(())
     }
 }

@@ -99,7 +99,7 @@ pub fn handle_search(model: &mut Model, k: KeyEvent) -> Result<Update> {
                 }
                 if let Some(item) = model.library.global_search.selected_item()
                 {
-                    model.jump_to(item.clone());
+                    model.jump_to(item.clone())?;
                 }
                 Ok(Update::empty())
             }
