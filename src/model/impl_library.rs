@@ -25,7 +25,16 @@ impl Selector for LibraryState {
         &mut self.artist_state
     }
     fn len(&self) -> usize {
-        self.contents_vec().len()
+        if self.should_filter() {
+            self.filter()
+                .cache
+                .order
+                .iter()
+                .filter(|i| i.is_some())
+                .count()
+        } else {
+            self.contents.len()
+        }
     }
 }
 

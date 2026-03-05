@@ -10,7 +10,16 @@ impl Selector for QueueSelector {
         &mut self.state
     }
     fn len(&self) -> usize {
-        self.contents_vec().len()
+        if self.should_filter() {
+            self.filter()
+                .cache
+                .order
+                .iter()
+                .filter(|i| i.is_some())
+                .count()
+        } else {
+            self.contents.len()
+        }
     }
 }
 
