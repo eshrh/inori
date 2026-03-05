@@ -17,6 +17,7 @@ use update::Update;
 mod config;
 mod event_handler;
 mod model;
+mod title_alias;
 mod update;
 mod util;
 mod view;

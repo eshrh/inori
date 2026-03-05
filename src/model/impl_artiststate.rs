@@ -1,5 +1,7 @@
 use super::*;
 use crate::model::search_utils::compute_orders;
+use crate::util::song_to_search_str;
+use crate::view::search_doc::build_alias_search_doc;
 use proto::*;
 use search_utils::compute_indices;
 
@@ -120,18 +122,29 @@ impl<'a> ArtistData {
         None
     }
 
-    pub fn update_search(&mut self, matcher: &mut Matcher) {
+    pub fn update_search(
+        &mut self,
+        matcher: &mut Matcher,
+        aliases: &AliasMaps,
+    ) {
         if self.search.cache.query == self.search.query {
             return;
         }
         if self.search.cache.utfstrings_cache.is_none() {
             let mut tmp: Vec<Utf32String> = Vec::new();
             for album in &self.albums {
-                tmp.push(Utf32String::from(album.name.clone()));
+                let album_search = build_alias_search_doc(
+                    &album.name,
+                    album.alias.as_deref(),
+                    None,
+                );
+                tmp.push(Utf32String::from(album_search.text));
                 for track in &album.tracks {
-                    tmp.push(Utf32String::from(
-                        track.title.clone().unwrap_or("".into()),
-                    ));
+                    tmp.push(Utf32String::from(song_to_search_str(
+                        track,
+                        aliases.title_for_path(&track.file),
+                        aliases.album_for_song(track),
+                    )));
                 }
             }
             self.search.cache.utfstrings_cache = Some(tmp);

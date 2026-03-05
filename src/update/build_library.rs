@@ -58,6 +58,15 @@ pub fn add_tracks(model: &mut Model) -> Result<()> {
                     .cloned()
                     .map(|i| i.1)
                     .unwrap_or("<ALBUM NOT FOUND>".into()),
+                alias: track
+                    .tags
+                    .iter()
+                    .find_map(|(k, v)| {
+                        (k == "Album")
+                            .then(|| model.aliases.album_for_name(v))
+                            .flatten()
+                    })
+                    .map(str::to_string),
                 tracks: album.to_vec(),
                 expanded: true,
             });

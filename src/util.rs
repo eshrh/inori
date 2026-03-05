@@ -1,3 +1,4 @@
+use crate::view::search_doc::build_alias_search_doc;
 use mpd::Song;
 use mpd::Status;
 use std::time::Duration;
@@ -42,7 +43,7 @@ pub fn format_time(d: Duration) -> String {
     }
 }
 
-/// Progress on the currently playing song, in the format {elapsed}/{duration}. 
+/// Progress on the currently playing song, in the format {elapsed}/{duration}.
 pub fn format_progress(s: &Status) -> String {
     if let (Some(e), Some(d)) = (s.elapsed, s.duration) {
         format!("{}/{}", format_time(e), &format_time(d))
@@ -66,4 +67,12 @@ pub fn song_to_str(song: &Song) -> String {
         out.push_str(album);
     }
     out
+}
+
+pub fn song_to_search_str(
+    song: &Song,
+    title_alias: Option<&str>,
+    album_alias: Option<&str>,
+) -> String {
+    build_alias_search_doc(&song_to_str(song), album_alias, title_alias).text
 }

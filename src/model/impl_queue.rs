@@ -1,6 +1,6 @@
 use super::proto::*;
 use super::*;
-use crate::util::song_to_str;
+use crate::util::song_to_search_str;
 
 impl Selector for QueueSelector {
     fn selector(&self) -> &impl SelectorState {
@@ -26,7 +26,13 @@ impl Searchable<Song> for QueueSelector {
             self.songs
                 .items
                 .iter()
-                .map(|i| Utf32String::from(song_to_str(i)))
+                .map(|song| {
+                    Utf32String::from(song_to_search_str(
+                        song,
+                        self.aliases.title_for_path(&song.file),
+                        self.aliases.album_for_song(song),
+                    ))
+                })
                 .collect(),
         )
     }
@@ -46,6 +52,12 @@ impl QueueSelector {
         Self {
             songs: FilteredView::new(),
             state: TableState::default(),
+            aliases: AliasMaps::default(),
         }
+    }
+
+    pub fn set_aliases(&mut self, aliases: &AliasMaps) {
+        self.aliases = aliases.clone();
+        self.songs.filter.reset_cache();
     }
 }

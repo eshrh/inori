@@ -556,6 +556,7 @@ dependencies = [
  "nucleo-matcher",
  "platform-dirs",
  "ratatui",
+ "serde_json",
  "toml",
 ]
 

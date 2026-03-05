@@ -7,20 +7,44 @@ use super::track_select_renderer::render_track_list;
 use super::Theme;
 use crate::model::proto::*;
 use crate::model::*;
+use crate::view::search_doc::{has_match_in_span, AliasSpan};
 use ratatui::prelude::Constraint::*;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
+
+fn alias_spans(
+    alias: &str,
+    style: Style,
+    search_span: AliasSpan,
+    idx: &[u32],
+) -> Vec<Span<'static>> {
+    let mut out = Vec::with_capacity(alias.chars().count() + 3);
+    out.push(Span::from(" "));
+    out.push(Span::from("[").style(style));
+    for (k, c) in alias.chars().enumerate() {
+        let mut span = Span::from(c.to_string()).style(style);
+        if u32::try_from(search_span.start + k)
+            .ok()
+            .is_some_and(|j| idx.contains(&j))
+        {
+            span.style = span.style.add_modifier(Modifier::UNDERLINED);
+        }
+        out.push(span);
+    }
+    out.push(Span::from("]").style(style));
+    out
+}
 
 pub fn render_search_item<'a>(
     ie: &InfoEntry,
     idx: &[u32],
     theme: &Theme,
 ) -> Line<'a> {
-    let mut out: Vec<Span> = ie
-        .to_search_string()
-        .chars()
-        .map(|c| Span::from(c.to_string()))
-        .collect();
+    let base = ie.to_display_string();
+    let search_doc = ie.search_doc();
+    let mut out: Vec<Span> =
+        base.chars().map(|c| Span::from(c.to_string())).collect();
+    let mut album_end_idx: Option<usize> = None;
 
     let mut cur = ie.artist.chars().count();
     if let Some(artist_sort) = &ie.artist_sort {
@@ -41,15 +65,52 @@ pub fn render_search_item<'a>(
             item.style = theme.field_album;
         }
         cur += len;
+        album_end_idx = Some(cur);
     }
     if let Some(_title) = &ie.title {
         out[cur].style = theme.slash_span;
     }
-    for (i, item) in out.iter_mut().enumerate() {
-        if u32::try_from(i).ok().is_some_and(|i| idx.contains(&i)) {
+
+    let show_album_alias = search_doc
+        .album_alias
+        .is_some_and(|segment| has_match_in_span(idx, segment));
+    let show_title_alias = search_doc
+        .title_alias
+        .is_some_and(|segment| has_match_in_span(idx, segment));
+
+    for (i, item) in out.iter_mut().take(search_doc.base_len).enumerate() {
+        let matches_base =
+            u32::try_from(i).ok().is_some_and(|j| idx.contains(&j));
+        if matches_base {
             item.style = item.style.add_modifier(Modifier::UNDERLINED);
         }
     }
+
+    if show_album_alias {
+        if let (Some(alias), Some(search_span)) =
+            (ie.album_alias.as_ref(), search_doc.album_alias)
+        {
+            let spans = alias_spans(alias, theme.field_album, search_span, idx);
+            if let Some(insert_at) = album_end_idx {
+                out.splice(insert_at..insert_at, spans);
+            } else {
+                out.extend(spans);
+            }
+        }
+    }
+    if show_title_alias {
+        if let (Some(alias), Some(search_span)) =
+            (ie.title_alias.as_ref(), search_doc.title_alias)
+        {
+            out.extend(alias_spans(
+                alias,
+                theme.field_artistsort,
+                search_span,
+                idx,
+            ));
+        }
+    }
+
     Line::from(out)
 }
 

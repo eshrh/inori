@@ -1,5 +1,6 @@
 use super::*;
 use crate::model::*;
+use crate::title_alias::AliasMaps;
 use crate::util::safe_add;
 use crate::util::safe_subtract;
 use event::KeyModifiers;
@@ -100,6 +101,7 @@ pub fn handle_search_k_tracksel(
     artist: &mut ArtistData,
     k: KeyEvent,
     matcher: &mut Matcher,
+    aliases: &AliasMaps,
 ) -> Option<Message> {
     if k.modifiers.contains(KeyModifiers::CONTROL) {
         match k.code {
@@ -139,7 +141,7 @@ pub fn handle_search_k_tracksel(
             SearchEditOutcome::Continue => {}
         }
     }
-    artist.update_search(matcher);
+    artist.update_search(matcher, aliases);
     None
 }
 

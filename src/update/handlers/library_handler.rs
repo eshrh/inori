@@ -113,8 +113,12 @@ pub fn handle_search(model: &mut Model, k: KeyEvent) -> Result<Update> {
         }
         (TrackSelector, _) => {
             if let Some(artist) = model.library.selected_item_mut() {
-                let msg =
-                    handle_search_k_tracksel(artist, k, &mut model.matcher);
+                let msg = handle_search_k_tracksel(
+                    artist,
+                    k,
+                    &mut model.matcher,
+                    &model.aliases,
+                );
                 if let Some(m) = msg {
                     handle_msg(model, m)
                 } else {

@@ -97,6 +97,7 @@ pub fn update_screens(model: &mut Model, mut update: Update) -> Result<()> {
     if update.contains(Update::IDLE_UPDATES) {
         let changes = model.idle_conn.get()?;
         if changes.contains(&Subsystem::Database) {
+            model.reload_aliases()?;
             build_library::build_library(model)?;
         }
         if changes.contains(&Subsystem::Update)
@@ -205,6 +206,7 @@ pub fn handle_msg(model: &mut Model, m: Message) -> Result<Update> {
                 }
                 std::thread::sleep(Duration::from_millis(50));
             }
+            model.reload_aliases()?;
             build_library::build_library(model)?;
             Ok(Update::empty())
         }

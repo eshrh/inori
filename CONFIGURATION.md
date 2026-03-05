@@ -35,6 +35,24 @@ For other operating systems, check the
   - Default: `"-"`
   - Symbol shown when repeat/random/single/consume is disabled in the status bar.
 
+## Search Aliases
+
+Search (global search, queue search, and library track search) supports
+optional title and album aliases loaded from
+`<config_dir>/inori/aliases.json`, which should contain a json array.
+
+Each entry must contain exactly one of:
+    - `path`: MPD `file` path
+    - `album`: album name (note that this is *not* collision-safe)
+And an `alias` key.
+
+```json
+[
+  { "path": "Artist/アルバム/01 トラック.flac", "alias": "torakku" },
+  { "album": "アルバム", "alias": "arubamu" }
+]
+```
+
 ## Keybindings
 
 ### Keybinding sets

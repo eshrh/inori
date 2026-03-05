@@ -1,4 +1,5 @@
 use super::*;
+use crate::view::search_doc::{build_alias_search_doc, SearchProjection};
 use proto::*;
 
 impl FilterCache {
@@ -69,10 +70,13 @@ impl TryFrom<&mut Vec<String>> for InfoEntry {
         let mut drained = v.drain(..);
         let artist = drained.nth(0).ok_or(InfoEntryError::MissingArtist)?;
         Ok(InfoEntry {
+            file: String::new(),
             artist,
             artist_sort: drained.nth(0),
             album: drained.nth(0),
             title: drained.nth(0),
+            album_alias: None,
+            title_alias: None,
         })
     }
 }
@@ -83,7 +87,7 @@ impl InfoEntry {
             && self.title.is_none()
             && self.artist_sort.as_ref().is_some_and(|i| *i == self.artist)
     }
-    pub fn to_search_string(&self) -> String {
+    pub fn to_display_string(&self) -> String {
         let mut out: String = self.artist.clone();
         if let Some(artist_sort) = &self.artist_sort {
             if *artist_sort != out {
@@ -99,6 +103,17 @@ impl InfoEntry {
             out.push_str(title);
         }
         out
+    }
+    pub fn to_search_string(&self) -> String {
+        self.search_doc().text
+    }
+
+    pub fn search_doc(&self) -> SearchProjection {
+        build_alias_search_doc(
+            &self.to_display_string(),
+            self.album_alias.as_deref(),
+            self.title_alias.as_deref().filter(|_| self.title.is_some()),
+        )
     }
 }
 

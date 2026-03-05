@@ -37,7 +37,8 @@ impl EventHandler {
             }
             // only tick when idle.
             let time_since_last_event: Duration = Instant::now() - last_event;
-            if now.elapsed() >= TICK_INTERVAL && time_since_last_event >= TICK_INTERVAL
+            if now.elapsed() >= TICK_INTERVAL
+                && time_since_last_event >= TICK_INTERVAL
             {
                 if tx.send(Event::Tick).is_err() {
                     break;

@@ -17,6 +17,9 @@ pub mod proto;
 mod search_utils;
 use crate::config::Config;
 use crate::model::proto::*;
+use crate::title_alias::{
+    AliasMaps, JsonTitleAliasStore, NoopTitleAliasStore, TitleAliasStore,
+};
 use crate::update::build_library;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -48,6 +51,7 @@ pub enum State {
 pub struct AlbumData {
     pub expanded: bool,
     pub name: String,
+    pub alias: Option<String>,
     pub tracks: Vec<Song>,
 }
 
@@ -111,10 +115,13 @@ impl<T> FilteredView<T> {
 
 #[derive(Clone)]
 pub struct InfoEntry {
+    pub file: String,
     pub artist: String,
     pub artist_sort: Option<String>,
     pub album: Option<String>,
     pub title: Option<String>,
+    pub album_alias: Option<String>,
+    pub title_alias: Option<String>,
 }
 pub struct GlobalSearchState {
     pub entries: FilteredView<InfoEntry>,
@@ -132,6 +139,7 @@ pub struct LibraryState {
 pub struct QueueSelector {
     pub songs: FilteredView<Song>,
     pub state: TableState,
+    pub aliases: AliasMaps,
 }
 
 pub struct Model {
@@ -147,6 +155,8 @@ pub struct Model {
     pub config: Config,
     pub parse_state: Vec<KeyEvent>,
     pub frame_size: Rect,
+    pub title_alias_store: Box<dyn TitleAliasStore>,
+    pub aliases: AliasMaps,
 }
 
 impl Model {
@@ -157,6 +167,15 @@ impl Model {
             Self::make_connection(&config)?,
             &[Subsystem::Database, Subsystem::Player, Subsystem::Options],
         )?;
+        let title_alias_store: Box<dyn TitleAliasStore> =
+            JsonTitleAliasStore::from_default_path()
+                .map(|store| Box::new(store) as Box<dyn TitleAliasStore>)
+                .unwrap_or_else(|| Box::new(NoopTitleAliasStore));
+        let aliases = title_alias_store.load_all()?;
+
+        let mut queue = QueueSelector::new();
+        queue.set_aliases(&aliases);
+
         Ok(Model {
             state: State::Running,
             status: conn.status()?,
@@ -164,7 +183,7 @@ impl Model {
             idle_conn,
             screen: config.screens.first().cloned().unwrap_or(Screen::Library),
             library: LibraryState::new(),
-            queue: QueueSelector::new(),
+            queue,
             currentsong: None,
             matcher: {
                 let mut default_config = nucleo_matcher::Config::DEFAULT;
@@ -174,6 +193,8 @@ impl Model {
             config,
             parse_state: Vec::new(),
             frame_size,
+            title_alias_store,
+            aliases,
         })
     }
 
@@ -196,17 +217,53 @@ impl Model {
         Ok(())
     }
 
+    pub fn reload_aliases(&mut self) -> Result<()> {
+        self.aliases = self.title_alias_store.load_all()?;
+        self.queue.set_aliases(&self.aliases);
+        for artist in &mut self.library.artists.items {
+            for album in &mut artist.albums {
+                album.alias = self
+                    .aliases
+                    .album_for_name(&album.name)
+                    .map(str::to_string);
+            }
+            artist.search.reset_cache();
+        }
+        Ok(())
+    }
+
     pub fn update_global_search_contents(&mut self) -> Result<()> {
-        let mut res = self.conn.list_groups(vec![
-            "title",
-            "album",
-            "albumartistsort",
-            "albumartist",
-        ])?;
+        let res = self.conn.listallinfo()?;
         let mut entries = Vec::new();
-        for vec in res.iter_mut() {
-            let ie = InfoEntry::try_from(vec)
-                .map_err(|e| Box::new(e) as Box<dyn Error>)?;
+        for song in res {
+            let artist = song
+                .tags
+                .iter()
+                .find_map(|(k, v)| (k == "AlbumArtist").then(|| v.clone()))
+                .or(song.artist.clone());
+            let Some(artist) = artist else {
+                continue;
+            };
+            let ie = InfoEntry {
+                file: song.file.clone(),
+                artist,
+                artist_sort: song.tags.iter().find_map(|(k, v)| {
+                    (k == "AlbumArtistSort").then(|| v.clone())
+                }),
+                album: song
+                    .tags
+                    .iter()
+                    .find_map(|(k, v)| (k == "Album").then(|| v.clone())),
+                album_alias: self
+                    .aliases
+                    .album_for_song(&song)
+                    .map(str::to_string),
+                title: song.title.clone(),
+                title_alias: self
+                    .aliases
+                    .title_for_path(&song.file)
+                    .map(str::to_string),
+            };
             if !ie.is_redundant() {
                 entries.push(ie);
             }
@@ -240,18 +297,29 @@ impl Model {
         if let Some(artist) = self.library.selected_item_mut() {
             let mut idx: Option<usize> = None;
             artist.expand_all();
-            if let Some(track_name) = target.title {
+            if !target.file.is_empty() {
                 idx = artist.contents().iter().position(|i| match i.item {
-                    ItemRef::Song(s) => {
-                        s.title.as_ref().is_some_and(|i| *i == track_name)
-                    }
+                    ItemRef::Song(s) => s.file == target.file,
                     _ => false,
                 });
-            } else if let Some(album_name) = target.album {
-                idx = artist.contents().iter().position(|i| match i.item {
-                    ItemRef::Album(a) => a.name == *album_name,
-                    _ => false,
-                });
+            }
+            if idx.is_none() {
+                if let Some(track_name) = target.title.as_ref() {
+                    idx = artist.contents().iter().position(|i| match i.item {
+                        ItemRef::Song(s) => {
+                            s.title.as_ref() == Some(track_name)
+                        }
+                        _ => false,
+                    });
+                }
+            }
+            if idx.is_none() {
+                if let Some(album_name) = target.album.as_ref() {
+                    idx = artist.contents().iter().position(|i| match i.item {
+                        ItemRef::Album(a) => a.name == *album_name,
+                        _ => false,
+                    });
+                }
             }
             artist.set_selected(idx);
         }
