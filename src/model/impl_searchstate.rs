@@ -35,6 +35,9 @@ impl Filter {
         self.query.clear();
         self.cache.clear_matches();
     }
+    pub fn reset_cache(&mut self) {
+        self.cache = FilterCache::new();
+    }
 }
 
 #[derive(Debug)]
@@ -141,7 +144,7 @@ impl Searchable<InfoEntry> for GlobalSearchState {
                             .cache
                             .order
                             .iter()
-                            .filter_map(|idx| idx.map(|i| &c[i])),
+                            .filter_map(|idx| idx.and_then(|i| c.get(i))),
                     )
                 } else {
                     Box::new(c.iter())

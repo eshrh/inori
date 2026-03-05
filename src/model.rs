@@ -201,6 +201,7 @@ impl Model {
             }
         }
         self.library.global_search.contents = Some(entries);
+        self.library.global_search.search.reset_cache();
         Ok(())
     }
 

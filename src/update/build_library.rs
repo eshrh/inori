@@ -27,6 +27,7 @@ pub fn build_library(model: &mut Model) -> Result<()> {
         a_name.to_lowercase().cmp(&b_name.to_lowercase())
     });
     model.library.contents.shrink_to_fit();
+    model.library.artist_search.reset_cache();
     Ok(())
 }
 
@@ -76,6 +77,7 @@ pub fn add_tracks(model: &mut Model) -> Result<()> {
     if let Some(item) = model.library.selected_item_mut() {
         item.albums = albums;
         item.fetched = true;
+        item.search.reset_cache();
     }
     Ok(())
 }

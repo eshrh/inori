@@ -45,7 +45,7 @@ impl Searchable<ArtistData> for LibraryState {
                     .cache
                     .order
                     .iter()
-                    .filter_map(|idx| idx.map(|i| &self.contents[i])),
+                    .filter_map(|idx| idx.and_then(|i| self.contents.get(i))),
             )
         } else {
             Box::new(self.contents.iter())
@@ -54,7 +54,12 @@ impl Searchable<ArtistData> for LibraryState {
     fn selected_item_mut(&mut self) -> Option<&mut ArtistData> {
         if self.should_filter() {
             self.selector().selected().and_then(|i| {
-                self.artist_search.cache.order[i]
+                self.artist_search
+                    .cache
+                    .order
+                    .get(i)
+                    .cloned()
+                    .flatten()
                     .and_then(|j| self.contents.get_mut(j))
             })
         } else {

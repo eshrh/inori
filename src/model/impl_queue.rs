@@ -29,7 +29,7 @@ impl Searchable<Song> for QueueSelector {
                     .cache
                     .order
                     .iter()
-                    .filter_map(|idx| idx.map(|i| &self.contents[i])),
+                    .filter_map(|idx| idx.and_then(|i| self.contents.get(i))),
             )
         } else {
             Box::new(self.contents.iter())
