@@ -188,7 +188,6 @@ pub fn handle_msg(model: &mut Model, m: Message) -> Result<Update> {
         }
         Message::SwitchScreen(to) => {
             if let Some(screen) = model.config.screens.get(to - 1) {
-                model.toggle_screen = model.screen.clone();
                 model.screen = screen.clone();
             }
             Ok(Update::empty())

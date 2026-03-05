@@ -123,7 +123,6 @@ pub struct Model {
     pub conn: Client<StreamTypes>,
     pub idle_conn: IdleClient<StreamTypes>,
     pub screen: Screen,
-    pub toggle_screen: Screen,
     pub library: LibraryState,
     pub queue: QueueSelector,
     pub currentsong: Option<Song>,
@@ -147,11 +146,6 @@ impl Model {
             conn,
             idle_conn,
             screen: config.screens.first().cloned().unwrap_or(Screen::Library),
-            toggle_screen: config
-                .screens
-                .last()
-                .cloned()
-                .unwrap_or(Screen::Queue),
             library: LibraryState::new(),
             queue: QueueSelector::new(),
             currentsong: None,
