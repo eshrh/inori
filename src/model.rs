@@ -136,9 +136,9 @@ pub struct Model {
 impl Model {
     pub fn new(frame_size: Rect) -> Result<Self> {
         let config = Config::default().try_read_config()?;
-        let mut conn = Self::make_connection(&config);
+        let mut conn = Self::make_connection(&config)?;
         let idle_conn = IdleClient::new(
-            Self::make_connection(&config),
+            Self::make_connection(&config)?,
             &[Subsystem::Database, Subsystem::Player, Subsystem::Options],
         )?;
         Ok(Model {
@@ -166,11 +166,14 @@ impl Model {
         })
     }
 
-    pub fn make_connection(conf: &Config) -> Client<StreamTypes> {
+    pub fn make_connection(conf: &Config) -> Result<Client<StreamTypes>> {
         if let Some(mpd_url) = &conf.mpd_address {
-            Client::<StreamTypes>::connect(mpd_url).unwrap()
+            Client::<StreamTypes>::connect(mpd_url).map_err(|e| {
+                format!("failed to connect to MPD at {}: {}", mpd_url, e)
+                    .into()
+            })
         } else {
-            Client::<StreamTypes>::default()
+            Ok(Client::<StreamTypes>::default())
         }
     }
 

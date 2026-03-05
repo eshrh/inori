@@ -34,8 +34,7 @@ fn main() -> Result<()> {
         hook(panic);
     }));
 
-    let mut model = model::Model::new(terminal.get_frame().area())
-        .expect("Failed to init.");
+    let mut model = model::Model::new(terminal.get_frame().area())?;
     update::update_tick(&mut model)?;
     update::update_screens(&mut model, Update::empty())?;
     terminal.draw(|f| view::view(&mut model, f))?;
