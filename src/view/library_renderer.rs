@@ -97,9 +97,14 @@ pub fn render(model: &mut Model, frame: &mut Frame, theme: &Theme) {
     render_track_list(model, frame, layout.track_select, theme);
 
     if let Some(a) = layout.track_search {
+        let track_query = model
+            .library
+            .selected_item()
+            .map(|artist| artist.search.query.clone())
+            .unwrap_or_default();
         frame.render_widget(
             make_search_box(
-                &model.library.selected_item().unwrap().search.query,
+                &track_query,
                 matches!(model.state, State::Searching),
                 theme,
             ),
