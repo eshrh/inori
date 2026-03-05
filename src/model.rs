@@ -27,12 +27,12 @@ pub enum Screen {
     Queue,
 }
 
-impl From<&String> for Screen {
-    fn from(s: &String) -> Self {
-        match s.as_str() {
-            "library" | "Library" => Screen::Library,
-            "queue" | "Queue" => Screen::Queue,
-            _ => panic!("unknown screen: {}", s),
+impl Screen {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s {
+            "library" | "Library" => Some(Screen::Library),
+            "queue" | "Queue" => Some(Screen::Queue),
+            _ => None,
         }
     }
 }
@@ -169,8 +169,7 @@ impl Model {
     pub fn make_connection(conf: &Config) -> Result<Client<StreamTypes>> {
         if let Some(mpd_url) = &conf.mpd_address {
             Client::<StreamTypes>::connect(mpd_url).map_err(|e| {
-                format!("failed to connect to MPD at {}: {}", mpd_url, e)
-                    .into()
+                format!("failed to connect to MPD at {}: {}", mpd_url, e).into()
             })
         } else {
             Ok(Client::<StreamTypes>::default())
