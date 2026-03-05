@@ -33,9 +33,11 @@ pub fn render_str_with_idxs<'a>(
 
 pub fn get_artist_list<'a>(model: &Model, theme: &Theme) -> List<'a> {
     if model.library.should_filter() {
-        let indices = &model.library.artist_search.cache.indices;
-        List::new(model.library.contents().zip(indices).map(
-            |(artist, idxs_o)| {
+        let indices = &model.library.artists.filter.cache.indices;
+        List::new((0..model.library.display_len()).filter_map(|i| {
+            let artist = model.library.display_get(i)?;
+            let idxs_o = indices.get(i)?;
+            Some({
                 let len = artist.name.chars().count();
                 let l = Line::from(render_str_with_idxs(
                     artist.to_fuzzy_find_str(),
@@ -44,13 +46,12 @@ pub fn get_artist_list<'a>(model: &Model, theme: &Theme) -> List<'a> {
                     theme,
                 ));
                 l
-            },
-        ))
+            })
+        }))
     } else {
         List::new(
-            model
-                .library
-                .contents()
+            (0..model.library.storage_len())
+                .filter_map(|i| model.library.storage_get(i))
                 .map(|artist| artist.name.clone())
                 .collect::<Vec<String>>(),
         )

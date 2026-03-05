@@ -13,9 +13,8 @@ use std::time::Duration;
 use super::status_renderer::render_status;
 
 pub fn make_queue<'a>(model: &mut Model, theme: &Theme) -> Table<'a> {
-    let rows: Vec<Row> = model
-        .queue
-        .contents()
+    let rows: Vec<Row> = (0..model.queue.display_len())
+        .filter_map(|i| model.queue.display_get(i))
         .map(|song| {
             Row::new(vec![
                 Cell::from(song.title.clone().unwrap_or("".to_string())),
@@ -72,7 +71,7 @@ pub fn render(model: &mut Model, frame: &mut Frame, theme: &Theme) {
     if let Some(a) = layout.search {
         frame.render_widget(
             make_search_box(
-                &model.queue.search.query,
+                &model.queue.songs.filter.query,
                 matches!(model.state, State::Searching),
                 theme,
             ),

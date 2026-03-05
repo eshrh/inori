@@ -90,6 +90,25 @@ pub struct Filter {
     pub cache: FilterCache,
 }
 
+pub struct FilteredView<T> {
+    pub filter: Filter,
+    pub items: Vec<T>,
+}
+
+impl<T> FilteredView<T> {
+    pub fn new() -> Self {
+        Self {
+            filter: Filter::new(),
+            items: Vec::new(),
+        }
+    }
+
+    pub fn replace_items(&mut self, items: Vec<T>) {
+        self.items = items;
+        self.filter.reset_cache();
+    }
+}
+
 #[derive(Clone)]
 pub struct InfoEntry {
     pub artist: String,
@@ -98,22 +117,20 @@ pub struct InfoEntry {
     pub title: Option<String>,
 }
 pub struct GlobalSearchState {
-    pub search: Filter,
-    pub contents: Option<Vec<InfoEntry>>,
+    pub entries: FilteredView<InfoEntry>,
+    pub loaded: bool,
     pub results_state: ListState,
 }
 
 pub struct LibraryState {
-    pub artist_search: Filter,
+    pub artists: FilteredView<ArtistData>,
     pub global_search: GlobalSearchState,
     pub active: LibActiveSelector,
-    pub contents: Vec<ArtistData>,
     pub artist_state: ListState,
 }
 
 pub struct QueueSelector {
-    pub search: Filter,
-    pub contents: Vec<Song>,
+    pub songs: FilteredView<Song>,
     pub state: TableState,
 }
 
@@ -194,17 +211,18 @@ impl Model {
                 entries.push(ie);
             }
         }
-        self.library.global_search.contents = Some(entries);
-        self.library.global_search.search.reset_cache();
+        self.library.global_search.entries.replace_items(entries);
+        self.library.global_search.loaded = true;
         Ok(())
     }
 
     pub fn jump_to(&mut self, target: InfoEntry) -> Result<()> {
         // order: albumartist albumartistsort album title
-        let artist_idx = self
-            .library
-            .contents()
-            .position(|i| i.name == target.artist);
+        let artist_idx = (0..self.library.display_len()).find(|&i| {
+            self.library
+                .display_get(i)
+                .is_some_and(|artist| artist.name == target.artist)
+        });
         self.library.artist_state.set_selected(artist_idx);
 
         if target.album.is_some() || target.title.is_some() {

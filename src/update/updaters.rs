@@ -5,7 +5,7 @@ use proto::*;
 
 pub fn update_library(model: &mut Model) -> Result<()> {
     model.library.watch_oob();
-    if model.library.contents.is_empty() {
+    if model.library.artists.items.is_empty() {
         build_library::build_library(model)?;
     }
     if model.library.len() != 0 && model.library.selected().is_none() {
@@ -18,12 +18,10 @@ pub fn update_library(model: &mut Model) -> Result<()> {
 }
 
 pub fn update_queue(model: &mut Model) -> Result<()> {
-    if model.queue.selected().is_none()
-        && !model.queue.contents_vec().is_empty()
-    {
+    if model.queue.selected().is_none() && model.queue.display_len() != 0 {
         model.queue.set_selected(Some(0));
     }
-    if model.queue.contents.is_empty() {
+    if model.queue.songs.items.is_empty() {
         model.queue.set_selected(None);
     }
     Ok(())

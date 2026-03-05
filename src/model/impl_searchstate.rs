@@ -110,64 +110,33 @@ impl Selector for GlobalSearchState {
         &mut self.results_state
     }
     fn len(&self) -> usize {
-        if self.filter().active {
-            self.filter()
-                .cache
-                .order
-                .iter()
-                .take_while(|i| i.is_some())
-                .count()
-        } else {
-            match &self.contents {
-                Some(v) => v.len(),
-                None => 0,
-            }
-        }
+        self.display_len()
     }
 }
 
 impl Searchable<InfoEntry> for GlobalSearchState {
     fn filter(&self) -> &Filter {
-        &self.search
+        &self.entries.filter
     }
     fn filter_mut(&mut self) -> &mut Filter {
-        &mut self.search
+        &mut self.entries.filter
     }
     fn build_utfstrings_cache(&self) -> Option<Vec<Utf32String>> {
-        self.contents.as_ref().map(|contents| {
-            contents
+        self.loaded.then(|| {
+            self.entries
+                .items
                 .iter()
                 .map(|i| Utf32String::from(i.to_search_string()))
                 .collect()
         })
     }
-    fn contents(&self) -> Box<dyn Iterator<Item = &InfoEntry> + '_> {
-        match &self.contents {
-            Some(c) => {
-                if self.should_filter() {
-                    Box::new(
-                        self.filter()
-                            .cache
-                            .order
-                            .iter()
-                            .filter_map(|idx| idx.and_then(|i| c.get(i))),
-                    )
-                } else {
-                    Box::new(c.iter())
-                }
-            }
-            None => Box::new(std::iter::empty()),
-        }
+    fn storage_len(&self) -> usize {
+        self.entries.items.len()
     }
-
-    fn selected_item_mut(&mut self) -> Option<&mut InfoEntry> {
-        let selected = self.selector().selected()?;
-        let use_filter = self.should_filter();
-        if use_filter {
-            let idx = self.filter().cache.order.get(selected).cloned()??;
-            self.contents.as_mut()?.get_mut(idx)
-        } else {
-            self.contents.as_mut()?.get_mut(selected)
-        }
+    fn storage_get(&self, idx: usize) -> Option<&InfoEntry> {
+        self.entries.items.get(idx)
+    }
+    fn storage_get_mut(&mut self, idx: usize) -> Option<&mut InfoEntry> {
+        self.entries.items.get_mut(idx)
     }
 }

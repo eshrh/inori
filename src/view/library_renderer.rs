@@ -70,16 +70,26 @@ pub fn render_global_search(
         area,
     );
     frame.render_widget(
-        make_search_box(&model.library.global_search.search.query, true, theme),
+        make_search_box(
+            &model.library.global_search.entries.filter.query,
+            true,
+            theme,
+        ),
         layout[0],
     );
     let list = List::new(
-        model
-            .library
-            .global_search
-            .contents()
-            .zip(&model.library.global_search.search.cache.indices)
-            .map(|(ie, idxs)| render_search_item(ie, idxs, theme)),
+        (0..model.library.global_search.display_len()).filter_map(|i| {
+            let ie = model.library.global_search.display_get(i)?;
+            let idxs = model
+                .library
+                .global_search
+                .entries
+                .filter
+                .cache
+                .indices
+                .get(i)?;
+            Some(render_search_item(ie, idxs, theme))
+        }),
     );
     frame.render_stateful_widget(
         list.block(Block::bordered())
@@ -116,7 +126,7 @@ pub fn render(model: &mut Model, frame: &mut Frame, theme: &Theme) {
     if let Some(a) = layout.artist_search {
         frame.render_widget(
             make_search_box(
-                &model.library.artist_search.query,
+                &model.library.artists.filter.query,
                 matches!(model.state, State::Searching),
                 theme,
             ),

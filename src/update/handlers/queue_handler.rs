@@ -56,7 +56,7 @@ pub fn handle_queue(model: &mut Model, msg: Message) -> Result<Update> {
             Ok(Update::STATUS | Update::QUEUE)
         }
         Message::LocalSearch(SearchMsg::Start) => {
-            model.queue.search.active = true;
+            model.queue.songs.filter.active = true;
             model.state = State::Searching;
             if model.queue.len() != 0 {
                 model.queue.set_selected(Some(0));
@@ -68,8 +68,8 @@ pub fn handle_queue(model: &mut Model, msg: Message) -> Result<Update> {
             Ok(Update::empty())
         }
         Message::Escape => {
-            model.queue.search.active = false;
-            model.queue.search.query = String::new();
+            model.queue.songs.filter.active = false;
+            model.queue.songs.filter.query = String::new();
             Ok(Update::empty())
         }
         _ => Ok(Update::empty()),

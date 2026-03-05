@@ -11,23 +11,23 @@ pub fn build_library(model: &mut Model) -> Result<()> {
         .conn
         .list_group_2(("albumartistsort".into(), "albumartist".into()))?;
 
-    model.library.contents.clear();
+    model.library.artists.items.clear();
     for chunk in artists.chunk_by(|_a, b| b.0 == "AlbumArtistSort") {
         if let Some(albumartist) = chunk.first().map(|i| i.1.clone()) {
-            model.library.contents.push(ArtistData::from_names(
+            model.library.artists.items.push(ArtistData::from_names(
                 albumartist,
                 chunk.iter().skip(1).map(|i| i.1.clone()).collect(),
             ));
         }
     }
     // sort by sort name
-    model.library.contents.sort_by(|a, b| {
+    model.library.artists.items.sort_by(|a, b| {
         let a_name = a.sort_names.first().unwrap_or(&a.name);
         let b_name = b.sort_names.first().unwrap_or(&b.name);
         a_name.to_lowercase().cmp(&b_name.to_lowercase())
     });
-    model.library.contents.shrink_to_fit();
-    model.library.artist_search.reset_cache();
+    model.library.artists.items.shrink_to_fit();
+    model.library.artists.filter.reset_cache();
     Ok(())
 }
 

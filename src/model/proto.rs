@@ -73,8 +73,9 @@ pub trait Searchable<T>: Selector {
     fn filter(&self) -> &Filter;
     fn filter_mut(&mut self) -> &mut Filter;
     fn build_utfstrings_cache(&self) -> Option<Vec<Utf32String>>;
-    fn contents(&self) -> Box<dyn Iterator<Item = &T> + '_>;
-    fn selected_item_mut(&mut self) -> Option<&mut T>;
+    fn storage_len(&self) -> usize;
+    fn storage_get(&self, idx: usize) -> Option<&T>;
+    fn storage_get_mut(&mut self, idx: usize) -> Option<&mut T>;
     fn update_filter_cache(
         &mut self,
         matcher: &mut Matcher,
@@ -122,13 +123,49 @@ pub trait Searchable<T>: Selector {
         self.filter_mut().cache.order = order;
         self.filter_mut().cache.indices = indices;
     }
-    fn selected_item(&self) -> Option<&T> {
-        self.selector()
-            .selected()
-            .and_then(|i| self.contents().nth(i))
+
+    fn display_to_storage(&self, display_idx: usize) -> Option<usize> {
+        if self.should_filter() {
+            self.filter()
+                .cache
+                .order
+                .get(display_idx)
+                .copied()
+                .flatten()
+        } else {
+            Some(display_idx)
+        }
     }
-    fn contents_vec(&self) -> Vec<&T> {
-        self.contents().collect()
+
+    fn display_len(&self) -> usize {
+        if self.should_filter() {
+            self.filter()
+                .cache
+                .order
+                .iter()
+                .filter(|i| i.is_some())
+                .count()
+        } else {
+            self.storage_len()
+        }
+    }
+
+    fn display_get(&self, display_idx: usize) -> Option<&T> {
+        let storage_idx = self.display_to_storage(display_idx)?;
+        self.storage_get(storage_idx)
+    }
+
+    fn display_get_mut(&mut self, display_idx: usize) -> Option<&mut T> {
+        let storage_idx = self.display_to_storage(display_idx)?;
+        self.storage_get_mut(storage_idx)
+    }
+
+    fn selected_item(&self) -> Option<&T> {
+        self.selected().and_then(|i| self.display_get(i))
+    }
+    fn selected_item_mut(&mut self) -> Option<&mut T> {
+        let selected = self.selected()?;
+        self.display_get_mut(selected)
     }
     fn should_filter(&self) -> bool {
         self.filter().active
