@@ -1,6 +1,7 @@
 use crate::event_handler::Result;
 use mpd::Song;
 use platform_dirs::AppDirs;
+use serde::Deserialize;
 use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::fs;
@@ -107,6 +108,23 @@ pub struct JsonTitleAliasStore {
     path: PathBuf,
 }
 
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum AliasJsonEntry {
+    Path {
+        path: String,
+        alias: String,
+        #[serde(default)]
+        variants: Vec<String>,
+    },
+    Album {
+        album: String,
+        alias: String,
+        #[serde(default)]
+        variants: Vec<String>,
+    },
+}
+
 impl JsonTitleAliasStore {
     pub fn from_default_path() -> Option<Self> {
         let app_dirs = AppDirs::new(Some("inori"), true)?;
@@ -125,91 +143,30 @@ impl TitleAliasStore for JsonTitleAliasStore {
             }
             Err(e) => return Err(e.into()),
         };
-        let parsed: serde_json::Value = serde_json::from_str(&content)?;
-
-        let entries = parsed.as_array().ok_or_else(|| {
-            format!(
-                "{} must contain a JSON array of alias objects",
-                self.path.display()
-            )
-        })?;
+        let entries: Vec<AliasJsonEntry> = serde_json::from_str(&content)?;
 
         let mut title = HashMap::new();
         let mut album = HashMap::new();
 
-        for (idx, entry) in entries.iter().enumerate() {
-            let obj = entry.as_object().ok_or_else(|| {
-                format!(
-                    "{} entry {} must be an object",
-                    self.path.display(),
-                    idx
-                )
-            })?;
-
-            let alias = obj
-                .get("alias")
-                .and_then(|v| v.as_str())
-                .ok_or_else(|| {
-                    format!(
-                        "{} entry {} must include string key \"alias\"",
-                        self.path.display(),
-                        idx
-                    )
-                })?
-                .to_string();
-            let variants = obj
-                .get("variants")
-                .map(|v| {
-                    let items = v.as_array().ok_or_else(|| {
-                        format!(
-                            "{} entry {} key \"variants\" must be an array",
-                            self.path.display(),
-                            idx
-                        )
-                    })?;
-                    let mut out = Vec::with_capacity(items.len());
-                    for item in items {
-                        let s = item.as_str().ok_or_else(|| {
-                            format!(
-                                "{} entry {} variants must contain strings",
-                                self.path.display(),
-                                idx
-                            )
-                        })?;
-                        out.push(s.to_string());
-                    }
-                    Ok::<Vec<String>, String>(out)
-                })
-                .transpose()
-                .map_err(|e| -> Box<dyn std::error::Error> { e.into() })?
-                .unwrap_or_default();
-            let alias_entry = AliasEntry { alias, variants };
-
-            let path_key = obj.get("path").and_then(|v| v.as_str());
-            let album_key = obj.get("album").and_then(|v| v.as_str());
-
-            match (path_key, album_key) {
-                (Some(key), None) => {
-                    title.insert(SongPath(key.to_string()), alias_entry);
+        for entry in entries {
+            match entry {
+                AliasJsonEntry::Path {
+                    path,
+                    alias,
+                    variants,
+                } => {
+                    title
+                        .insert(SongPath(path), AliasEntry { alias, variants });
                 }
-                (None, Some(key)) => {
-                    album.insert(AlbumName(key.to_string()), alias_entry);
-                }
-                (Some(_), Some(_)) => {
-                    return Err(format!(
-                    "{} entry {} may contain only one of \"path\" or \"album\"",
-                    self.path.display(),
-                    idx
-                )
-                    .into())
-                }
-                (None, None) => {
-                    return Err(format!(
-                        "{} entry {} must contain one of \"path\" or \"album\"",
-                        self.path.display(),
-                        idx
-                    )
-                    .into())
+                AliasJsonEntry::Album {
+                    album: album_name,
+                    alias,
+                    variants,
+                } => {
+                    album.insert(
+                        AlbumName(album_name),
+                        AliasEntry { alias, variants },
+                    );
                 }
             }
         }
