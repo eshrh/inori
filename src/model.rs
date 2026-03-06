@@ -52,6 +52,7 @@ pub struct AlbumData {
     pub expanded: bool,
     pub name: String,
     pub alias: Option<String>,
+    pub alias_variants: Vec<String>,
     pub tracks: Vec<Song>,
 }
 
@@ -121,7 +122,9 @@ pub struct InfoEntry {
     pub album: Option<String>,
     pub title: Option<String>,
     pub album_alias: Option<String>,
+    pub album_alias_variants: Vec<String>,
     pub title_alias: Option<String>,
+    pub title_alias_variants: Vec<String>,
 }
 pub struct GlobalSearchState {
     pub entries: FilteredView<InfoEntry>,
@@ -222,10 +225,13 @@ impl Model {
         self.queue.set_aliases(&self.aliases);
         for artist in &mut self.library.artists.items {
             for album in &mut artist.albums {
-                album.alias = self
-                    .aliases
-                    .album_for_name(&album.name)
-                    .map(str::to_string);
+                if let Some(entry) = self.aliases.album_for_name(&album.name) {
+                    album.alias = Some(entry.alias.clone());
+                    album.alias_variants = entry.variants.clone();
+                } else {
+                    album.alias = None;
+                    album.alias_variants.clear();
+                }
             }
             artist.search.reset_cache();
         }
@@ -257,12 +263,20 @@ impl Model {
                 album_alias: self
                     .aliases
                     .album_for_song(&song)
-                    .map(str::to_string),
+                    .map(|e| e.alias.clone()),
+                album_alias_variants: self
+                    .aliases
+                    .album_for_song(&song)
+                    .map_or_else(Vec::new, |e| e.variants.clone()),
                 title: song.title.clone(),
                 title_alias: self
                     .aliases
                     .title_for_path(&song.file)
-                    .map(str::to_string),
+                    .map(|e| e.alias.clone()),
+                title_alias_variants: self
+                    .aliases
+                    .title_for_path(&song.file)
+                    .map_or_else(Vec::new, |e| e.variants.clone()),
             };
             if !ie.is_redundant() {
                 entries.push(ie);

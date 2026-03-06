@@ -76,7 +76,9 @@ impl TryFrom<&mut Vec<String>> for InfoEntry {
             album: drained.nth(0),
             title: drained.nth(0),
             album_alias: None,
+            album_alias_variants: Vec::new(),
             title_alias: None,
+            title_alias_variants: Vec::new(),
         })
     }
 }
@@ -111,8 +113,13 @@ impl InfoEntry {
     pub fn search_doc(&self) -> SearchProjection {
         build_alias_search_doc(
             &self.to_display_string(),
-            self.album_alias.as_deref(),
-            self.title_alias.as_deref().filter(|_| self.title.is_some()),
+            self.album_alias
+                .as_deref()
+                .map(|a| (a, self.album_alias_variants.as_slice())),
+            self.title_alias
+                .as_deref()
+                .filter(|_| self.title.is_some())
+                .map(|a| (a, self.title_alias_variants.as_slice())),
         )
     }
 }

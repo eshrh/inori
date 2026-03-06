@@ -44,12 +44,19 @@ optional title and album aliases loaded from
 Each entry must contain exactly one of:
     - `path`: MPD `file` path
     - `album`: album name (note that this is *not* collision-safe)
-And an `alias` key.
+And an `alias` key. Optionally, `variants` may be provided as a list of
+alternative search terms.
 
+While `alias` values are used as first class alternatives for the
+canonical text, matching strings from `variants` are not displayed.
 ```json
 [
-  { "path": "Artist/アルバム/01 トラック.flac", "alias": "torakku" },
-  { "album": "アルバム", "alias": "arubamu" }
+  {
+    "path": "Artist/アルバム/01 トラック.flac",
+    "alias": "torakku",
+    "variants": ["toraku"]
+  },
+  { "album": "づ", "alias": "zu", "variants": ["du"] }
 ]
 ```
 
@@ -66,12 +73,18 @@ python3 scripts/ja/generate.py
 
 - Be aware that unidic-lite takes ~250mb.
 - Romanization style defaults to `kunrei`; `--style
-  hepburn` is also supported, but is probably suboptimal for searching
+  hepburn` is also supported, but is suboptimal for searching
   if you know Japanese.
+- `--variant-style {hepburn,kunrei,passport}` may be provided multiple
+  times to add multiple styles to the variants field.
 - Use `--overwrite` to prefer newly generated aliases over existing
   entries.
 
-PRs are welcome for alias generation scripts for other languages.
+PRs are welcome for alias generation scripts for other languages, or
+more featureful scripts for Japanese. However, for tricky usecases,
+like dialects or mixed Chinese-Japanese libraries, it's probably best
+to use your own heuristics.
+
 ## Keybindings
 
 ### Keybinding sets

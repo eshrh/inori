@@ -7,7 +7,9 @@ use super::track_select_renderer::render_track_list;
 use super::Theme;
 use crate::model::proto::*;
 use crate::model::*;
-use crate::view::search_doc::{has_match_in_span, AliasSpan};
+use crate::view::search_doc::{
+    has_match_in_span, has_match_in_spans, AliasSpan,
+};
 use ratatui::prelude::Constraint::*;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
@@ -77,6 +79,8 @@ pub fn render_search_item<'a>(
     let show_title_alias = search_doc
         .title_alias
         .is_some_and(|segment| has_match_in_span(idx, segment));
+    let show_variant_marker =
+        has_match_in_spans(idx, &search_doc.variant_spans);
 
     for (i, item) in out.iter_mut().take(search_doc.base_len).enumerate() {
         let matches_base =
@@ -109,6 +113,15 @@ pub fn render_search_item<'a>(
                 idx,
             ));
         }
+    }
+
+    if show_variant_marker {
+        let mut marker =
+            vec![Span::from("["), Span::from("VAR"), Span::from("] ")];
+        for span in &mut marker {
+            span.style = span.style.add_modifier(Modifier::UNDERLINED);
+        }
+        out.splice(0..0, marker);
     }
 
     Line::from(out)

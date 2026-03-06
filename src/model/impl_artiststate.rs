@@ -135,7 +135,10 @@ impl<'a> ArtistData {
             for album in &self.albums {
                 let album_search = build_alias_search_doc(
                     &album.name,
-                    album.alias.as_deref(),
+                    album
+                        .alias
+                        .as_deref()
+                        .map(|a| (a, album.alias_variants.as_slice())),
                     None,
                 );
                 tmp.push(Utf32String::from(album_search.text));

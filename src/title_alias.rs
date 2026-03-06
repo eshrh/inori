@@ -28,20 +28,26 @@ impl Borrow<str> for AlbumName {
 
 #[derive(Clone, Default)]
 pub struct AliasMaps {
-    pub title: HashMap<SongPath, String>,
-    pub album: HashMap<AlbumName, String>,
+    pub title: HashMap<SongPath, AliasEntry>,
+    pub album: HashMap<AlbumName, AliasEntry>,
+}
+
+#[derive(Clone, Default)]
+pub struct AliasEntry {
+    pub alias: String,
+    pub variants: Vec<String>,
 }
 
 impl AliasMaps {
-    pub fn title_for_path(&self, path: &str) -> Option<&str> {
-        self.title.get(path).map(String::as_str)
+    pub fn title_for_path(&self, path: &str) -> Option<&AliasEntry> {
+        self.title.get(path)
     }
 
-    pub fn album_for_name(&self, album: &str) -> Option<&str> {
-        self.album.get(album).map(String::as_str)
+    pub fn album_for_name(&self, album: &str) -> Option<&AliasEntry> {
+        self.album.get(album)
     }
 
-    pub fn album_for_song(&self, song: &Song) -> Option<&str> {
+    pub fn album_for_song(&self, song: &Song) -> Option<&AliasEntry> {
         song.tags
             .iter()
             .find_map(|(k, v)| (k == "Album").then_some(v))
@@ -118,16 +124,43 @@ impl TitleAliasStore for JsonTitleAliasStore {
                     )
                 })?
                 .to_string();
+            let variants = obj
+                .get("variants")
+                .map(|v| {
+                    let items = v.as_array().ok_or_else(|| {
+                        format!(
+                            "{} entry {} key \"variants\" must be an array",
+                            self.path.display(),
+                            idx
+                        )
+                    })?;
+                    let mut out = Vec::with_capacity(items.len());
+                    for item in items {
+                        let s = item.as_str().ok_or_else(|| {
+                            format!(
+                                "{} entry {} variants must contain strings",
+                                self.path.display(),
+                                idx
+                            )
+                        })?;
+                        out.push(s.to_string());
+                    }
+                    Ok::<Vec<String>, String>(out)
+                })
+                .transpose()
+                .map_err(|e| -> Box<dyn std::error::Error> { e.into() })?
+                .unwrap_or_default();
+            let alias_entry = AliasEntry { alias, variants };
 
             let path_key = obj.get("path").and_then(|v| v.as_str());
             let album_key = obj.get("album").and_then(|v| v.as_str());
 
             match (path_key, album_key) {
                 (Some(key), None) => {
-                    title.insert(SongPath(key.to_string()), alias);
+                    title.insert(SongPath(key.to_string()), alias_entry);
                 }
                 (None, Some(key)) => {
-                    album.insert(AlbumName(key.to_string()), alias);
+                    album.insert(AlbumName(key.to_string()), alias_entry);
                 }
                 (Some(_), Some(_)) => {
                     return Err(format!(

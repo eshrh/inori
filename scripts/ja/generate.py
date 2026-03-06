@@ -17,8 +17,9 @@ import re
 import sys
 import unicodedata
 from collections.abc import Mapping
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal, TypeGuard
+from typing import Literal, Protocol, TypedDict, TypeGuard, cast
 
 from fugashi import Tagger
 from mpd import MPDClient
@@ -28,9 +29,41 @@ JP_RE = re.compile(r"[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]")
 SPACE_RE = re.compile(r"\s+")
 NON_ASCII_RE = re.compile(r"[^a-z0-9 ]+")
 
-PathAliases = dict[str, str]
-AlbumAliases = dict[str, str]
+@dataclass
+class AliasSpec:
+    alias: str
+    variants: list[str]
+
+
+PathAliases = dict[str, AliasSpec]
+AlbumAliases = dict[str, AliasSpec]
 RomanizationStyle = Literal["hepburn", "kunrei", "passport"]
+
+
+class TokenFeatureLike(Protocol):
+    kana: object
+    pron: object
+    pronBase: object
+    lemma: object
+
+
+class TokenLike(Protocol):
+    surface: str
+    feature: TokenFeatureLike
+
+
+class KakasiItem(TypedDict):
+    orig: str
+    hira: str
+    kana: str
+    hepburn: str
+    kunrei: str
+    passport: str
+
+
+class KakasiConverter(Protocol):
+    def convert(self, text: str) -> list[KakasiItem]:
+        ...
 
 
 def contains_japanese(text: str) -> bool:
@@ -43,7 +76,7 @@ def normalize_ascii(text: str) -> str:
     return SPACE_RE.sub(" ", text).strip()
 
 
-def token_reading(token: Any) -> str:
+def token_reading(token: TokenLike) -> str:
     feat = getattr(token, "feature", None)
     for attr in ("kana", "pron", "pronBase", "lemma"):
         val = getattr(feat, attr, None) if feat is not None else None
@@ -53,9 +86,9 @@ def token_reading(token: Any) -> str:
 
 
 def romanize_japanese(
-    text: str, tagger: Tagger, kks: Any, style: RomanizationStyle
+    text: str, tagger: Tagger, kks: KakasiConverter, style: RomanizationStyle
 ) -> str:
-    readings = [token_reading(tok) for tok in tagger(text)]
+    readings = [token_reading(cast(TokenLike, tok)) for tok in tagger(text)]
     src = " ".join(readings) if readings else text
     converted = " ".join(item[style] for item in kks.convert(src))
     return normalize_ascii(converted)
@@ -89,12 +122,23 @@ def parse_existing_entries(path: Path) -> tuple[PathAliases, AlbumAliases]:
         alias = first_str(entry.get("alias"))
         if not isinstance(alias, str):
             raise ValueError(f"{path} entry {i} must include string key 'alias'")
+        raw_variants = entry.get("variants")
+        variants: list[str] = []
+        if raw_variants is not None:
+            if not isinstance(raw_variants, list):
+                raise ValueError(f"{path} entry {i} variants must be a list")
+            for item in raw_variants:
+                if not isinstance(item, str):
+                    raise ValueError(
+                        f"{path} entry {i} variants must contain strings"
+                    )
+                variants.append(item)
         p = first_str(entry.get("path"))
         a = first_str(entry.get("album"))
         if p is not None and a is None:
-            out_path[p] = alias
+            out_path[p] = AliasSpec(alias=alias, variants=variants)
         elif a is not None and p is None:
-            out_album[a] = alias
+            out_album[a] = AliasSpec(alias=alias, variants=variants)
         else:
             raise ValueError(
                 f"{path} entry {i} must include exactly one of 'path' or 'album'"
@@ -133,12 +177,18 @@ def merge_aliases(
 
 def serialize_entries(
     path_aliases: PathAliases, album_aliases: AlbumAliases
-) -> list[dict[str, str]]:
-    entries: list[dict[str, str]] = []
+) -> list[dict[str, Any]]:
+    entries: list[dict[str, Any]] = []
     for p in sorted(path_aliases):
-        entries.append({"path": p, "alias": path_aliases[p]})
+        entry: dict[str, Any] = {"path": p, "alias": path_aliases[p].alias}
+        if path_aliases[p].variants:
+            entry["variants"] = path_aliases[p].variants
+        entries.append(entry)
     for a in sorted(album_aliases):
-        entries.append({"album": a, "alias": album_aliases[a]})
+        entry = {"album": a, "alias": album_aliases[a].alias}
+        if album_aliases[a].variants:
+            entry["variants"] = album_aliases[a].variants
+        entries.append(entry)
     return entries
 
 
@@ -164,6 +214,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="Romanization style (default: kunrei).",
     )
     p.add_argument(
+        "--variant-style",
+        choices=("hepburn", "kunrei", "passport"),
+        action="append",
+        default=[],
+        help="Add a variant romanization style. May be provided multiple times.",
+    )
+    p.add_argument(
         "--overwrite",
         action="store_true",
         help="Prefer newly generated aliases over existing aliases on conflicts.",
@@ -174,9 +231,14 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> int:
     args = build_parser().parse_args()
     style: RomanizationStyle = args.style
+    variant_styles = cast(list[RomanizationStyle], args.variant_style)
+    selected_variants: list[RomanizationStyle] = []
+    for candidate in variant_styles:
+        if candidate != style and candidate not in selected_variants:
+            selected_variants.append(candidate)
 
     tagger = Tagger()
-    kks = kakasi()
+    kks = cast(KakasiConverter, kakasi())
 
     client = MPDClient()
     client.timeout = 20
@@ -201,13 +263,23 @@ def main() -> int:
 
         if title and contains_japanese(title):
             alias = romanize_japanese(title, tagger, kks, style)
+            variants = []
+            for alt in selected_variants:
+                alt_alias = romanize_japanese(title, tagger, kks, alt)
+                if alt_alias and alt_alias != alias and alt_alias not in variants:
+                    variants.append(alt_alias)
             if alias:
-                new_path[path] = alias
+                new_path[path] = AliasSpec(alias=alias, variants=variants)
 
         if album and contains_japanese(album):
             alias = romanize_japanese(album, tagger, kks, style)
+            variants = []
+            for alt in selected_variants:
+                alt_alias = romanize_japanese(album, tagger, kks, alt)
+                if alt_alias and alt_alias != alias and alt_alias not in variants:
+                    variants.append(alt_alias)
             if alias and album not in new_album:
-                new_album[album] = alias
+                new_album[album] = AliasSpec(alias=alias, variants=variants)
 
     old_path, old_album = parse_existing_entries(args.output)
     merged_path, merged_album = merge_aliases(
