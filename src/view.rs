@@ -12,6 +12,7 @@ pub mod layout;
 pub mod library_renderer;
 pub mod queue_renderer;
 pub mod search_doc;
+pub mod search_renderable;
 mod search_renderer;
 mod status_renderer;
 mod track_select_renderer;

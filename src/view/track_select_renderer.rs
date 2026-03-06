@@ -1,8 +1,9 @@
-use super::artist_select_renderer::render_str_with_idxs;
+use super::search_renderable::{render_searchable_line, TrackSongSearchRow};
 use super::Theme;
 use crate::model::proto::*;
 use crate::model::LibActiveSelector::*;
 use crate::model::*;
+use crate::title_alias::AliasMaps;
 use crate::util::format_time;
 use ratatui::prelude::Constraint::*;
 use ratatui::prelude::*;
@@ -11,6 +12,7 @@ use std::time::Duration;
 
 fn itemref_to_row<'a>(
     artist: &ArtistData,
+    aliases: &AliasMaps,
     item: &TrackSelItem,
     width: u16,
     theme: &Theme,
@@ -20,14 +22,10 @@ fn itemref_to_row<'a>(
         ItemRef::Album(a) => {
             let mut album_line = vec![Span::from(" ")];
             if let Some(idxs) = idxs {
-                album_line.extend(render_str_with_idxs(
-                    a.name.clone(),
-                    idxs,
-                    a.name.chars().count(),
-                    theme,
-                ))
+                album_line
+                    .extend(render_searchable_line(a, Some(idxs), theme).spans)
             } else {
-                album_line.push(Span::from(a.name.clone()))
+                album_line.extend(render_searchable_line(a, None, theme).spans)
             }
             album_line.push(Span::from(str::repeat("─", width.into())));
             Row::new(vec![
@@ -38,19 +36,15 @@ fn itemref_to_row<'a>(
         }
         ItemRef::Song(s) => {
             let mut track_line = vec![Span::from(str::repeat(" ", 3))];
-            if let Some(title) = s.title.clone() {
-                if let Some(idxs) = idxs {
-                    track_line.extend(render_str_with_idxs(
-                        title.clone(),
-                        idxs,
-                        title.chars().count(),
-                        theme,
-                    ))
-                } else {
-                    track_line.push(Span::from(title))
-                }
+            let row_model = TrackSongSearchRow { song: s, aliases };
+            if let Some(idxs) = idxs {
+                track_line.extend(
+                    render_searchable_line(&row_model, Some(idxs), theme).spans,
+                );
             } else {
-                track_line.push(Span::from("Unknown Song"))
+                track_line.extend(
+                    render_searchable_line(&row_model, None, theme).spans,
+                );
             }
 
             Row::new(vec![
@@ -71,6 +65,7 @@ fn itemref_to_row<'a>(
 
 fn get_track_data<'a>(
     artist: Option<&ArtistData>,
+    aliases: &AliasMaps,
     theme: &Theme,
     width: u16,
 ) -> Table<'a> {
@@ -78,7 +73,7 @@ fn get_track_data<'a>(
         let items = artist
             .contents()
             .iter()
-            .map(|i| itemref_to_row(artist, i, width, theme))
+            .map(|i| itemref_to_row(artist, aliases, i, width, theme))
             .collect::<Vec<Row>>();
         Table::new::<Vec<Row>, Vec<Constraint>>(items, vec![Min(10), Max(9)])
     } else {
@@ -92,21 +87,24 @@ pub fn render_track_list(
     area: Rect,
     theme: &Theme,
 ) {
-    let list = get_track_data(model.library.selected_item(), theme, area.width)
-        .block(
-            match model.library.active {
-                ArtistSelector => Block::bordered(),
-                TrackSelector => {
-                    Block::bordered().border_style(theme.block_active)
-                }
-            }
-            .title("Tracks"),
-        )
-        .row_highlight_style(match model.library.active {
-            ArtistSelector => theme.item_highlight_inactive,
-            TrackSelector => theme.item_highlight_active,
-        })
-        .highlight_spacing(HighlightSpacing::Always);
+    let list = get_track_data(
+        model.library.selected_item(),
+        &model.aliases,
+        theme,
+        area.width,
+    )
+    .block(
+        match model.library.active {
+            ArtistSelector => Block::bordered(),
+            TrackSelector => Block::bordered().border_style(theme.block_active),
+        }
+        .title("Tracks"),
+    )
+    .row_highlight_style(match model.library.active {
+        ArtistSelector => theme.item_highlight_inactive,
+        TrackSelector => theme.item_highlight_active,
+    })
+    .highlight_spacing(HighlightSpacing::Always);
 
     match model.library.selected_item_mut() {
         Some(artist) => frame.render_stateful_widget(

@@ -1,3 +1,4 @@
+use super::search_renderable::render_searchable_line;
 use super::Theme;
 use crate::model::proto::*;
 use crate::model::LibActiveSelector::*;
@@ -5,48 +6,13 @@ use crate::model::*;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
 
-pub fn render_str_with_idxs<'a>(
-    str: String,
-    idxs: &[u32],
-    len: usize,
-    theme: &Theme,
-) -> Vec<Span<'a>> {
-    let spans: Vec<Span> = str
-        .chars()
-        .enumerate()
-        .map(|(i, c)| {
-            if u32::try_from(i).ok().is_some_and(|i| idxs.contains(&i)) {
-                Span::from(c.to_string())
-                    .style(Style::default().add_modifier(Modifier::UNDERLINED))
-            } else {
-                Span::from(c.to_string())
-            }
-            .patch_style(if i >= len {
-                theme.field_artistsort
-            } else {
-                Style::default()
-            })
-        })
-        .collect();
-    spans
-}
-
 pub fn get_artist_list<'a>(model: &Model, theme: &Theme) -> List<'a> {
     if model.library.should_filter() {
         let indices = &model.library.artists.filter.cache.indices;
         List::new((0..model.library.display_len()).filter_map(|i| {
             let artist = model.library.display_get(i)?;
             let idxs_o = indices.get(i)?;
-            Some({
-                let len = artist.name.chars().count();
-                let l = Line::from(render_str_with_idxs(
-                    artist.to_fuzzy_find_str(),
-                    idxs_o,
-                    len,
-                    theme,
-                ));
-                l
-            })
+            Some(render_searchable_line(artist, Some(idxs_o), theme))
         }))
     } else {
         List::new(

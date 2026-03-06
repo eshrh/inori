@@ -1,5 +1,6 @@
 use super::layout::queue_layout::QueueLayout;
 use super::layout::InoriLayout;
+use super::search_renderable::{render_searchable_line, QueueSearchRow};
 use super::search_renderer::make_search_box;
 use super::Theme;
 use crate::model::proto::Searchable;
@@ -14,10 +15,19 @@ use super::status_renderer::render_status;
 
 pub fn make_queue<'a>(model: &mut Model, theme: &Theme) -> Table<'a> {
     let rows: Vec<Row> = (0..model.queue.display_len())
-        .filter_map(|i| model.queue.display_get(i))
-        .map(|song| {
+        .filter_map(|i| {
+            let song = model.queue.display_get(i)?;
+            let idxs = model.queue.songs.filter.cache.indices.get(i);
+            Some((song, idxs))
+        })
+        .map(|(song, idxs)| {
+            let searchable = QueueSearchRow { song };
             Row::new(vec![
-                Cell::from(song.title.clone().unwrap_or("".to_string())),
+                Cell::from(render_searchable_line(
+                    &searchable,
+                    idxs.map(|v| v.as_slice()),
+                    theme,
+                )),
                 Cell::from(
                     Text::from(
                         song.artist.clone().unwrap_or("Unknown Artist".into()),
