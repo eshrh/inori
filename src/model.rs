@@ -261,12 +261,16 @@ impl Model {
                 .tags
                 .iter()
                 .find_map(|(k, v)| (k == "Album").then(|| v.clone()));
+            let album_alias_entry = self.aliases.album_for_song(&song);
             let album_alias =
-                self.aliases.album_for_song(&song).map(|e| e.alias.clone());
-            let album_alias_variants = self
-                .aliases
-                .album_for_song(&song)
-                .map_or_else(Vec::new, |e| e.variants.clone());
+                album_alias_entry.map(|entry| entry.alias.clone());
+            let album_alias_variants = album_alias_entry
+                .map_or_else(Vec::new, |entry| entry.variants.clone());
+            let title_alias_entry = self.aliases.title_for_path(&song.file);
+            let title_alias =
+                title_alias_entry.map(|entry| entry.alias.clone());
+            let title_alias_variants = title_alias_entry
+                .map_or_else(Vec::new, |entry| entry.variants.clone());
 
             if let Some(album_name) = album.clone() {
                 let album_key =
@@ -294,14 +298,8 @@ impl Model {
                 album_alias,
                 album_alias_variants,
                 title: song.title.clone(),
-                title_alias: self
-                    .aliases
-                    .title_for_path(&song.file)
-                    .map(|e| e.alias.clone()),
-                title_alias_variants: self
-                    .aliases
-                    .title_for_path(&song.file)
-                    .map_or_else(Vec::new, |e| e.variants.clone()),
+                title_alias,
+                title_alias_variants,
             };
             if !ie.is_redundant() {
                 entries.push(ie);
