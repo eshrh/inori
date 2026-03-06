@@ -28,6 +28,8 @@ Client for the Music Player Daemon ([MPD](https://www.musicpd.org/)).
   - Fully unicode aware, with special attention to the "albumartistsort"
     field
   - Global search across all tracks, albums, and artists
+  - Fast navigation of non-roman libraries with client-side
+    aliases for song & album titles.
 - Folding library interface inspired by [cmus](https://cmus.github.io/)
 - Queue viewer and manipulation interface
 - Configurable, chainable keybindings
@@ -53,12 +55,6 @@ as a full list of all default keybindings.
 ![Screenshot showing the library view](./images/library.png)
 ![Screenshot showing the search feature](./images/search.png)
 ![Screenshot showing the queue view](./images/queue.png)
-
-## Todo
-
-- [ ] Compile feature flag for Japanese album/track title romanization for search using a tokenizer & dictionary
-- [ ] More thorough customization options, especially for behavior & layout tweaks
-- [ ] Spectrum visualizer like ncmpcpp
 
 ## Acknowledgements
 
