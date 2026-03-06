@@ -3,3 +3,4 @@
 .envrc
 .dir-locals.el
 result
+__pycache__

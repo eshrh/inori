@@ -53,6 +53,25 @@ And an `alias` key.
 ]
 ```
 
+### Alias generation
+
+Aliases for libraries with mostly Japanese albums/tracks may be
+generated with the included python script.
+
+```bash
+# reqs: [python-mpd2, fugashi[unidic-lite], pykakasi]
+python3 -m pip install -r scripts/ja/requirements.txt
+python3 scripts/ja/generate.py
+```
+
+- Be aware that unidic-lite takes ~250mb.
+- Romanization style defaults to `kunrei`; `--style
+  hepburn` is also supported, but is probably suboptimal for searching
+  if you know Japanese.
+- Use `--overwrite` to prefer newly generated aliases over existing
+  entries.
+
+PRs are welcome for alias generation scripts for other languages.
 ## Keybindings
 
 ### Keybinding sets
