@@ -1,5 +1,6 @@
 extern crate mpd;
 use mpd::client::StreamTypes;
+use std::collections::HashSet;
 use std::error::Error;
 //use mpd::error::Result;
 use mpd::idle::IdleClient;
@@ -241,6 +242,8 @@ impl Model {
     pub fn update_global_search_contents(&mut self) -> Result<()> {
         let res = self.conn.listallinfo()?;
         let mut entries = Vec::new();
+        let mut seen_albums: HashSet<(String, Option<String>, String)> =
+            HashSet::new();
         for song in res {
             let artist = song
                 .tags
@@ -250,24 +253,46 @@ impl Model {
             let Some(artist) = artist else {
                 continue;
             };
+            let artist_sort = song
+                .tags
+                .iter()
+                .find_map(|(k, v)| (k == "AlbumArtistSort").then(|| v.clone()));
+            let album = song
+                .tags
+                .iter()
+                .find_map(|(k, v)| (k == "Album").then(|| v.clone()));
+            let album_alias =
+                self.aliases.album_for_song(&song).map(|e| e.alias.clone());
+            let album_alias_variants = self
+                .aliases
+                .album_for_song(&song)
+                .map_or_else(Vec::new, |e| e.variants.clone());
+
+            if let Some(album_name) = album.clone() {
+                let album_key =
+                    (artist.clone(), artist_sort.clone(), album_name.clone());
+                if seen_albums.insert(album_key) {
+                    entries.push(InfoEntry {
+                        file: String::new(),
+                        artist: artist.clone(),
+                        artist_sort: artist_sort.clone(),
+                        album: Some(album_name),
+                        title: None,
+                        album_alias: album_alias.clone(),
+                        album_alias_variants: album_alias_variants.clone(),
+                        title_alias: None,
+                        title_alias_variants: Vec::new(),
+                    });
+                }
+            }
+
             let ie = InfoEntry {
                 file: song.file.clone(),
                 artist,
-                artist_sort: song.tags.iter().find_map(|(k, v)| {
-                    (k == "AlbumArtistSort").then(|| v.clone())
-                }),
-                album: song
-                    .tags
-                    .iter()
-                    .find_map(|(k, v)| (k == "Album").then(|| v.clone())),
-                album_alias: self
-                    .aliases
-                    .album_for_song(&song)
-                    .map(|e| e.alias.clone()),
-                album_alias_variants: self
-                    .aliases
-                    .album_for_song(&song)
-                    .map_or_else(Vec::new, |e| e.variants.clone()),
+                artist_sort,
+                album,
+                album_alias,
+                album_alias_variants,
                 title: song.title.clone(),
                 title_alias: self
                     .aliases
