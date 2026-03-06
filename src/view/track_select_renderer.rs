@@ -1,9 +1,9 @@
 use super::search_renderable::{render_searchable_line, TrackSongSearchRow};
 use super::Theme;
 use crate::model::proto::*;
+use crate::model::title_alias::AliasMaps;
 use crate::model::LibActiveSelector::*;
 use crate::model::*;
-use crate::title_alias::AliasMaps;
 use crate::util::format_time;
 use ratatui::prelude::Constraint::*;
 use ratatui::prelude::*;

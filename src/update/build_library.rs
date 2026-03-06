@@ -63,19 +63,19 @@ pub fn add_tracks(model: &mut Model) -> Result<()> {
                     .iter()
                     .find_map(|(k, v)| {
                         (k == "Album")
-                            .then(|| model.aliases.album_for_name(v))
+                            .then(|| model.aliases.album_ref_for_name(v))
                             .flatten()
                     })
-                    .map(|entry| entry.alias.clone()),
+                    .map(|r| r.alias.to_string()),
                 alias_variants: track
                     .tags
                     .iter()
                     .find_map(|(k, v)| {
                         (k == "Album")
-                            .then(|| model.aliases.album_for_name(v))
+                            .then(|| model.aliases.album_ref_for_name(v))
                             .flatten()
                     })
-                    .map_or_else(Vec::new, |entry| entry.variants.clone()),
+                    .map_or_else(Vec::new, |r| r.variants.to_vec()),
                 tracks: album.to_vec(),
                 expanded: true,
             });

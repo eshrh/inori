@@ -145,8 +145,8 @@ impl<'a> ArtistData {
                 for track in &album.tracks {
                     tmp.push(Utf32String::from(song_to_search_str(
                         track,
-                        aliases.title_for_path(&track.file),
-                        aliases.album_for_song(track),
+                        aliases.title_ref_for_path(&track.file),
+                        aliases.album_ref_for_song(track),
                     )));
                 }
             }

@@ -3,8 +3,8 @@ use super::search_doc::{
     SearchProjection,
 };
 use super::Theme;
+use crate::model::title_alias::AliasMaps;
 use crate::model::{AlbumData, ArtistData, InfoEntry};
-use crate::title_alias::AliasMaps;
 use mpd::Song;
 use ratatui::prelude::*;
 
@@ -240,27 +240,25 @@ impl SearchRenderable for TrackSongSearchRow<'_> {
             .unwrap_or_else(|| "Unknown Song".to_string())
     }
     fn search_projection(&self) -> SearchProjection {
-        let album = self.aliases.album_for_song(self.song);
-        let title = self.aliases.title_for_path(&self.song.file);
+        let album = self.aliases.album_ref_for_song(self.song);
+        let title = self.aliases.title_ref_for_path(&self.song.file);
         build_alias_search_doc(
             &self
                 .song
                 .title
                 .clone()
                 .unwrap_or_else(|| "Unknown Song".to_string()),
-            album.map(|a| (a.alias.as_str(), a.variants.as_slice())),
-            title.map(|a| (a.alias.as_str(), a.variants.as_slice())),
+            album.map(|a| (a.alias, a.variants)),
+            title.map(|a| (a.alias, a.variants)),
         )
     }
     fn album_alias_display(&self) -> Option<&str> {
-        self.aliases
-            .album_for_song(self.song)
-            .map(|a| a.alias.as_str())
+        self.aliases.album_ref_for_song(self.song).map(|a| a.alias)
     }
     fn title_alias_display(&self) -> Option<&str> {
         self.aliases
-            .title_for_path(&self.song.file)
-            .map(|a| a.alias.as_str())
+            .title_ref_for_path(&self.song.file)
+            .map(|a| a.alias)
     }
     fn album_alias_insert_at(&self) -> Option<usize> {
         Some(

@@ -29,8 +29,8 @@ impl Searchable<Song> for QueueSelector {
                 .map(|song| {
                     Utf32String::from(song_to_search_str(
                         song,
-                        self.aliases.title_for_path(&song.file),
-                        self.aliases.album_for_song(song),
+                        self.aliases.title_ref_for_path(&song.file),
+                        self.aliases.album_ref_for_song(song),
                     ))
                 })
                 .collect(),

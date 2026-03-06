@@ -1,6 +1,6 @@
 use super::*;
+use crate::model::title_alias::AliasMaps;
 use crate::model::*;
-use crate::title_alias::AliasMaps;
 use crate::util::safe_add;
 use crate::util::safe_subtract;
 use event::KeyModifiers;

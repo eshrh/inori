@@ -16,9 +16,10 @@ mod impl_queue;
 mod impl_searchstate;
 pub mod proto;
 mod search_utils;
+pub mod title_alias;
 use crate::config::Config;
 use crate::model::proto::*;
-use crate::title_alias::{
+use crate::model::title_alias::{
     AliasMaps, JsonTitleAliasStore, NoopTitleAliasStore, TitleAliasStore,
 };
 use crate::update::build_library;
@@ -226,9 +227,12 @@ impl Model {
         self.queue.set_aliases(&self.aliases);
         for artist in &mut self.library.artists.items {
             for album in &mut artist.albums {
-                if let Some(entry) = self.aliases.album_for_name(&album.name) {
-                    album.alias = Some(entry.alias.clone());
-                    album.alias_variants = entry.variants.clone();
+                if let Some(alias_ref) =
+                    self.aliases.album_ref_for_name(&album.name)
+                {
+                    let (alias, variants) = alias_ref.to_owned();
+                    album.alias = Some(alias);
+                    album.alias_variants = variants;
                 } else {
                     album.alias = None;
                     album.alias_variants.clear();
@@ -261,16 +265,20 @@ impl Model {
                 .tags
                 .iter()
                 .find_map(|(k, v)| (k == "Album").then(|| v.clone()));
-            let album_alias_entry = self.aliases.album_for_song(&song);
-            let album_alias =
-                album_alias_entry.map(|entry| entry.alias.clone());
-            let album_alias_variants = album_alias_entry
-                .map_or_else(Vec::new, |entry| entry.variants.clone());
-            let title_alias_entry = self.aliases.title_for_path(&song.file);
-            let title_alias =
-                title_alias_entry.map(|entry| entry.alias.clone());
-            let title_alias_variants = title_alias_entry
-                .map_or_else(Vec::new, |entry| entry.variants.clone());
+            let album_alias_ref = self.aliases.album_ref_for_song(&song);
+            let (album_alias, album_alias_variants) = album_alias_ref
+                .map(|r| {
+                    let (alias, variants) = r.to_owned();
+                    (Some(alias), variants)
+                })
+                .unwrap_or((None, Vec::new()));
+            let title_alias_ref = self.aliases.title_ref_for_path(&song.file);
+            let (title_alias, title_alias_variants) = title_alias_ref
+                .map(|r| {
+                    let (alias, variants) = r.to_owned();
+                    (Some(alias), variants)
+                })
+                .unwrap_or((None, Vec::new()));
 
             if let Some(album_name) = album.clone() {
                 let album_key =

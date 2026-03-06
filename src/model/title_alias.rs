@@ -38,6 +38,27 @@ pub struct AliasEntry {
     pub variants: Vec<String>,
 }
 
+#[derive(Copy, Clone)]
+pub struct AliasRef<'a> {
+    pub alias: &'a str,
+    pub variants: &'a [String],
+}
+
+impl<'a> From<&'a AliasEntry> for AliasRef<'a> {
+    fn from(value: &'a AliasEntry) -> Self {
+        Self {
+            alias: &value.alias,
+            variants: &value.variants,
+        }
+    }
+}
+
+impl AliasRef<'_> {
+    pub fn to_owned(self) -> (String, Vec<String>) {
+        (self.alias.to_string(), self.variants.to_vec())
+    }
+}
+
 impl AliasMaps {
     pub fn title_for_path(&self, path: &str) -> Option<&AliasEntry> {
         self.title.get(path)
@@ -52,6 +73,18 @@ impl AliasMaps {
             .iter()
             .find_map(|(k, v)| (k == "Album").then_some(v))
             .and_then(|album| self.album_for_name(album))
+    }
+
+    pub fn title_ref_for_path(&self, path: &str) -> Option<AliasRef<'_>> {
+        self.title_for_path(path).map(AliasRef::from)
+    }
+
+    pub fn album_ref_for_name(&self, album: &str) -> Option<AliasRef<'_>> {
+        self.album_for_name(album).map(AliasRef::from)
+    }
+
+    pub fn album_ref_for_song(&self, song: &Song) -> Option<AliasRef<'_>> {
+        self.album_for_song(song).map(AliasRef::from)
     }
 }
 

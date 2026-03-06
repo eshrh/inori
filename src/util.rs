@@ -1,4 +1,4 @@
-use crate::title_alias::AliasEntry;
+use crate::model::title_alias::AliasRef;
 use crate::view::search_doc::build_alias_search_doc;
 use mpd::Song;
 use mpd::Status;
@@ -72,13 +72,13 @@ pub fn song_to_str(song: &Song) -> String {
 
 pub fn song_to_search_str(
     song: &Song,
-    title_alias: Option<&AliasEntry>,
-    album_alias: Option<&AliasEntry>,
+    title_alias: Option<AliasRef<'_>>,
+    album_alias: Option<AliasRef<'_>>,
 ) -> String {
     build_alias_search_doc(
         &song_to_str(song),
-        album_alias.map(|e| (e.alias.as_str(), e.variants.as_slice())),
-        title_alias.map(|e| (e.alias.as_str(), e.variants.as_slice())),
+        album_alias.map(|e| (e.alias, e.variants)),
+        title_alias.map(|e| (e.alias, e.variants)),
     )
     .text
 }
