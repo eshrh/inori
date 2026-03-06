@@ -246,6 +246,8 @@ impl Model {
     pub fn update_global_search_contents(&mut self) -> Result<()> {
         let res = self.conn.listallinfo()?;
         let mut entries = Vec::new();
+        let mut seen_artists: HashSet<(String, Option<String>)> =
+            HashSet::new();
         let mut seen_albums: HashSet<(String, Option<String>, String)> =
             HashSet::new();
         for song in res {
@@ -279,6 +281,21 @@ impl Model {
                     (Some(alias), variants)
                 })
                 .unwrap_or((None, Vec::new()));
+
+            let artist_key = (artist.clone(), artist_sort.clone());
+            if seen_artists.insert(artist_key) {
+                entries.push(InfoEntry {
+                    file: String::new(),
+                    artist: artist.clone(),
+                    artist_sort: artist_sort.clone(),
+                    album: None,
+                    title: None,
+                    album_alias: None,
+                    album_alias_variants: Vec::new(),
+                    title_alias: None,
+                    title_alias_variants: Vec::new(),
+                });
+            }
 
             if let Some(album_name) = album.clone() {
                 let album_key =
