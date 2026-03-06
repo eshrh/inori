@@ -42,8 +42,9 @@ optional title and album aliases loaded from
 `<config_dir>/inori/aliases.json`, which should contain a json array.
 
 Each entry must contain exactly one of:
-    - `path`: MPD `file` path
-    - `album`: album name (note that this is *not* collision-safe)
+- `path`: MPD `file` path
+- `album`: album name (note that this is *not* collision-safe)
+
 And an `alias` key. Optionally, `variants` may be provided as a list of
 alternative search terms.
 
