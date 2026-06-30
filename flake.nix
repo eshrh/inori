@@ -57,6 +57,10 @@
         };
 
         apps.${system} = {
+          ja-generate-aliases = {
+            type = "app";
+            program = lib.getExe self.packages.${system}.ja-generate-aliases;
+          };
           update-logo = {
             type = "app";
             program = lib.getExe (pkgs.writeShellApplication {

@@ -70,6 +70,9 @@ generated with the included python script.
 # reqs: [python-mpd2, fugashi[unidic-lite], pykakasi]
 python3 -m pip install -r scripts/ja/requirements.txt
 python3 scripts/ja/generate.py
+
+# or, with nix:
+nix run .#ja-generate-aliases
 ```
 
 - Be aware that unidic-lite takes ~250mb.
