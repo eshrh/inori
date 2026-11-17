@@ -1,5 +1,4 @@
 extern crate mpd;
-use model::State;
 use ratatui::{
     backend::CrosstermBackend,
     crossterm::{
@@ -13,16 +12,18 @@ use ratatui::{
 };
 use std::io::stdout;
 use std::panic;
-use update::Update;
+mod app;
+mod backend;
 mod config;
 mod event_handler;
 mod model;
 mod update;
 mod util;
 mod view;
-use event_handler::{Event, Result};
+use event_handler::Result;
 
-fn main() -> Result<()> {
+#[tokio::main(flavor = "current_thread")]
+async fn main() -> Result<()> {
     let hook = panic::take_hook();
     panic::set_hook(Box::new(move |panic| {
         let _ = reset_terminal();
@@ -35,27 +36,8 @@ fn main() -> Result<()> {
     let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
     terminal.clear()?;
 
-    let mut model = model::Model::new(terminal.get_frame().area())?;
-    update::update_tick(&mut model)?;
-    update::update_screens(&mut model, Update::empty())?;
-    terminal.draw(|f| view::view(&mut model, f))?;
-
-    let event_handler = event_handler::EventHandler::new();
-    loop {
-        match event_handler.next()? {
-            Event::Tick => update::update_tick(&mut model)?,
-            Event::Key(k) => {
-                let update = update::handle_key(&mut model, k)?;
-                update::update_screens(&mut model, update)?;
-            }
-        }
-        model.frame_size = terminal.get_frame().area();
-        terminal.draw(|f| view::view(&mut model, f))?;
-        if let State::Done = model.state {
-            break;
-        }
-    }
-    Ok(())
+    let model = model::Model::new(terminal.get_frame().area())?;
+    app::App::new(model)?.run(&mut terminal).await
 }
 
 struct TerminalGuard;

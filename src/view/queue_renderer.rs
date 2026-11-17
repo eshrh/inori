@@ -52,10 +52,9 @@ pub fn make_queue<'a>(model: &mut Model, theme: &Theme) -> Table<'a> {
                 ),
             ])
             .add_modifier(
-                if song
-                    .place
-                    .is_some_and(|s| model.status.song.is_some_and(|o| s == o))
-                {
+                if song.place.is_some_and(|s| {
+                    model.status.song.is_some_and(|o| s.id == o.id)
+                }) {
                     Modifier::ITALIC | Modifier::BOLD
                 } else {
                     Modifier::empty()

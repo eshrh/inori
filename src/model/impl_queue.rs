@@ -91,16 +91,7 @@ impl QueueSelector {
                     self.songs.items.iter().position(|song| {
                         song.place.is_some_and(|p| p.id == id)
                     })?;
-                if self.should_filter() {
-                    self.songs
-                        .filter
-                        .cache
-                        .order
-                        .iter()
-                        .position(|i| *i == Some(index))
-                } else {
-                    Some(index)
-                }
+                self.storage_to_display(index)
             })
             .or_else(|| {
                 let len = self.display_len();

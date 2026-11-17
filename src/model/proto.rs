@@ -137,6 +137,18 @@ pub trait Searchable<T>: Selector {
         }
     }
 
+    fn storage_to_display(&self, storage_idx: usize) -> Option<usize> {
+        if self.should_filter() {
+            self.filter()
+                .cache
+                .order
+                .iter()
+                .position(|idx| *idx == Some(storage_idx))
+        } else {
+            (storage_idx < self.storage_len()).then_some(storage_idx)
+        }
+    }
+
     fn display_len(&self) -> usize {
         if self.should_filter() {
             self.filter()

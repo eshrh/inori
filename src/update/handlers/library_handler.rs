@@ -1,14 +1,11 @@
 use super::*;
-use crate::event_handler::Result;
+use crate::backend::QueueTarget;
 use crate::model::ItemRef::*;
 use crate::model::LibActiveSelector::*;
 use crate::view::layout::library_layout::LibraryLayout;
 use crate::view::layout::InoriLayout;
-use mpd::Query;
-use mpd::Term;
-use std::borrow::Cow::Borrowed;
 
-pub fn handle_library(model: &mut Model, msg: Message) -> Result<Update> {
+pub fn handle_library(model: &mut Model, msg: Message) -> Option<Action> {
     match msg {
         Message::LocalSearch(SearchMsg::Start) => {
             match model.library.active {
@@ -25,23 +22,20 @@ pub fn handle_library(model: &mut Model, msg: Message) -> Result<Update> {
                 }
             };
             model.state = State::Searching;
-            Ok(Update::empty())
+            None
         }
         Message::LocalSearch(SearchMsg::End) => {
             model.state = State::Running;
             if model.library.global_search.entries.filter.active {
                 model.library.global_search.entries.filter.set_off();
             }
-            Ok(Update::empty())
+            None
         }
         Message::GlobalSearch(SearchMsg::Start) => {
             model.state = State::Searching;
             model.library.artists.filter.set_off();
             model.library.global_search.entries.filter.set_on();
-            if !model.library.global_search.loaded {
-                model.update_global_search_contents()?;
-            }
-            Ok(Update::empty())
+            None
         }
         Message::Escape => {
             match model.library.active {
@@ -53,19 +47,19 @@ pub fn handle_library(model: &mut Model, msg: Message) -> Result<Update> {
                     }
                 }
             };
-            Ok(Update::empty())
+            None
         }
         Message::ToggleScreen => {
-            handle_library(model, Message::LocalSearch(SearchMsg::End))?;
+            handle_library(model, Message::LocalSearch(SearchMsg::End));
             model.screen = Screen::Queue;
-            Ok(Update::empty())
+            None
         }
         Message::TogglePanel => {
             model.library.active = match model.library.active {
                 TrackSelector => ArtistSelector,
                 ArtistSelector => TrackSelector,
             };
-            Ok(Update::empty())
+            None
         }
         other => match model.library.active {
             ArtistSelector => handle_library_artist(model, other),
@@ -74,7 +68,7 @@ pub fn handle_library(model: &mut Model, msg: Message) -> Result<Update> {
     }
 }
 
-pub fn handle_search(model: &mut Model, k: KeyEvent) -> Result<Update> {
+pub fn handle_search(model: &mut Model, k: KeyEvent) -> Option<Action> {
     match (
         &model.library.active,
         model.library.global_search.entries.filter.active,
@@ -86,8 +80,13 @@ pub fn handle_search(model: &mut Model, k: KeyEvent) -> Result<Update> {
                 &mut model.matcher,
                 model.frame_size.height.into(),
             ) {
-                handle_msg(model, m)
+                if matches!(m, Message::Select) {
+                    add_search_result(model)
+                } else {
+                    handle_msg(model, m)
+                }
             } else {
+                model.library.pending_jump = None;
                 if model.library.global_search.storage_len() != 0
                     && model.library.global_search.selected_item().is_none()
                 {
@@ -95,9 +94,9 @@ pub fn handle_search(model: &mut Model, k: KeyEvent) -> Result<Update> {
                 }
                 if let Some(item) = model.library.global_search.selected_item()
                 {
-                    model.jump_to(item.clone())?;
+                    model.jump_to(item.clone());
                 }
-                Ok(Update::empty())
+                None
             }
         }
         (ArtistSelector, _) => {
@@ -109,7 +108,7 @@ pub fn handle_search(model: &mut Model, k: KeyEvent) -> Result<Update> {
             ) {
                 handle_msg(model, m)
             } else {
-                Ok(Update::empty())
+                None
             }
         }
         (TrackSelector, _) => {
@@ -123,10 +122,10 @@ pub fn handle_search(model: &mut Model, k: KeyEvent) -> Result<Update> {
                 if let Some(m) = msg {
                     handle_msg(model, m)
                 } else {
-                    Ok(Update::empty())
+                    None
                 }
             } else {
-                Ok(Update::empty())
+                None
             }
         }
     }
@@ -135,80 +134,77 @@ pub fn handle_search(model: &mut Model, k: KeyEvent) -> Result<Update> {
 pub fn handle_library_artist(
     model: &mut Model,
     msg: Message,
-) -> Result<Update> {
+) -> Option<Action> {
     match msg {
         Message::Direction(Dirs::Vert(d)) => {
             handle_vertical(d, &mut model.library);
-            Ok(Update::CURRENT_ARTIST)
+            None
         }
         Message::ScrollScreenful(v) => {
             let k = LibraryLayout::new(model.frame_size, model)
                 .artist_select
                 .height;
             scroll_screenful(v, k.into(), &mut model.library);
-            Ok(Update::CURRENT_ARTIST)
+            None
         }
         Message::Direction(Dirs::Horiz(Horizontal::Right)) => {
             model.library.active = TrackSelector;
             if let Some(f) = model.library.selected_item_mut() {
                 f.init();
             }
-            Ok(Update::empty())
+            None
         }
         Message::Select => add_artist(model),
-        Message::SelectAndNext => {
-            let res = add_artist(model);
-            handle_vertical(Vertical::Down, &mut model.library);
-            res
+        Message::SelectAndNext => Some(
+            add_artist(model)?
+                .then(Message::Direction(Dirs::Vert(Vertical::Down))),
+        ),
+
+        _ => None,
+    }
+}
+
+pub fn add_artist(model: &Model) -> Option<Action> {
+    let artist = model.library.selected_item()?;
+    Some(Action::new(Command::Enqueue(QueueTarget::Artist(
+        artist.name.clone(),
+    ))))
+}
+
+fn add_search_result(model: &Model) -> Option<Action> {
+    let entry = model.library.global_search.selected_item()?;
+    let target = if !entry.file.is_empty() {
+        QueueTarget::Song(entry.file.clone())
+    } else if let Some(album) = &entry.album {
+        QueueTarget::Album {
+            artist: entry.artist.clone(),
+            album: album.clone(),
         }
-
-        _ => Ok(Update::empty()),
-    }
+    } else {
+        QueueTarget::Artist(entry.artist.clone())
+    };
+    Some(Action::new(Command::Enqueue(target)))
 }
 
-pub fn add_artist(model: &mut Model) -> Result<Update> {
-    if let Some(artist) = model.library.selected_item() {
-        model.conn.findadd(
-            Query::new()
-                .and(Term::Tag(Borrowed("AlbumArtist")), artist.name.clone()),
-        )?;
-    }
-    Ok(Update::STATUS
-        | Update::QUEUE
-        | Update::START_PLAYING
-        | Update::CURRENT_SONG)
+pub fn add_item(model: &Model) -> Option<Action> {
+    let artist = model.library.selected_item()?;
+    let target = match artist.selected_item()?.item {
+        Album(album) => QueueTarget::Album {
+            artist: artist.name.clone(),
+            album: album.name.clone(),
+        },
+        Song(song) => QueueTarget::Song(song.file.clone()),
+    };
+    Some(Action::new(Command::Enqueue(target)))
 }
 
-pub fn add_item(model: &mut Model) -> Result<Update> {
-    if let Some(artist) = model.library.selected_item_mut() {
-        match artist.selected_item().map(|i| i.item) {
-            Some(Album(album)) => model.conn.findadd(
-                Query::new()
-                    .and(
-                        Term::Tag(Borrowed("AlbumArtist")),
-                        artist.name.clone(),
-                    )
-                    .and(Term::Tag(Borrowed("Album")), album.name.clone()),
-            )?,
-            Some(Song(song)) => model
-                .conn
-                .findadd(Query::new().and(Term::File, song.file.clone()))?,
-            None => {}
-        }
-    }
-    Ok(Update::STATUS
-        | Update::QUEUE
-        | Update::START_PLAYING
-        | Update::CURRENT_SONG)
-}
-
-pub fn handle_library_track(model: &mut Model, msg: Message) -> Result<Update> {
+pub fn handle_library_track(model: &mut Model, msg: Message) -> Option<Action> {
     match msg {
         Message::Direction(Dirs::Vert(d)) => {
             if let Some(art) = model.library.selected_item_mut() {
                 handle_vertical(d, art);
             }
-            Ok(Update::empty())
+            None
         }
         Message::ScrollScreenful(v) => {
             let k = LibraryLayout::new(model.frame_size, model)
@@ -217,20 +213,17 @@ pub fn handle_library_track(model: &mut Model, msg: Message) -> Result<Update> {
             if let Some(art) = model.library.selected_item_mut() {
                 scroll_screenful(v, k.into(), art);
             }
-            Ok(Update::empty())
+            None
         }
         Message::Direction(Dirs::Horiz(Horizontal::Left)) => {
             model.library.active = ArtistSelector;
-            Ok(Update::empty())
+            None
         }
         Message::Select => add_item(model),
-        Message::SelectAndNext => {
-            let res = add_item(model);
-            if let Some(art) = model.library.selected_item_mut() {
-                handle_vertical(Vertical::Down, art);
-            }
-            res
-        }
+        Message::SelectAndNext => Some(
+            add_item(model)?
+                .then(Message::Direction(Dirs::Vert(Vertical::Down))),
+        ),
         Message::Fold | Message::Direction(Dirs::Horiz(Horizontal::Right)) => {
             if let Some(art) = model.library.selected_item_mut() {
                 if let Some(album) = art.selected_album_mut() {
@@ -249,8 +242,8 @@ pub fn handle_library_track(model: &mut Model, msg: Message) -> Result<Update> {
                     }
                 }
             }
-            Ok(Update::empty())
+            None
         }
-        _ => Ok(Update::empty()),
+        _ => None,
     }
 }

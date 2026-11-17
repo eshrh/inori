@@ -20,6 +20,7 @@ ratatui = { version = "0.30.0", features = ["serde"] }
 nucleo-matcher = "0.3.1"
 itertools = "0.14.0"
 bitflags = "2.11.0"
+tokio = { version = "1", features = ["rt", "macros", "sync", "time"] }
 toml = "1.0.4"
 platform-dirs = "0.3.0"
 serde_json = "1.0.145"

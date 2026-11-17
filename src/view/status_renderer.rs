@@ -29,13 +29,14 @@ pub fn render_status(
                     Stop => String::new(),
                 }),
                 Cell::from(
-                    match &model.currentsong {
-                        Some(song) => Line::from(
+                    match (&model.error, &model.currentsong) {
+                        (Some(error), _) => Line::from(error.clone()),
+                        (_, Some(song)) => Line::from(
                             song.title
                                 .clone()
                                 .unwrap_or("<TITLE NOT FOUND>".into()),
                         ),
-                        None => Line::from("祈"),
+                        (_, None) => Line::from("祈"),
                     }
                     .centered()
                     .set_style(theme.status_title),

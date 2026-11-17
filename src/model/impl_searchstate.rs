@@ -1,6 +1,5 @@
 use super::*;
 use crate::view::search_doc::{build_alias_search_doc, SearchProjection};
-use proto::*;
 
 impl FilterCache {
     pub fn new() -> Self {

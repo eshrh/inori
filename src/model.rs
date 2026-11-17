@@ -1,10 +1,8 @@
 extern crate mpd;
-use mpd::client::StreamTypes;
 use std::collections::HashSet;
 use std::error::Error;
 //use mpd::error::Result;
-use mpd::idle::IdleClient;
-use mpd::{Client, Song, Status, Subsystem};
+use mpd::{Song, Status};
 use nucleo_matcher::{Matcher, Utf32String};
 use ratatui::crossterm::event::KeyEvent;
 use ratatui::layout::Rect;
@@ -22,7 +20,6 @@ use crate::model::proto::*;
 use crate::model::title_alias::{
     AliasMaps, JsonTitleAliasStore, NoopTitleAliasStore, TitleAliasStore,
 };
-use crate::update::build_library;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -136,6 +133,8 @@ pub struct GlobalSearchState {
 
 pub struct LibraryState {
     pub artists: FilteredView<ArtistData>,
+    pub loaded: bool,
+    pub pending_jump: Option<InfoEntry>,
     pub global_search: GlobalSearchState,
     pub active: LibActiveSelector,
     pub artist_state: ListState,
@@ -149,9 +148,8 @@ pub struct QueueSelector {
 
 pub struct Model {
     pub state: State,
+    pub error: Option<String>,
     pub status: Status,
-    pub conn: Client<StreamTypes>,
-    pub idle_conn: IdleClient<StreamTypes>,
     pub screen: Screen,
     pub library: LibraryState,
     pub queue: QueueSelector,
@@ -167,11 +165,6 @@ pub struct Model {
 impl Model {
     pub fn new(frame_size: Rect) -> Result<Self> {
         let config = Config::default().try_read_config()?;
-        let mut conn = Self::make_connection(&config)?;
-        let idle_conn = IdleClient::new(
-            Self::make_connection(&config)?,
-            &[Subsystem::Database, Subsystem::Player, Subsystem::Options],
-        )?;
         let title_alias_store: Box<dyn TitleAliasStore> =
             JsonTitleAliasStore::from_default_path()
                 .map(|store| Box::new(store) as Box<dyn TitleAliasStore>)
@@ -183,9 +176,8 @@ impl Model {
 
         Ok(Model {
             state: State::Running,
-            status: conn.status()?,
-            conn,
-            idle_conn,
+            error: None,
+            status: Status::default(),
             screen: config.screens.first().cloned().unwrap_or(Screen::Library),
             library: LibraryState::new(),
             queue,
@@ -203,54 +195,34 @@ impl Model {
         })
     }
 
-    pub fn make_connection(conf: &Config) -> Result<Client<StreamTypes>> {
-        if let Some(mpd_url) = &conf.mpd_address {
-            Client::<StreamTypes>::connect(mpd_url).map_err(|e| {
-                format!("failed to connect to MPD at {}: {}", mpd_url, e).into()
-            })
-        } else {
-            Ok(Client::<StreamTypes>::default())
-        }
-    }
-
-    pub fn update_status(&mut self) -> Result<()> {
-        self.status = self.conn.status()?;
-        Ok(())
-    }
-    pub fn update_currentsong(&mut self) -> Result<()> {
-        self.currentsong = self.conn.currentsong()?;
-        Ok(())
-    }
-
     pub fn reload_aliases(&mut self) -> Result<()> {
-        self.aliases = self.title_alias_store.load_all()?;
-        self.queue.set_aliases(&self.aliases);
-        for artist in &mut self.library.artists.items {
-            for album in &mut artist.albums {
-                if let Some(alias_ref) =
-                    self.aliases.album_ref_for_name(&album.name)
-                {
-                    let (alias, variants) = alias_ref.to_owned();
-                    album.alias = Some(alias);
-                    album.alias_variants = variants;
-                } else {
-                    album.alias = None;
-                    album.alias_variants.clear();
-                }
-            }
-            artist.search.reset_cache();
+        let aliases = self.title_alias_store.load_all()?;
+        if self.aliases == aliases {
+            return Ok(());
         }
+        self.aliases = aliases;
+        self.queue.set_aliases(&self.aliases);
+        self.queue.replace_songs(
+            self.queue.songs.items.clone(),
+            &mut self.matcher,
+            self.frame_size.height.into(),
+        );
+        for artist in &mut self.library.artists.items {
+            artist.set_aliases(&self.aliases, &mut self.matcher);
+        }
+        self.library.global_search.loaded = false;
         Ok(())
     }
 
-    pub fn update_global_search_contents(&mut self) -> Result<()> {
-        let res = self.conn.listallinfo()?;
+    pub fn apply_global_search_contents(&mut self, songs: Vec<Song>) {
+        let selected = self.library.global_search.selected_item().cloned();
+        let selected_index = self.library.global_search.selected();
         let mut entries = Vec::new();
         let mut seen_artists: HashSet<(String, Option<String>)> =
             HashSet::new();
         let mut seen_albums: HashSet<(String, Option<String>, String)> =
             HashSet::new();
-        for song in res {
+        for song in songs {
             let artist = song
                 .tags
                 .iter()
@@ -332,17 +304,58 @@ impl Model {
         }
         self.library.global_search.entries.replace_items(entries);
         self.library.global_search.loaded = true;
-        Ok(())
+        if self.library.global_search.entries.filter.active {
+            self.library.global_search.update_filter_cache(
+                &mut self.matcher,
+                Some(self.frame_size.height.into()),
+            );
+        }
+        let selected = selected.and_then(|target| {
+            let index =
+                self.library.global_search.entries.items.iter().position(
+                    |entry| {
+                        entry.file == target.file
+                            && entry.artist == target.artist
+                            && entry.artist_sort == target.artist_sort
+                            && entry.album == target.album
+                            && entry.title == target.title
+                    },
+                )?;
+            self.library.global_search.storage_to_display(index)
+        });
+        let selected = selected.or_else(|| {
+            let len = self.library.global_search.display_len();
+            selected_index
+                .filter(|_| len != 0)
+                .map(|index| index.min(len - 1))
+        });
+        self.library.global_search.set_selected(selected);
+        self.library.global_search.init();
+        if self.library.global_search.entries.filter.active {
+            if let Some(target) =
+                self.library.global_search.selected_item().cloned()
+            {
+                self.jump_to(target);
+            }
+        }
     }
 
-    pub fn jump_to(&mut self, target: InfoEntry) -> Result<()> {
+    pub fn jump_to(&mut self, target: InfoEntry) {
         // order: albumartist albumartistsort album title
+        self.library.pending_jump = None;
+        if !self.library.loaded {
+            self.library.pending_jump = Some(target);
+            return;
+        }
         let artist_idx = (0..self.library.display_len()).find(|&i| {
             self.library
                 .display_get(i)
                 .is_some_and(|artist| artist.name == target.artist)
         });
         self.library.artist_state.set_selected(artist_idx);
+        if artist_idx.is_none() {
+            return;
+        }
 
         if target.album.is_some() || target.title.is_some() {
             self.library.active = LibActiveSelector::TrackSelector;
@@ -351,10 +364,11 @@ impl Model {
         }
 
         if target.album.is_none() {
-            return Ok(());
+            return;
         }
         if self.library.selected_item().is_some_and(|i| !i.fetched) {
-            build_library::add_tracks(self)?;
+            self.library.pending_jump = Some(target);
+            return;
         }
         if let Some(artist) = self.library.selected_item_mut() {
             let mut idx: Option<usize> = None;
@@ -385,6 +399,11 @@ impl Model {
             }
             artist.set_selected(idx);
         }
-        Ok(())
+    }
+
+    pub fn retry_pending_jump(&mut self) {
+        if let Some(target) = self.library.pending_jump.take() {
+            self.jump_to(target);
+        }
     }
 }

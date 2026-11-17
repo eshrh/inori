@@ -2,7 +2,6 @@ use super::*;
 use crate::model::search_utils::compute_orders;
 use crate::util::song_to_search_str;
 use crate::view::search_doc::build_alias_search_doc;
-use proto::*;
 use search_utils::compute_indices;
 
 impl Selector for ArtistData {
@@ -23,6 +22,30 @@ impl Selector for ArtistData {
 }
 
 impl<'a> ArtistData {
+    pub fn set_aliases(&mut self, aliases: &AliasMaps, matcher: &mut Matcher) {
+        let selected = self.selected();
+        let expanded: Vec<_> =
+            self.albums.iter().map(|album| album.expanded).collect();
+        for album in &mut self.albums {
+            if let Some(alias_ref) = aliases.album_ref_for_name(&album.name) {
+                let (alias, variants) = alias_ref.to_owned();
+                album.alias = Some(alias);
+                album.alias_variants = variants;
+            } else {
+                album.alias = None;
+                album.alias_variants.clear();
+            }
+        }
+        self.search.reset_cache();
+        if self.search.active {
+            self.update_search(matcher, aliases);
+        }
+        for (album, expanded) in self.albums.iter_mut().zip(expanded) {
+            album.expanded = expanded;
+        }
+        self.set_selected(selected);
+    }
+
     fn find_rank(&self, idx: usize) -> Option<usize> {
         self.search
             .cache

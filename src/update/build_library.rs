@@ -1,9 +1,7 @@
 extern crate mpd;
-use crate::event_handler::Result;
 use crate::model::proto::*;
 use crate::model::{AlbumData, ArtistData, ItemRef, Model};
-use mpd::{Query, Term};
-use std::borrow::Cow::Borrowed;
+use mpd::Song;
 use std::collections::HashMap;
 
 enum TrackSelection {
@@ -11,11 +9,7 @@ enum TrackSelection {
     Song(String),
 }
 
-pub fn build_library(model: &mut Model) -> Result<()> {
-    let artists = model
-        .conn
-        .list_group_2(("albumartistsort".into(), "albumartist".into()))?;
-
+pub fn apply_artists(model: &mut Model, artists: Vec<(String, String)>) {
     let selected_name = model.library.selected_item().map(|a| a.name.clone());
     let mut previous: HashMap<_, _> =
         std::mem::take(&mut model.library.artists.items)
@@ -53,40 +47,33 @@ pub fn build_library(model: &mut Model) -> Result<()> {
             .items
             .iter()
             .position(|artist| artist.name == name)?;
-        if model.library.should_filter() {
-            model
-                .library
-                .artists
-                .filter
-                .cache
-                .order
-                .iter()
-                .position(|idx| *idx == Some(storage_idx))
-        } else {
-            Some(storage_idx)
-        }
+        model.library.storage_to_display(storage_idx)
     });
     model.library.set_selected(selected);
     model.library.init();
-    Ok(())
+    model.library.loaded = true;
+    model.retry_pending_jump();
 }
 
-pub fn add_tracks(model: &mut Model) -> Result<()> {
-    let Some(artist) = model.library.selected_item() else {
-        return Ok(());
+pub fn apply_tracks(
+    model: &mut Model,
+    artist_name: &str,
+    song_data: Vec<Song>,
+) {
+    let Some(artist_index) = model
+        .library
+        .artists
+        .items
+        .iter()
+        .position(|artist| artist.name == artist_name)
+    else {
+        return;
     };
-    if artist.fetched {
-        return Ok(());
-    }
+    let artist = &model.library.artists.items[artist_index];
     let selected = artist.selected_item().map(|item| match item.item {
         ItemRef::Album(album) => TrackSelection::Album(album.name.clone()),
         ItemRef::Song(song) => TrackSelection::Song(song.file.clone()),
     });
-    let song_data = model.conn.find(
-        Query::new()
-            .and(Term::Tag(Borrowed("AlbumArtist")), artist.name.clone()),
-        None,
-    )?;
     let mut albums: Vec<AlbumData> = Vec::new();
 
     // chunks have album field invariant!
@@ -126,7 +113,8 @@ pub fn add_tracks(model: &mut Model) -> Result<()> {
             });
         }
     }
-    if let Some(item) = model.library.selected_item_mut() {
+    {
+        let item = &mut model.library.artists.items[artist_index];
         let expanded: HashMap<_, _> = item
             .albums
             .iter()
@@ -171,5 +159,12 @@ pub fn add_tracks(model: &mut Model) -> Result<()> {
         item.watch_oob();
         item.init();
     }
-    Ok(())
+    if model
+        .library
+        .pending_jump
+        .as_ref()
+        .is_some_and(|target| target.artist == artist_name)
+    {
+        model.retry_pending_jump();
+    }
 }

@@ -27,13 +27,13 @@ impl Borrow<str> for AlbumName {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, PartialEq, Eq)]
 pub struct AliasMaps {
     pub title: HashMap<SongPath, AliasEntry>,
     pub album: HashMap<AlbumName, AliasEntry>,
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, PartialEq, Eq)]
 pub struct AliasEntry {
     pub alias: String,
     pub variants: Vec<String>,

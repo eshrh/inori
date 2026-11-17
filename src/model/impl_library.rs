@@ -5,6 +5,8 @@ impl LibraryState {
     pub fn new() -> Self {
         Self {
             artists: FilteredView::new(),
+            loaded: false,
+            pending_jump: None,
             global_search: GlobalSearchState {
                 entries: FilteredView::new(),
                 loaded: false,

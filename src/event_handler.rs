@@ -1,55 +1,61 @@
-use ratatui::crossterm;
-use std::time::{Duration, Instant};
+use ratatui::crossterm::event;
+use std::io;
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
+use std::thread::{self, JoinHandle};
+use std::time::Duration;
+use tokio::sync::mpsc;
 
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
-pub enum Event {
-    Tick,
-    Key(crossterm::event::KeyEvent),
-}
-
 pub struct EventHandler {
-    rx: std::sync::mpsc::Receiver<Event>,
+    rx: mpsc::Receiver<io::Result<event::Event>>,
+    stopped: Arc<AtomicBool>,
+    thread: Option<JoinHandle<()>>,
 }
 
 impl EventHandler {
     pub fn new() -> Self {
-        const POLL_TIME: Duration = Duration::from_millis(16);
-        const TICK_INTERVAL: Duration = Duration::from_millis(500);
-
-        let (tx, rx) = std::sync::mpsc::channel();
-        let mut now = Instant::now();
-        let mut last_event = Instant::now();
-        std::thread::spawn(move || loop {
-            if let Ok(true) = crossterm::event::poll(POLL_TIME) {
-                let send_res = match crossterm::event::read() {
-                    Ok(crossterm::event::Event::Key(e)) => {
-                        last_event = Instant::now();
-                        tx.send(Event::Key(e))
-                    }
-                    Ok(crossterm::event::Event::Resize(_, _)) => Ok(()),
-                    Ok(_) => Ok(()),
-                    Err(_) => Ok(()),
+        let (tx, rx) = mpsc::channel(128);
+        let stopped = Arc::new(AtomicBool::new(false));
+        let worker_stopped = stopped.clone();
+        let thread = thread::spawn(move || {
+            while !worker_stopped.load(Ordering::Relaxed) {
+                let result = match event::poll(Duration::from_millis(16)) {
+                    Ok(false) => continue,
+                    Ok(true) => event::read(),
+                    Err(error) => Err(error),
                 };
-                if send_res.is_err() {
+                let failed = result.is_err();
+                if tx.blocking_send(result).is_err() || failed {
                     break;
                 }
-            }
-            // only tick when idle.
-            let time_since_last_event: Duration = Instant::now() - last_event;
-            if now.elapsed() >= TICK_INTERVAL
-                && time_since_last_event >= TICK_INTERVAL
-            {
-                if tx.send(Event::Tick).is_err() {
-                    break;
-                }
-                now = Instant::now();
             }
         });
-        EventHandler { rx }
+        Self {
+            rx,
+            stopped,
+            thread: Some(thread),
+        }
     }
 
-    pub fn next(&self) -> Result<Event> {
-        Ok(self.rx.recv()?)
+    pub async fn next(&mut self) -> Result<event::Event> {
+        self.rx
+            .recv()
+            .await
+            .ok_or("terminal event reader stopped")?
+            .map_err(Into::into)
+    }
+}
+
+impl Drop for EventHandler {
+    fn drop(&mut self) {
+        self.stopped.store(true, Ordering::Relaxed);
+        self.rx.close();
+        if let Some(thread) = self.thread.take() {
+            let _ = thread.join();
+        }
     }
 }

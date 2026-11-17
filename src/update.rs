@@ -1,28 +1,12 @@
+use crate::backend::Command;
+pub use crate::backend::Toggle;
 use crate::config::keybind::{KeybindMap, KeybindTarget};
-use crate::event_handler::Result;
-use crate::model::proto::Searchable;
 use crate::model::{Model, Screen, State};
-use bitflags::bitflags;
-use mpd::status::State as PlayState;
-use mpd::Subsystem;
 use ratatui::crossterm::event::{self, KeyCode, KeyEvent};
-use std::option::Option;
-use std::time::Duration;
 
 pub mod build_library;
 mod handlers;
 mod updaters;
-
-bitflags! {
-    pub struct Update: u8 {
-        const QUEUE = 0b00000001;
-        const CURRENT_ARTIST = 0b00000010;
-        const STATUS = 0b00000100;
-        const CURRENT_SONG = 0b00001000;
-        const START_PLAYING = 0b00010000;
-        const IDLE_UPDATES = 0b00100000;
-    }
-}
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum Vertical {
@@ -48,14 +32,6 @@ pub enum Dirs {
 pub enum SearchMsg {
     Start,
     End,
-}
-
-#[derive(Clone, Debug)]
-pub enum Toggle {
-    Repeat,
-    Random,
-    Single,
-    Consume,
 }
 
 #[derive(PartialEq, Clone, Debug)]
@@ -88,54 +64,30 @@ pub enum Message {
     Set(Toggle),
 }
 
-pub fn update_tick(model: &mut Model) -> Result<()> {
-    update_screens(model, Update::all() - Update::START_PLAYING)?;
-    Ok(())
+pub struct Action {
+    pub command: Command,
+    pub on_accept: Option<Message>,
 }
 
-pub fn update_screens(model: &mut Model, mut update: Update) -> Result<()> {
-    if update.contains(Update::IDLE_UPDATES) {
-        let changes = model.idle_conn.get()?;
-        if changes.contains(&Subsystem::Database) {
-            model.reload_aliases()?;
-            build_library::build_library(model)?;
-        }
-        if changes.contains(&Subsystem::Update)
-            || changes.contains(&Subsystem::Options)
-        {
-            update |= Update::STATUS;
+impl Action {
+    fn new(command: Command) -> Self {
+        Self {
+            command,
+            on_accept: None,
         }
     }
-    if update.intersects(Update::QUEUE | Update::START_PLAYING) {
-        model.queue.replace_songs(
-            model.conn.queue()?,
-            &mut model.matcher,
-            model.frame_size.height.into(),
-        );
+
+    fn then(mut self, message: Message) -> Self {
+        self.on_accept = Some(message);
+        self
     }
-    if update.contains(Update::CURRENT_ARTIST)
-        && model.library.selected_item_mut().is_some()
-    {
-        build_library::add_tracks(model)?;
-    }
-    if update.contains(Update::START_PLAYING) {
-        model.update_status()?;
-        if model.status.queue_len > 0 && model.status.state == mpd::State::Stop
-        {
-            model.conn.switch(0)?;
-        }
-    }
-    if update.contains(Update::CURRENT_SONG) {
-        model.update_currentsong()?;
-    }
-    if update.contains(Update::STATUS) {
-        model.update_status()?;
-    }
+}
+
+pub fn update_screens(model: &mut Model) {
     match model.screen {
-        Screen::Library => updaters::update_library(model)?,
-        Screen::Queue => updaters::update_queue(model)?,
+        Screen::Library => updaters::update_library(model),
+        Screen::Queue => updaters::update_queue(model),
     }
-    Ok(())
 }
 
 fn parse_msg(
@@ -157,117 +109,64 @@ fn parse_msg(
     }
 }
 
-pub fn handle_key(model: &mut Model, k: KeyEvent) -> Result<Update> {
+pub fn handle_key(model: &mut Model, key: KeyEvent) -> Option<Action> {
     match model.state {
         State::Searching => match model.screen {
             Screen::Library => {
-                Ok(handlers::library_handler::handle_search(model, k)?)
+                handlers::library_handler::handle_search(model, key)
             }
-            Screen::Queue => {
-                Ok(handlers::queue_handler::handle_search(model, k)?)
-            }
+            Screen::Queue => handlers::queue_handler::handle_search(model, key),
         },
         State::Running => {
-            if let Some(m) =
-                parse_msg(k, &mut model.parse_state, &model.config.keybindings)
-            {
-                Ok(handle_msg(model, m)?)
-            } else {
-                Ok(Update::empty())
-            }
+            let message = parse_msg(
+                key,
+                &mut model.parse_state,
+                &model.config.keybindings,
+            )?;
+            handle_msg(model, message)
         }
-        State::Done => Ok(Update::empty()),
+        State::Done => None,
     }
 }
 
-pub fn handle_msg(model: &mut Model, m: Message) -> Result<Update> {
-    match m {
+pub fn handle_msg(model: &mut Model, message: Message) -> Option<Action> {
+    if matches!(
+        message,
+        Message::Direction(_)
+            | Message::ScrollScreenful(_)
+            | Message::SwitchScreen(_)
+            | Message::ToggleScreen
+            | Message::Escape
+    ) {
+        model.library.pending_jump = None;
+    }
+    match message {
         Message::SwitchState(state) => {
             model.state = state;
-            Ok(Update::empty())
+            None
         }
         Message::SwitchScreen(to) => {
-            if let Some(screen) = model.config.screens.get(to - 1) {
-                model.screen = screen.clone();
-            }
-            Ok(Update::empty())
-        }
-        Message::UpdateDB => {
-            let id = model.conn.update()?;
-            loop {
-                // hang until finished updating (this update job)
-                if model
-                    .conn
-                    .status()
-                    .ok()
-                    .and_then(|i| i.updating_db)
-                    .is_none_or(|i| i != id)
-                {
-                    break;
-                }
-                std::thread::sleep(Duration::from_millis(50));
-            }
-            model.reload_aliases()?;
-            build_library::build_library(model)?;
-            Ok(Update::empty())
-        }
-        Message::PlayPause => {
-            model.conn.toggle_pause()?;
-            Ok(Update::STATUS)
-        }
-        Message::NextSong => match model.status.state {
-            PlayState::Stop => Ok(Update::empty()),
-            _ => {
-                model.conn.next()?;
-                Ok(Update::CURRENT_SONG | Update::STATUS)
-            }
-        },
-        Message::PreviousSong => match model.status.state {
-            PlayState::Stop => Ok(Update::empty()),
-            _ => {
-                model.conn.prev()?;
-                Ok(Update::CURRENT_SONG | Update::STATUS)
-            }
-        },
-        Message::Seek(direction) => {
-            if let (Some((current_pos, total)), Some(queue_pos)) =
-                (model.status.time, model.status.song)
+            if let Some(screen) =
+                to.checked_sub(1).and_then(|i| model.config.screens.get(i))
             {
-                let delta = Duration::from_secs(
-                    model.config.seek_seconds.unsigned_abs(),
-                );
-
-                let new_pos = if direction == SeekDirection::Backward {
-                    (current_pos.checked_sub(delta))
-                        .unwrap_or(Duration::default())
-                } else {
-                    (current_pos.checked_add(delta)).unwrap_or(total).min(total)
-                };
-
-                if new_pos >= total {
-                    model.conn.next()?;
-                    Ok(Update::CURRENT_SONG | Update::STATUS)
-                } else {
-                    model.conn.seek(queue_pos.pos, new_pos)?;
-                    Ok(Update::STATUS)
-                }
-            } else {
-                Ok(Update::empty())
+                model.screen = screen.clone();
+                model.state = State::Running;
+                model.library.global_search.entries.filter.set_off();
             }
+            None
         }
-        Message::Set(t) => {
-            match t {
-                Toggle::Repeat => model.conn.repeat(!model.status.repeat),
-                Toggle::Single => model.conn.single(!model.status.single),
-                Toggle::Random => model.conn.random(!model.status.random),
-                Toggle::Consume => model.conn.consume(!model.status.consume),
-            }?;
-            Ok(Update::STATUS)
-        }
-        Message::Clear => {
-            model.conn.clear()?;
-            Ok(Update::STATUS | Update::QUEUE | Update::CURRENT_SONG)
-        }
+        Message::UpdateDB => Some(Action::new(Command::UpdateDatabase)),
+        Message::PlayPause => Some(Action::new(Command::TogglePause)),
+        Message::NextSong => Some(Action::new(Command::Next)),
+        Message::PreviousSong => Some(Action::new(Command::Previous)),
+        Message::Seek(direction) => Some(Action::new(Command::Seek {
+            seconds: match direction {
+                SeekDirection::Forward => model.config.seek_seconds,
+                SeekDirection::Backward => -model.config.seek_seconds,
+            },
+        })),
+        Message::Set(toggle) => Some(Action::new(Command::Toggle(toggle))),
+        Message::Clear => Some(Action::new(Command::Clear)),
         other => match model.screen {
             Screen::Library => {
                 handlers::library_handler::handle_library(model, other)
