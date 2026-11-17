@@ -1,13 +1,10 @@
 use bitflags::bitflags;
 use mpd::{Id, Song, Status, Subsystem};
 use std::fmt;
-use std::io;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc::{self, SyncSender, TrySendError};
-use std::sync::Arc;
-use std::thread::{self, JoinHandle};
-use std::time::{Duration, Instant};
-use tokio::sync::mpsc as events;
+use std::time::Duration;
+use tokio::sync::mpsc;
+use tokio::task::JoinHandle;
+use tokio::time::sleep;
 
 mod connection;
 mod worker;
@@ -63,6 +60,11 @@ pub struct Snapshot {
 }
 
 pub enum Event {
+    Connected {
+        session: Session,
+        snapshot: Box<Snapshot>,
+    },
+    Disconnected(String),
     Completed {
         snapshot: Box<Snapshot>,
         error: Option<String>,
@@ -95,7 +97,7 @@ impl fmt::Display for SubmitError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Full => write!(f, "MPD request queue is full"),
-            Self::Closed => write!(f, "MPD worker has stopped"),
+            Self::Closed => write!(f, "MPD is disconnected"),
         }
     }
 }
@@ -107,144 +109,97 @@ enum Request {
     Refresh(Refresh),
 }
 
-#[derive(Clone)]
-struct EventSender {
-    sender: events::Sender<Event>,
-    stopped: Arc<AtomicBool>,
+pub struct Session {
+    requests: mpsc::Sender<Request>,
+    reads: mpsc::Sender<ReadRequest>,
 }
 
-impl EventSender {
-    fn send(&self, mut event: Event) -> bool {
-        while !self.stopped.load(Ordering::Acquire) {
-            match self.sender.try_send(event) {
-                Ok(()) => return true,
-                Err(events::error::TrySendError::Closed(_)) => return false,
-                Err(events::error::TrySendError::Full(pending)) => {
-                    event = pending;
-                    thread::sleep(Duration::from_millis(5));
-                }
-            }
-        }
-        false
-    }
-}
-
-pub struct Backend {
-    commands: Option<SyncSender<Request>>,
-    reads: Option<SyncSender<ReadRequest>>,
-    idle: Option<SyncSender<()>>,
-    stopped: Arc<AtomicBool>,
-    endpoint: Arc<connection::SharedEndpoint>,
-    sockets: Vec<Arc<connection::SocketControl>>,
-    workers: Vec<JoinHandle<()>>,
-}
-
-impl Backend {
-    pub fn start(
-        address: Option<String>,
-    ) -> io::Result<(Self, events::Receiver<Event>)> {
-        let (event_sender, receiver) = events::channel(64);
-        let stopped = Arc::new(AtomicBool::new(false));
-        let sender = EventSender {
-            sender: event_sender,
-            stopped: stopped.clone(),
-        };
-        let (commands, command_receiver) = mpsc::sync_channel(32);
-        let (reads, read_receiver) = mpsc::sync_channel(8);
-        let (idle, idle_receiver) = mpsc::sync_channel(1);
-        let endpoint =
-            Arc::new(connection::SharedEndpoint::new(stopped.clone()));
-        let mut backend = Self {
-            commands: Some(commands),
-            reads: Some(reads),
-            idle: Some(idle),
-            stopped,
-            endpoint,
-            sockets: Vec::new(),
-            workers: Vec::new(),
-        };
-
-        let socket = backend.socket();
-        let endpoint = backend.endpoint.clone();
-        let worker_sender = sender.clone();
-        backend.spawn("command", move || {
-            worker::commands(
-                address,
-                endpoint,
-                socket,
-                command_receiver,
-                worker_sender,
-            );
-        })?;
-        let socket = backend.socket();
-        let endpoint = backend.endpoint.clone();
-        let worker_sender = sender.clone();
-        backend.spawn("library", move || {
-            worker::reads(endpoint, socket, read_receiver, worker_sender);
-        })?;
-        let socket = backend.socket();
-        let endpoint = backend.endpoint.clone();
-        backend.spawn("idle", move || {
-            worker::idle(endpoint, socket, idle_receiver, sender);
-        })?;
-        Ok((backend, receiver))
-    }
-
+impl Session {
     pub fn try_command(&self, command: Command) -> Result<(), SubmitError> {
-        submit(&self.commands, Request::Command(command))
+        submit(&self.requests, Request::Command(command))
     }
 
     pub fn try_refresh(&self, refresh: Refresh) -> Result<(), SubmitError> {
-        submit(&self.commands, Request::Refresh(refresh))
+        submit(&self.requests, Request::Refresh(refresh))
     }
 
     pub fn try_read(&self, request: ReadRequest) -> Result<(), SubmitError> {
         submit(&self.reads, request)
     }
+}
 
-    pub fn try_idle_poll(&self) -> Result<(), SubmitError> {
-        submit(&self.idle, ())
-    }
+pub struct Backend(JoinHandle<()>);
 
-    pub fn shutdown(&mut self) {
-        self.stopped.store(true, Ordering::Release);
-        self.endpoint.wake();
-        self.commands.take();
-        self.reads.take();
-        self.idle.take();
-        for socket in &self.sockets {
-            socket.close();
-        }
-        let deadline = Instant::now() + Duration::from_millis(250);
-        while self.workers.iter().any(|worker| !worker.is_finished())
-            && Instant::now() < deadline
-        {
-            thread::sleep(Duration::from_millis(5));
-        }
-        for worker in self.workers.drain(..) {
-            if worker.is_finished() {
-                let _ = worker.join();
+impl Backend {
+    pub fn start(address: Option<String>) -> (Self, mpsc::Receiver<Event>) {
+        let (events, receiver) = mpsc::channel(64);
+        let task = tokio::spawn(async move {
+            let (mut client, address) =
+                match connection::select(address.as_deref()).await {
+                    Ok(connection) => connection,
+                    Err(error) => {
+                        let _ = events.send(Event::Error(error)).await;
+                        return;
+                    }
+                };
+            let mut idle = match address.connect().await {
+                Ok(client) => client,
+                Err(error) => {
+                    let _ = events
+                        .send(Event::Error(format!("{address}: {error}")))
+                        .await;
+                    return;
+                }
+            };
+            loop {
+                let result = worker::run(client, idle, &address, &events).await;
+                if events.is_closed() {
+                    return;
+                }
+                let error = result
+                    .err()
+                    .unwrap_or_else(|| "MPD session stopped".into());
+                let reconnect =
+                    error.downcast_ref::<mpd::error::Error>().is_some_and(
+                        |error| matches!(error, mpd::error::Error::Io(_)),
+                    ) || error.is::<std::io::Error>();
+                if !reconnect {
+                    let _ = events
+                        .send(Event::Error(format!(
+                            "MPD at {address}: {error}"
+                        )))
+                        .await;
+                    return;
+                }
+                if events
+                    .send(Event::Disconnected(format!(
+                        "MPD at {address}: {error}"
+                    )))
+                    .await
+                    .is_err()
+                {
+                    return;
+                }
+                loop {
+                    sleep(Duration::from_secs(1)).await;
+                    if events.is_closed() {
+                        return;
+                    }
+                    if let Ok(next) = address.connect().await {
+                        if let Ok(next_idle) = address.connect().await {
+                            client = next;
+                            idle = next_idle;
+                            break;
+                        }
+                    }
+                }
             }
-        }
+        });
+        (Self(task), receiver)
     }
 
-    fn socket(&mut self) -> Arc<connection::SocketControl> {
-        let socket =
-            Arc::new(connection::SocketControl::new(self.stopped.clone()));
-        self.sockets.push(socket.clone());
-        socket
-    }
-
-    fn spawn(
-        &mut self,
-        name: &str,
-        worker: impl FnOnce() + Send + 'static,
-    ) -> io::Result<()> {
-        let worker = thread::Builder::new()
-            .name(format!("inori-mpd-{name}"))
-            .spawn(worker)?;
-        self.workers.push(worker);
-        Ok(())
+    pub fn shutdown(&self) {
+        self.0.abort();
     }
 }
 
@@ -254,16 +209,9 @@ impl Drop for Backend {
     }
 }
 
-fn submit<T>(
-    sender: &Option<SyncSender<T>>,
-    request: T,
-) -> Result<(), SubmitError> {
-    sender
-        .as_ref()
-        .ok_or(SubmitError::Closed)?
-        .try_send(request)
-        .map_err(|error| match error {
-            TrySendError::Full(_) => SubmitError::Full,
-            TrySendError::Disconnected(_) => SubmitError::Closed,
-        })
+fn submit<T>(sender: &mpsc::Sender<T>, request: T) -> Result<(), SubmitError> {
+    sender.try_send(request).map_err(|error| match error {
+        mpsc::error::TrySendError::Full(_) => SubmitError::Full,
+        mpsc::error::TrySendError::Closed(_) => SubmitError::Closed,
+    })
 }

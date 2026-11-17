@@ -87,15 +87,7 @@ pub fn handle_search(model: &mut Model, k: KeyEvent) -> Option<Action> {
                 }
             } else {
                 model.library.pending_jump = None;
-                if model.library.global_search.storage_len() != 0
-                    && model.library.global_search.selected_item().is_none()
-                {
-                    model.library.global_search.set_selected(Some(0));
-                }
-                if let Some(item) = model.library.global_search.selected_item()
-                {
-                    model.jump_to(item.clone());
-                }
+                model.finish_global_search();
                 None
             }
         }

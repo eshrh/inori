@@ -141,7 +141,7 @@ pub fn handle_search_k_tracksel(
             SearchEditOutcome::Continue => {}
         }
     }
-    artist.update_search(matcher, aliases);
+    artist.update_search_query(matcher, aliases);
     None
 }
 
@@ -168,7 +168,7 @@ pub fn handle_search_k<T>(
             SearchEditOutcome::Continue => {}
         }
     }
-    s.update_filter_cache(matcher, Some(top_k));
+    s.update_filter_query(matcher, Some(top_k));
     s.watch_oob();
     None
 }

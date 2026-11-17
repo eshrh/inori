@@ -1,5 +1,4 @@
 extern crate mpd;
-use super::search_utils::{compute_indices, compute_orders};
 use super::*;
 
 pub trait SelectorState {
@@ -81,57 +80,39 @@ pub trait Searchable<T>: Selector {
         matcher: &mut Matcher,
         top_k: Option<usize>,
     ) {
+        self.update_filter(matcher, top_k, false);
+    }
+
+    fn update_filter_query(
+        &mut self,
+        matcher: &mut Matcher,
+        top_k: Option<usize>,
+    ) {
+        self.update_filter(matcher, top_k, true);
+    }
+
+    fn update_filter(
+        &mut self,
+        matcher: &mut Matcher,
+        top_k: Option<usize>,
+        query_edit: bool,
+    ) {
         if self.filter().cache.query == self.filter().query {
             return;
         }
-
         if self.filter().cache.utfstrings_cache.is_none() {
             let Some(cache) = self.build_utfstrings_cache() else {
-                self.filter_mut().cache.order.clear();
-                self.filter_mut().cache.indices.clear();
+                self.filter_mut().cache.clear_matches();
                 return;
             };
-            self.filter_mut().cache.utfstrings_cache = Some(cache);
+            self.filter_mut().cache.utfstrings_cache = Some(cache.into());
         }
-
-        let query = self.filter().query.clone();
-        let order = {
-            let Some(cache) = self.filter().cache.utfstrings_cache.as_ref()
-            else {
-                return;
-            };
-            compute_orders(&query, cache, matcher, 0)
-        };
-        let strings: Vec<&Utf32String> = {
-            let Some(cache) = self.filter().cache.utfstrings_cache.as_ref()
-            else {
-                return;
-            };
-            let strings_iterator = order
-                .iter()
-                .take_while(|i| i.is_some())
-                .filter_map(|i| i.and_then(|idx| cache.get(idx)));
-            if let Some(k) = top_k {
-                strings_iterator.take(k).collect()
-            } else {
-                strings_iterator.collect()
-            }
-        };
-        let indices = compute_indices(&query, strings, matcher);
-
-        self.filter_mut().cache.query = query;
-        self.filter_mut().cache.order = order;
-        self.filter_mut().cache.indices = indices;
+        self.filter_mut().update_matches(matcher, top_k, query_edit);
     }
 
     fn display_to_storage(&self, display_idx: usize) -> Option<usize> {
         if self.should_filter() {
-            self.filter()
-                .cache
-                .order
-                .get(display_idx)
-                .copied()
-                .flatten()
+            self.filter().cache.order.get(display_idx).copied()
         } else {
             Some(display_idx)
         }
@@ -141,9 +122,10 @@ pub trait Searchable<T>: Selector {
         if self.should_filter() {
             self.filter()
                 .cache
-                .order
-                .iter()
-                .position(|idx| *idx == Some(storage_idx))
+                .ranks
+                .get(storage_idx)
+                .copied()
+                .flatten()
         } else {
             (storage_idx < self.storage_len()).then_some(storage_idx)
         }
@@ -151,12 +133,7 @@ pub trait Searchable<T>: Selector {
 
     fn display_len(&self) -> usize {
         if self.should_filter() {
-            self.filter()
-                .cache
-                .order
-                .iter()
-                .filter(|i| i.is_some())
-                .count()
+            self.filter().cache.order.len()
         } else {
             self.storage_len()
         }
@@ -181,7 +158,7 @@ pub trait Searchable<T>: Selector {
     }
     fn should_filter(&self) -> bool {
         self.filter().active
-            && self.filter().cache.order.iter().any(|i| i.is_some())
+            && !self.filter().cache.order.is_empty()
             && !self.filter().query.is_empty()
     }
 }

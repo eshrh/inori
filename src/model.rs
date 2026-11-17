@@ -1,6 +1,7 @@
 extern crate mpd;
 use std::collections::HashSet;
 use std::error::Error;
+use std::sync::Arc;
 //use mpd::error::Result;
 use mpd::{Song, Status};
 use nucleo_matcher::{Matcher, Utf32String};
@@ -13,9 +14,9 @@ mod impl_library;
 mod impl_queue;
 mod impl_searchstate;
 pub mod proto;
-mod search_utils;
 pub mod title_alias;
 use crate::config::Config;
+use crate::matching::{rank, Job, Matched, Target};
 use crate::model::proto::*;
 use crate::model::title_alias::{
     AliasMaps, JsonTitleAliasStore, NoopTitleAliasStore, TitleAliasStore,
@@ -83,9 +84,10 @@ pub enum LibActiveSelector {
 
 pub struct FilterCache {
     pub query: String,
-    pub order: Vec<Option<usize>>,
+    pub order: Vec<usize>,
     pub indices: Vec<Vec<u32>>,
-    pub utfstrings_cache: Option<Vec<Utf32String>>,
+    pub ranks: Vec<Option<usize>>,
+    pub utfstrings_cache: Option<Arc<[Utf32String]>>,
 }
 
 pub struct Filter {
@@ -214,6 +216,120 @@ impl Model {
         Ok(())
     }
 
+    pub fn pending_search(&self) -> Option<Job> {
+        let top_k = Some(self.frame_size.height.into());
+        match self.screen {
+            Screen::Queue => {
+                self.queue.songs.filter.pending_search(Target::Queue, top_k)
+            }
+            Screen::Library => {
+                if self.library.global_search.entries.filter.active {
+                    self.library
+                        .global_search
+                        .entries
+                        .filter
+                        .pending_search(Target::Global, top_k)
+                } else {
+                    match self.library.active {
+                        LibActiveSelector::ArtistSelector => self
+                            .library
+                            .artists
+                            .filter
+                            .pending_search(Target::Artists, top_k),
+                        LibActiveSelector::TrackSelector => {
+                            let artist = self.library.selected_item()?;
+                            artist.search.pending_search(
+                                Target::Tracks(artist.name.clone()),
+                                None,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn complete_pending_search(&mut self) {
+        let Some(job) = self.pending_search() else {
+            return;
+        };
+        let matches = rank(
+            &job.query,
+            &job.haystacks,
+            &mut self.matcher,
+            job.top_k,
+            || false,
+        )
+        .unwrap();
+        self.apply_match(Matched {
+            target: job.target,
+            query: job.query,
+            haystacks: job.haystacks,
+            matches,
+        });
+    }
+
+    pub fn apply_match(&mut self, matched: Matched) -> bool {
+        let filter = match &matched.target {
+            Target::Global => {
+                Some(&mut self.library.global_search.entries.filter)
+            }
+            Target::Artists => Some(&mut self.library.artists.filter),
+            Target::Queue => Some(&mut self.queue.songs.filter),
+            Target::Tracks(name) => self
+                .library
+                .artists
+                .items
+                .iter_mut()
+                .find(|artist| artist.name == *name)
+                .map(|artist| &mut artist.search),
+        };
+        let Some(filter) = filter else {
+            return false;
+        };
+        if !filter.active
+            || filter.query != matched.query
+            || filter.cache.query == matched.query
+            || !filter.cache.utfstrings_cache.as_ref().is_some_and(
+                |haystacks| Arc::ptr_eq(haystacks, &matched.haystacks),
+            )
+        {
+            return false;
+        }
+        filter.cache.apply(matched.query, matched.matches);
+        match matched.target {
+            Target::Global => self.finish_global_search(),
+            Target::Artists => self.library.watch_oob(),
+            Target::Queue => self.queue.watch_oob(),
+            Target::Tracks(name) => {
+                if let Some(artist) = self
+                    .library
+                    .artists
+                    .items
+                    .iter_mut()
+                    .find(|artist| artist.name == name)
+                {
+                    artist.apply_search_matches();
+                }
+            }
+        }
+        true
+    }
+
+    pub fn finish_global_search(&mut self) {
+        let filter = &self.library.global_search.entries.filter;
+        if !filter.active || filter.cache.query != filter.query {
+            return;
+        }
+        self.library.global_search.watch_oob();
+        self.library.global_search.init();
+        if let Some(target) =
+            self.library.global_search.selected_item().cloned()
+        {
+            self.jump_to(target);
+        }
+    }
+
     pub fn apply_global_search_contents(&mut self, songs: Vec<Song>) {
         let selected = self.library.global_search.selected_item().cloned();
         let selected_index = self.library.global_search.selected();
@@ -304,6 +420,13 @@ impl Model {
         }
         self.library.global_search.entries.replace_items(entries);
         self.library.global_search.loaded = true;
+        let haystacks = self.library.global_search.build_utfstrings_cache();
+        self.library
+            .global_search
+            .entries
+            .filter
+            .cache
+            .utfstrings_cache = haystacks.map(Into::into);
         if self.library.global_search.entries.filter.active {
             self.library.global_search.update_filter_cache(
                 &mut self.matcher,
@@ -331,13 +454,7 @@ impl Model {
         });
         self.library.global_search.set_selected(selected);
         self.library.global_search.init();
-        if self.library.global_search.entries.filter.active {
-            if let Some(target) =
-                self.library.global_search.selected_item().cloned()
-            {
-                self.jump_to(target);
-            }
-        }
+        self.finish_global_search();
     }
 
     pub fn jump_to(&mut self, target: InfoEntry) {

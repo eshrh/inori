@@ -1,4 +1,5 @@
 use super::*;
+use crate::matching::{rank, Matches, SYNC_LIMIT};
 use crate::view::search_doc::{build_alias_search_doc, SearchProjection};
 
 impl FilterCache {
@@ -7,6 +8,7 @@ impl FilterCache {
             query: String::new(),
             order: Vec::new(),
             indices: Vec::new(),
+            ranks: Vec::new(),
             utfstrings_cache: None,
         }
     }
@@ -14,6 +16,14 @@ impl FilterCache {
         self.query.clear();
         self.order.clear();
         self.indices.clear();
+        self.ranks.clear();
+    }
+
+    pub fn apply(&mut self, query: String, matches: Matches) {
+        self.query = query;
+        self.order = matches.order;
+        self.indices = matches.indices;
+        self.ranks = matches.ranks;
     }
 }
 
@@ -35,6 +45,49 @@ impl Filter {
     }
     pub fn reset_cache(&mut self) {
         self.cache = FilterCache::new();
+    }
+
+    pub fn update_matches(
+        &mut self,
+        matcher: &mut Matcher,
+        top_k: Option<usize>,
+        query_edit: bool,
+    ) -> bool {
+        if self.cache.query == self.query {
+            return false;
+        }
+        if self.query.is_empty() {
+            self.cache.clear_matches();
+            return true;
+        }
+        let Some(haystacks) = &self.cache.utfstrings_cache else {
+            return false;
+        };
+        if query_edit && haystacks.len() > SYNC_LIMIT {
+            return false;
+        }
+        let matches =
+            rank(&self.query, haystacks, matcher, top_k, || false).unwrap();
+        self.cache.apply(self.query.clone(), matches);
+        true
+    }
+
+    pub fn pending_search(
+        &self,
+        target: Target,
+        top_k: Option<usize>,
+    ) -> Option<Job> {
+        let haystacks = self.cache.utfstrings_cache.as_ref()?;
+        (self.active
+            && self.query != self.cache.query
+            && !self.query.is_empty()
+            && haystacks.len() > SYNC_LIMIT)
+            .then(|| Job {
+                target,
+                query: self.query.clone(),
+                haystacks: haystacks.clone(),
+                top_k,
+            })
     }
 }
 

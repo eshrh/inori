@@ -2,7 +2,7 @@
 name = "inori"
 version = "0.3.0"
 edition = "2021"
-rust-version = "1.82"
+rust-version = "1.88"
 authors = ["esrh <esrh@esrh.me>"]
 description = "mpd client"
 homepage = "https://github.com/eshrh/inori"
@@ -20,12 +20,14 @@ ratatui = { version = "0.30.0", features = ["serde"] }
 nucleo-matcher = "0.3.1"
 itertools = "0.14.0"
 bitflags = "2.11.0"
-tokio = { version = "1", features = ["rt", "macros", "sync", "time"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "sync", "time"] }
 toml = "1.0.4"
 platform-dirs = "0.3.0"
 serde_json = "1.0.145"
 serde = { version = "1.0.228", features = ["derive"] }
 
 [dependencies.mpd]
-version = "0.2.3"
+version = "0.3.0"
 package = "inori-mpd"
+path = "../inori-mpd"
+features = ["async"]

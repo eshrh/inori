@@ -109,7 +109,16 @@ fn parse_msg(
     }
 }
 
+pub fn search_boundary(key: KeyEvent) -> bool {
+    matches!(key.code, KeyCode::Enter | KeyCode::Esc | KeyCode::Tab)
+        || (key.modifiers.contains(event::KeyModifiers::CONTROL)
+            && matches!(key.code, KeyCode::Char('n' | 'p')))
+}
+
 pub fn handle_key(model: &mut Model, key: KeyEvent) -> Option<Action> {
+    if matches!(model.state, State::Searching) && search_boundary(key) {
+        model.complete_pending_search();
+    }
     match model.state {
         State::Searching => match model.screen {
             Screen::Library => {

@@ -2,6 +2,7 @@ use crate::backend::{
     self, Backend, Command, ReadRequest, Refresh, SubmitError,
 };
 use crate::event_handler::{EventHandler, Result};
+use crate::matching::{MatchingWorker, Target};
 use crate::model::proto::{Searchable, Selector};
 use crate::model::{Model, Screen, State};
 use crate::{update, view};
@@ -18,10 +19,14 @@ use tokio::time::{self, MissedTickBehavior};
 pub struct App {
     model: Model,
     backend: Backend,
+    session: Option<backend::Session>,
     events: mpsc::Receiver<backend::Event>,
     input: EventHandler,
+    matching: MatchingWorker,
+    searching: Option<(Target, String)>,
     loads: Loads,
     unacked: VecDeque<Option<QueueEdit>>,
+    want: Refresh,
 }
 
 #[derive(Default)]
@@ -31,7 +36,6 @@ struct Loads {
     tracks: HashSet<String>,
     global_search: bool,
     refresh: bool,
-    idle: bool,
 }
 
 #[derive(Clone, Copy)]
@@ -79,15 +83,22 @@ impl QueueEdit {
 
 impl App {
     pub fn new(model: Model) -> Result<Self> {
+        let mut config = nucleo_matcher::Config::DEFAULT;
+        config.prefer_prefix = model.config.nucleo_prefer_prefix;
+        let matching = MatchingWorker::new(config)?;
         let (backend, events) =
-            Backend::start(model.config.mpd_address.clone())?;
+            Backend::start(model.config.mpd_address.clone());
         Ok(Self {
             model,
             backend,
+            session: None,
             events,
             input: EventHandler::new(),
+            matching,
+            searching: None,
             loads: Loads::default(),
             unacked: VecDeque::new(),
+            want: Refresh::empty(),
         })
     }
 
@@ -100,7 +111,7 @@ impl App {
     {
         let mut ticks = time::interval(Duration::from_millis(500));
         ticks.set_missed_tick_behavior(MissedTickBehavior::Skip);
-        self.schedule_loads()?;
+        self.schedule_loads();
         self.draw(terminal)?;
         loop {
             let redraw = tokio::select! {
@@ -108,8 +119,17 @@ impl App {
                 event = self.events.recv() => {
                     self.apply(event.ok_or("MPD workers stopped")?)?
                 }
+                matched = self.matching.next() => {
+                    let matched = matched.ok_or("search worker stopped")?;
+                    if self.searching.as_ref().is_some_and(|(target, query)| {
+                        *target == matched.target && *query == matched.query
+                    }) {
+                        self.searching = None;
+                    }
+                    self.model.apply_match(matched)
+                }
                 _ = ticks.tick() => {
-                    self.poll()?;
+                    self.want |= Refresh::STATUS;
                     false
                 }
             };
@@ -119,7 +139,8 @@ impl App {
                 return Ok(());
             }
             update::update_screens(&mut self.model);
-            self.schedule_loads()?;
+            self.schedule_loads();
+            self.schedule_search();
             if redraw {
                 self.draw(terminal)?;
             }
@@ -130,16 +151,23 @@ impl App {
         match event {
             Event::Key(key) if key.kind != KeyEventKind::Release => {
                 self.model.error = None;
+                if update::search_boundary(key) {
+                    self.matching.cancel();
+                    self.searching = None;
+                }
                 if let Some(action) = update::handle_key(&mut self.model, key) {
                     let edit = QueueEdit::from_command(&action.command);
-                    match self.backend.try_command(action.command) {
+                    match self
+                        .session
+                        .as_ref()
+                        .ok_or(SubmitError::Closed)
+                        .and_then(|session| session.try_command(action.command))
+                    {
                         Ok(()) => {}
-                        Err(SubmitError::Full) => {
-                            self.model.error =
-                                Some(SubmitError::Full.to_string());
+                        Err(error) => {
+                            self.model.error = Some(error.to_string());
                             return Ok(true);
                         }
-                        Err(error) => return Err(error.into()),
                     }
                     if let Some(message) = action.on_accept {
                         let next = update::handle_msg(&mut self.model, message);
@@ -171,37 +199,39 @@ impl App {
         Ok(true)
     }
 
-    fn poll(&mut self) -> Result<()> {
-        if !self.loads.refresh {
-            self.loads.refresh =
-                submitted(self.backend.try_refresh(Refresh::all()))?;
+    fn schedule_loads(&mut self) {
+        let Some(session) = &self.session else {
+            return;
+        };
+        if !self.loads.refresh
+            && !self.want.is_empty()
+            && session.try_refresh(self.want).is_ok()
+        {
+            self.loads.refresh = true;
+            self.want = Refresh::empty();
         }
-        if !self.loads.idle {
-            self.loads.idle = submitted(self.backend.try_idle_poll())?;
-        }
-        Ok(())
-    }
-
-    fn schedule_loads(&mut self) -> Result<()> {
         if !matches!(self.model.screen, Screen::Library) {
-            return Ok(());
+            return;
         }
         let generation = self.loads.generation;
         if !self.model.library.loaded {
             if !self.loads.artists {
-                self.loads.artists = submitted(
-                    self.backend.try_read(ReadRequest::Artists { generation }),
-                )?;
+                self.loads.artists = session
+                    .try_read(ReadRequest::Artists { generation })
+                    .is_ok();
             }
-            return Ok(());
+            return;
         }
         if let Some(artist) = self.model.library.selected_item() {
             if !artist.fetched && !self.loads.tracks.contains(&artist.name) {
                 let name = artist.name.clone();
-                if submitted(self.backend.try_read(ReadRequest::Tracks {
-                    generation,
-                    artist: name.clone(),
-                }))? {
+                if session
+                    .try_read(ReadRequest::Tracks {
+                        generation,
+                        artist: name.clone(),
+                    })
+                    .is_ok()
+                {
                     self.loads.tracks.insert(name);
                 }
             }
@@ -210,16 +240,44 @@ impl App {
             && !self.model.library.global_search.loaded
             && !self.loads.global_search
         {
-            self.loads.global_search = submitted(
-                self.backend
-                    .try_read(ReadRequest::GlobalSearch { generation }),
-            )?;
+            self.loads.global_search = session
+                .try_read(ReadRequest::GlobalSearch { generation })
+                .is_ok();
         }
-        Ok(())
+    }
+
+    fn schedule_search(&mut self) {
+        let job = self.model.pending_search();
+        let target = job
+            .as_ref()
+            .map(|job| (job.target.clone(), job.query.clone()));
+        if self.searching != target {
+            self.searching = target;
+            if let Some(job) = job {
+                self.matching.submit(job);
+            } else {
+                self.matching.cancel();
+            }
+        }
     }
 
     fn apply(&mut self, event: backend::Event) -> Result<bool> {
         match event {
+            backend::Event::Connected { session, snapshot } => {
+                self.apply_snapshot(*snapshot);
+                self.session = Some(session);
+                self.model.error = None;
+                self.loads.refresh = false;
+                self.invalidate_library();
+            }
+            backend::Event::Disconnected(error) => {
+                self.session = None;
+                self.unacked.clear();
+                self.loads.refresh = false;
+                self.want = Refresh::empty();
+                self.model.error = Some(error);
+                self.invalidate_library();
+            }
             backend::Event::Completed { snapshot, error } => {
                 let pending = self.unacked.pop_front();
                 debug_assert!(pending.is_some());
@@ -258,17 +316,22 @@ impl App {
                 self.model.apply_global_search_contents(songs);
             }
             backend::Event::Idle(changes) => {
-                self.loads.idle = false;
                 if changes.is_empty() {
                     return Ok(false);
                 }
                 if changes.contains(&Subsystem::Database) {
-                    self.loads.generation += 1;
-                    self.loads.artists = false;
-                    self.loads.tracks.clear();
-                    self.loads.global_search = false;
-                    self.model.library.loaded = false;
-                    self.model.library.global_search.loaded = false;
+                    self.invalidate_library();
+                }
+                if changes.contains(&Subsystem::Queue) {
+                    self.want |= Refresh::all();
+                }
+                if changes.contains(&Subsystem::Player) {
+                    self.want |= Refresh::STATUS | Refresh::CURRENT_SONG;
+                }
+                if changes.contains(&Subsystem::Options)
+                    || changes.contains(&Subsystem::Update)
+                {
+                    self.want |= Refresh::STATUS;
                 }
                 if changes.contains(&Subsystem::Database)
                     || changes.contains(&Subsystem::Update)
@@ -280,6 +343,15 @@ impl App {
             _ => return Ok(false),
         }
         Ok(true)
+    }
+
+    fn invalidate_library(&mut self) {
+        self.loads.generation += 1;
+        self.loads.artists = false;
+        self.loads.tracks.clear();
+        self.loads.global_search = false;
+        self.model.library.loaded = false;
+        self.model.library.global_search.loaded = false;
     }
 
     fn apply_snapshot(&mut self, snapshot: backend::Snapshot) {
@@ -317,13 +389,5 @@ impl App {
             view::view(&mut self.model, frame);
         })?;
         Ok(())
-    }
-}
-
-fn submitted(result: std::result::Result<(), SubmitError>) -> Result<bool> {
-    match result {
-        Ok(()) => Ok(true),
-        Err(SubmitError::Full) => Ok(false),
-        Err(error) => Err(error.into()),
     }
 }

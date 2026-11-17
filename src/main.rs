@@ -16,14 +16,24 @@ mod app;
 mod backend;
 mod config;
 mod event_handler;
+mod matching;
 mod model;
 mod update;
 mod util;
 mod view;
 use event_handler::Result;
 
-#[tokio::main(flavor = "current_thread")]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(2)
+        .enable_all()
+        .build()?;
+    let result = runtime.block_on(run());
+    runtime.shutdown_timeout(std::time::Duration::from_millis(250));
+    result
+}
+
+async fn run() -> Result<()> {
     let hook = panic::take_hook();
     panic::set_hook(Box::new(move |panic| {
         let _ = reset_terminal();

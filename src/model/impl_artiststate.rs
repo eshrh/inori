@@ -1,8 +1,6 @@
 use super::*;
-use crate::model::search_utils::compute_orders;
 use crate::util::song_to_search_str;
 use crate::view::search_doc::build_alias_search_doc;
-use search_utils::compute_indices;
 
 impl Selector for ArtistData {
     fn selector(&self) -> &impl SelectorState {
@@ -47,12 +45,7 @@ impl<'a> ArtistData {
     }
 
     fn find_rank(&self, idx: usize) -> Option<usize> {
-        self.search
-            .cache
-            .order
-            .iter()
-            .take_while(|i| i.is_some())
-            .position(|i| *i == Some(idx))
+        self.search.cache.ranks.get(idx).copied().flatten()
     }
     pub fn expand_all(&mut self) {
         for album in &mut self.albums {
@@ -150,6 +143,23 @@ impl<'a> ArtistData {
         matcher: &mut Matcher,
         aliases: &AliasMaps,
     ) {
+        self.update_search_cache(matcher, aliases, false);
+    }
+
+    pub fn update_search_query(
+        &mut self,
+        matcher: &mut Matcher,
+        aliases: &AliasMaps,
+    ) {
+        self.update_search_cache(matcher, aliases, true);
+    }
+
+    fn update_search_cache(
+        &mut self,
+        matcher: &mut Matcher,
+        aliases: &AliasMaps,
+        query_edit: bool,
+    ) {
         if self.search.cache.query == self.search.query {
             return;
         }
@@ -173,40 +183,22 @@ impl<'a> ArtistData {
                     )));
                 }
             }
-            self.search.cache.utfstrings_cache = Some(tmp);
+            self.search.cache.utfstrings_cache = Some(tmp.into());
         }
-        let Some(cache) = self.search.cache.utfstrings_cache.as_ref() else {
-            return;
-        };
-        self.search.cache.order =
-            compute_orders(&self.search.query, cache, matcher, 0);
-        let strings_for_indices: Vec<&Utf32String> = self
-            .search
-            .cache
-            .order
-            .iter()
-            .take_while(|i| i.is_some())
-            .filter_map(|i| i.and_then(|idx| cache.get(idx)))
-            .collect();
+        if self.search.update_matches(matcher, None, query_edit) {
+            self.apply_search_matches();
+        }
+    }
 
-        self.search.cache.indices =
-            compute_indices(&self.search.query, strings_for_indices, matcher);
-        self.search.cache.query = self.search.query.clone();
-
-        if self.search.cache.order.iter().any(|i| i.is_some()) {
-            let mut i = 0;
-            for album in self.albums.iter_mut() {
-                album.expanded = false;
-                if self.search.cache.order.contains(&Some(i)) {
-                    album.expanded = true;
-                }
-                i += 1;
-                for _ in &album.tracks {
-                    if self.search.cache.order.contains(&Some(i)) {
-                        album.expanded = true;
-                    }
-                    i += 1
-                }
+    pub fn apply_search_matches(&mut self) {
+        if !self.search.cache.order.is_empty() {
+            let mut index = 0;
+            for album in &mut self.albums {
+                let end = index + 1 + album.tracks.len();
+                album.expanded = self.search.cache.ranks[index..end]
+                    .iter()
+                    .any(Option::is_some);
+                index = end;
             }
         }
         let mut top_idx: Option<usize> = None;
