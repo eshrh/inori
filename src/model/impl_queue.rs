@@ -58,6 +58,56 @@ impl QueueSelector {
 
     pub fn set_aliases(&mut self, aliases: &AliasMaps) {
         self.aliases = aliases.clone();
-        self.songs.filter.reset_cache();
+        self.songs.filter.cache.query.clear();
+        self.songs.filter.cache.utfstrings_cache = None;
+    }
+
+    pub fn id_at(&self, index: usize) -> Option<mpd::Id> {
+        self.display_get(index)?.place.map(|place| place.id)
+    }
+
+    pub fn selected_id(&self) -> Option<mpd::Id> {
+        self.selected().and_then(|index| self.id_at(index))
+    }
+
+    pub fn replace_songs(
+        &mut self,
+        songs: Vec<Song>,
+        matcher: &mut Matcher,
+        top_k: usize,
+    ) {
+        let selected_id = self.selected_id();
+        let selected_index = self.selected();
+        if self.songs.items != songs {
+            self.songs.replace_items(songs);
+        }
+        if self.songs.filter.active {
+            self.update_filter_cache(matcher, Some(top_k));
+        }
+
+        let selected = selected_id
+            .and_then(|id| {
+                let index =
+                    self.songs.items.iter().position(|song| {
+                        song.place.is_some_and(|p| p.id == id)
+                    })?;
+                if self.should_filter() {
+                    self.songs
+                        .filter
+                        .cache
+                        .order
+                        .iter()
+                        .position(|i| *i == Some(index))
+                } else {
+                    Some(index)
+                }
+            })
+            .or_else(|| {
+                let len = self.display_len();
+                selected_index
+                    .filter(|_| len != 0)
+                    .map(|index| index.min(len - 1))
+            });
+        self.set_selected(selected);
     }
 }

@@ -106,8 +106,12 @@ pub fn update_screens(model: &mut Model, mut update: Update) -> Result<()> {
             update |= Update::STATUS;
         }
     }
-    if update.contains(Update::QUEUE) {
-        model.queue.songs.replace_items(model.conn.queue()?);
+    if update.intersects(Update::QUEUE | Update::START_PLAYING) {
+        model.queue.replace_songs(
+            model.conn.queue()?,
+            &mut model.matcher,
+            model.frame_size.height.into(),
+        );
     }
     if update.contains(Update::CURRENT_ARTIST)
         && model.library.selected_item_mut().is_some()
@@ -115,9 +119,6 @@ pub fn update_screens(model: &mut Model, mut update: Update) -> Result<()> {
         build_library::add_tracks(model)?;
     }
     if update.contains(Update::START_PLAYING) {
-        if !update.contains(Update::QUEUE) {
-            model.queue.songs.replace_items(model.conn.queue()?);
-        }
         model.update_status()?;
         if model.status.queue_len > 0 && model.status.state == mpd::State::Stop
         {

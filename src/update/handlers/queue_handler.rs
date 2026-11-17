@@ -18,41 +18,40 @@ pub fn handle_queue(model: &mut Model, msg: Message) -> Result<Update> {
             Ok(Update::empty())
         }
         Message::Select => {
-            if let Some(s) = model.queue.selected_item() {
-                if let Some(place) = s.place {
-                    model.conn.switch(place.pos)?;
-                }
-            }
+            let Some(id) = model.queue.selected_id() else {
+                return Ok(Update::empty());
+            };
+            model.conn.switch(id)?;
             Ok(Update::STATUS | Update::CURRENT_SONG)
         }
         Message::Direction(Dirs::Horiz(d)) => {
-            if model.queue.len() >= 2 {
-                if let Some(p) = model.queue.selected() {
-                    let to = match d {
-                        Horizontal::Left => {
-                            safe_subtract(p, 1, model.queue.len())
-                        }
-                        Horizontal::Right => safe_add(p, 1, model.queue.len()),
-                    };
-                    model.conn.swap(p as u32, to as u32)?;
-                    model.queue.set_selected(Some(to));
-                    model.queue.watch_oob();
-                }
-            }
+            let Some(index) = model.queue.selected() else {
+                return Ok(Update::empty());
+            };
+            let to = match d {
+                Horizontal::Left => index.checked_sub(1),
+                Horizontal::Right => index.checked_add(1),
+            };
+            let Some((from, to)) = model.queue.id_at(index).zip(
+                to.filter(|&i| i < model.queue.display_len())
+                    .and_then(|i| model.queue.id_at(i)),
+            ) else {
+                return Ok(Update::empty());
+            };
+            model.conn.swap(from, to)?;
             Ok(Update::STATUS | Update::QUEUE)
         }
         Message::Delete => {
-            if let Some(p) = model.queue.selected() {
-                model.conn.delete(p as u32)?;
-                let len = model.queue.len();
-                let next = if len == 0 {
-                    None
-                } else {
-                    Some(safe_subtract(p, 1, len))
-                };
-                model.queue.set_selected(next);
-                model.queue.watch_oob();
-            }
+            let Some(id) = model.queue.selected_id() else {
+                return Ok(Update::empty());
+            };
+            model.conn.delete(id)?;
+            let next = model.queue.selected().and_then(|index| {
+                index
+                    .checked_sub(1)
+                    .or_else(|| (model.queue.display_len() > 1).then_some(1))
+            });
+            model.queue.set_selected(next);
             Ok(Update::STATUS | Update::QUEUE)
         }
         Message::LocalSearch(SearchMsg::Start) => {
