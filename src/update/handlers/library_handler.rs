@@ -56,6 +56,7 @@ pub fn handle_library(model: &mut Model, msg: Message) -> Result<Update> {
             Ok(Update::empty())
         }
         Message::ToggleScreen => {
+            handle_library(model, Message::LocalSearch(SearchMsg::End))?;
             model.screen = Screen::Queue;
             Ok(Update::empty())
         }
