@@ -17,7 +17,7 @@
           pkgs.cargo
           pkgs.rustfmt
           pkgs.nixpkgs-fmt
-          pkgs.nodePackages.prettier
+          pkgs.prettier
         ];
         linters = [ pkgs.clippy pkgs.statix ];
       in
