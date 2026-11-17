@@ -23,16 +23,17 @@ mod view;
 use event_handler::{Event, Result};
 
 fn main() -> Result<()> {
-    stdout().execute(EnterAlternateScreen)?;
-    enable_raw_mode()?;
-    let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
-    terminal.clear()?;
-
     let hook = panic::take_hook();
     panic::set_hook(Box::new(move |panic| {
         let _ = reset_terminal();
         hook(panic);
     }));
+
+    let _terminal_guard = TerminalGuard;
+    stdout().execute(EnterAlternateScreen)?;
+    enable_raw_mode()?;
+    let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
+    terminal.clear()?;
 
     let mut model = model::Model::new(terminal.get_frame().area())?;
     update::update_tick(&mut model)?;
@@ -54,12 +55,21 @@ fn main() -> Result<()> {
             break;
         }
     }
-    let _ = reset_terminal();
     Ok(())
 }
 
+struct TerminalGuard;
+
+impl Drop for TerminalGuard {
+    fn drop(&mut self) {
+        let _ = reset_terminal();
+    }
+}
+
 fn reset_terminal() -> Result<()> {
-    stdout().execute(LeaveAlternateScreen)?;
-    disable_raw_mode()?;
+    let screen_result = stdout().execute(LeaveAlternateScreen).map(|_| ());
+    let raw_mode_result = disable_raw_mode();
+    screen_result?;
+    raw_mode_result?;
     Ok(())
 }
