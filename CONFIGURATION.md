@@ -9,12 +9,13 @@ For other operating systems, check the
 
 - `mpd_address`
   - Type: String
-  - Default: `localhost:6600`
-  - The host and port to check for mpd. Alternatively you can set the
-    `MPD_HOST` and `MPD_PORT` environment variables. Note that the
-    configuration option currently has precedence.
+  - Default: `""`
+  - If configured to a host & port url like `localhost:6600`, inori
+    tries only this address. If unset/default, inori tries to connect
+    to [defaults](https://mpd.readthedocs.io/en/stable/client.html#connecting-to-mpd)
+    based on the client manual.
 - `update_db_on_startup`
-  - Type: Boolean
+  - Type: bool
   - Default: `false`
   - Request an MPD database update once on startup, like `mpc update`.
 - `seek_seconds`
@@ -29,6 +30,8 @@ For other operating systems, check the
     screen that `toggle_screen` (default: `<tab>`) toggles to.
   - The only two currently available screens are `"library"` and `"queue"`.
 - `nucleo_prefer_prefix`
+  - Type: bool
+  - Default: `false`
   - See [relevant nucleo docs](https://docs.rs/nucleo/latest/nucleo/struct.Config.html#structfield.prefer_prefix).
 - `status_indicator_enabled`
   - Type: String
@@ -113,8 +116,8 @@ and likewise, to enable the qwerty set, use
 qwerty_keybindings = true
 ```
 
-Note that if both are set to true, the option set last will shadow the
-option set first.
+Note that if both are set to true, keys are processed in alphabetical
+order and later keys take precedence.
 
 In general, the dvorak set will be more familiar to emacs users (this
 is what I personally use), and the qwerty set will be familiar to vim
@@ -172,39 +175,39 @@ command1 = ["KEYSTR1", "KEYSTR2"]
 
 ### List of commands and defaults
 
-| Command name       | Explanation                                                          | default       | dvorak set | qwerty set |
-|--------------------|----------------------------------------------------------------------|---------------|------------|------------|
-| `up`               | move up                                                              | `<up>`, C-p   | t          | k          |
-| `down`             | move down                                                            | `<down>`, C-n | h          | j          |
-| `left`             | move left                                                            | `<left>`      | d          | h          |
-| `right`            | move right                                                           | `<right>`     | n          | l          |
-| `top`              | jump to top                                                          | `<home>`      | <          | g g        |
-| `bottom`           | jump to bottom                                                       | `<end>`       | >          | G          |
-| `screenful_up`     | scroll down one page, cursor to first line                           | `<pageup>`    | M-v        | C-b        |
-| `screenful_down`   | scroll up one page, cursor to last line                              | `<pagedown>`  | C-v        | C-f        |
-| `toggle_playpause` | toggles between play and pause                                       | p             |            |            |
-| `next song`        | jumps to the next song in the queue                                  |               |            |            |
-| `previous song`    | jumps to the previous song in the queue                              |               |            |            |
-| `seek`             | seeks forward by `seek_seconds` (default: 5) seconds                 |               |            |            |
-| `seek_backwards`   | seeks backwards by `seek_seconds` (default 5) seconds                |               |            |            |
-| `select`           | act on the selected entry                                            | `<enter>`     |            |            |
-| `select_and_next`  | act on the selected entry and then move down                         |               |            |            |
-| `quit`             | close the program                                                    | q             |            |            |
-| `screen_1`         | switch to screen 1 (default: library)                                | 1             |            |            |
-| `screen_2`         | switch to screen 2 (default: queue)                                  | 2             |            |            |
-| `toggle_screen`    | toggle between your last two used screens (default: library & queue) | `<tab>`       |            |            |
-| `toggle_panel`     | [library] switch between artist and track selector                   |               |            |            |
-| `fold`             | [library/track] toggle fold album                                    | `<space>`     |            |            |
-| `clear_queue`      | clear queue                                                          | -             |            |            |
-| `local_search`     | search local selector                                                | /             |            |            |
-| `global_search`    | [library] global jumping search                                      | C-s           | g          | C-g        |
-| `escape`           | escape                                                               | `<esc>`       | C-g        |            |
-| `delete`           | [queue] deletes the selected item off queue                          | `<backspace>` |            |            |
-| `toggle_repeat`    | toggle repeat                                                        | r             |            |            |
-| `toggle_single`    | toggle single                                                        | s             |            |            |
-| `toggle_consume`   | toggle consume                                                       | c             |            |            |
-| `toggle_random`    | toggle random                                                        | z             |            |            |
-| `update_db`        | update mpd db                                                        | u             |            |            |
+|Command name      |Explanation                                                         |default      |dvorak set|qwerty set|
+|------------------|--------------------------------------------------------------------|-------------|----------|----------|
+|`up`              |move up                                                             |`<up>`, C-p  |t         |k         |
+|`down`            |move down                                                           |`<down>`, C-n|h         |j         |
+|`left`            |move left                                                           |`<left>`     |d         |h         |
+|`right`           |move right                                                          |`<right>`    |n         |l         |
+|`top`             |jump to top                                                         |`<home>`     |<         |g g       |
+|`bottom`          |jump to bottom                                                      |`<end>`      |>         |G         |
+|`screenful_up`    |scroll up one page, cursor to first line                            |`<pageup>`   |M-v       |C-b       |
+|`screenful_down`  |scroll down one page, cursor to last line                           |`<pagedown>` |C-v       |C-f       |
+|`toggle_playpause`|toggles between play and pause                                      |p            |          |          |
+|`next_song`       |jumps to the next song in the queue                                 |             |          |          |
+|`previous_song`   |jumps to the previous song in the queue                             |             |          |          |
+|`seek`            |seeks forward by `seek_seconds` (default: 5) seconds                |             |          |          |
+|`seek_backwards`  |seeks backwards by `seek_seconds` (default 5) seconds               |             |          |          |
+|`select`          |act on the selected entry                                           |`<enter>`    |          |          |
+|`select_and_next` |act on the selected entry and then move down                        |             |          |          |
+|`quit`            |close the program                                                   |q            |          |          |
+|`screen_1`        |switch to screen 1 (default: library)                               |1            |          |          |
+|`screen_2`        |switch to screen 2 (default: queue)                                 |2            |          |          |
+|`toggle_screen`   |toggle between your last two used screens (default: library & queue)|`<tab>`      |          |          |
+|`toggle_panel`    |[library] switch between artist and track selector                  |             |          |          |
+|`fold`            |[library/track] toggle fold album                                   |`<space>`    |          |          |
+|`clear_queue`     |clear queue                                                         |-            |          |          |
+|`local_search`    |search local selector                                               |/            |          |          |
+|`global_search`   |[library] global jumping search                                     |C-s          |g         |C-g       |
+|`escape`          |escape                                                              |`<esc>`      |C-g       |          |
+|`delete`          |[queue] deletes the selected item off queue                         |`<backspace>`|          |          |
+|`toggle_repeat`   |toggle repeat                                                       |r            |          |          |
+|`toggle_single`   |toggle single                                                       |s            |          |          |
+|`toggle_consume`  |toggle consume                                                      |c            |          |          |
+|`toggle_random`   |toggle random                                                       |z            |          |          |
+|`update_db`       |update mpd db                                                       |u            |          |          |
 
 Note that the dvorak/qwerty sets _do not_ delete the default
 keybindings.
@@ -212,10 +215,18 @@ keybindings.
 ### Search keybinds
 
 In any search field, `C-n` (down) and `C-p` (up) are always available for
-navigation. In the global search, these are the *only* navigation
-keys. `C-u` can be used to reset any search field without closing it.
-`C-w` deletes the previous word in the active search query.
+navigation through results. In the global search, these are the *only* navigation
+keys. Some readline-style commands are supported in search boxes:
 
+- `<left>, C-b`: back one character
+- `<right>, C-f`: forward one character
+- `<delete>, C-d`: delete character
+- `C-u`: delete to start
+- `C-k`: delete to end
+- `C-a`: go to start
+- `C-e`: go to end
+- `C-w`: delete back one word
+  
 ## Theme
 
 Colors should be specified in a table called "theme", like this:
