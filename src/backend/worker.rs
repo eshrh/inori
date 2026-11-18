@@ -1,8 +1,8 @@
-use super::connection::{Address, Client};
 use super::{
     Command, Event, QueueTarget, ReadRequest, Refresh, Request, Session,
     Snapshot, Toggle,
 };
+use mpd::connection::{Address, Client};
 use mpd::{Query, Status, Subsystem, Term};
 use std::borrow::Cow::Borrowed;
 use std::time::Duration;

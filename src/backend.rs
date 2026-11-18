@@ -1,12 +1,11 @@
 use bitflags::bitflags;
-use mpd::{Id, Song, Status, Subsystem};
+use mpd::{connection, Id, Song, Status, Subsystem};
 use std::fmt;
 use std::time::Duration;
 use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
 use tokio::time::sleep;
 
-mod connection;
 mod worker;
 
 bitflags! {
@@ -135,7 +134,7 @@ impl Backend {
         let (events, receiver) = mpsc::channel(64);
         let task = tokio::spawn(async move {
             let (mut client, address) =
-                match connection::select(address.as_deref()).await {
+                match connection::connect(address.as_deref()).await {
                     Ok(connection) => connection,
                     Err(error) => {
                         let _ = events.send(Event::Error(error)).await;
