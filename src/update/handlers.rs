@@ -10,50 +10,31 @@ use proto::*;
 pub mod library_handler;
 pub mod queue_handler;
 
-enum SearchEditOutcome {
+pub(super) enum SearchEditOutcome {
     Message(Message),
+    Changed,
+    Navigated,
     Continue,
 }
 
 fn apply_search_edit(
-    query: &mut String,
+    filter: &mut Filter,
     k: KeyEvent,
     allow_tab_toggle: bool,
 ) -> SearchEditOutcome {
-    match k.code {
-        KeyCode::Char(c) => {
-            query.push(c);
-            SearchEditOutcome::Continue
-        }
-        KeyCode::Backspace => {
-            let _ = query.pop();
-            SearchEditOutcome::Continue
-        }
-        KeyCode::Tab if allow_tab_toggle => {
-            SearchEditOutcome::Message(Message::ToggleScreen)
-        }
-        KeyCode::Esc => {
-            SearchEditOutcome::Message(Message::LocalSearch(SearchMsg::End))
-        }
-        KeyCode::Enter => SearchEditOutcome::Message(Message::Select),
-        _ => SearchEditOutcome::Continue,
+    let message = match k.code {
+        KeyCode::Tab if allow_tab_toggle => Some(Message::ToggleScreen),
+        KeyCode::Esc => Some(Message::LocalSearch(SearchMsg::End)),
+        KeyCode::Enter => Some(Message::Select),
+        _ => None,
+    };
+    if let Some(message) = message {
+        SearchEditOutcome::Message(message)
+    } else if filter.edit_query(k) {
+        SearchEditOutcome::Changed
+    } else {
+        SearchEditOutcome::Continue
     }
-}
-
-fn delete_previous_word(query: &mut String) {
-    let trimmed_len = query.trim_end().len();
-    query.truncate(trimmed_len);
-    if query.is_empty() {
-        return;
-    }
-
-    let mut split_at = 0usize;
-    for (i, c) in query.char_indices() {
-        if c.is_whitespace() {
-            split_at = i;
-        }
-    }
-    query.truncate(split_at);
 }
 
 pub fn handle_vertical(msg: Vertical, selector: &mut impl Selector) {
@@ -103,13 +84,8 @@ pub fn handle_search_k_tracksel(
     matcher: &mut Matcher,
     aliases: &AliasMaps,
 ) -> Option<Message> {
-    if k.modifiers.contains(KeyModifiers::CONTROL) {
+    if k.modifiers == KeyModifiers::CONTROL {
         match k.code {
-            // TODO: keep track of cursor and implement AEFB
-            KeyCode::Char('u') => artist.search.query.clear(),
-            KeyCode::Char('w') => {
-                delete_previous_word(&mut artist.search.query)
-            }
             KeyCode::Char('n') => {
                 if let Some(Some(r)) = artist.selected_item().map(|i| i.rank) {
                     let idx = artist
@@ -120,6 +96,7 @@ pub fn handle_search_k_tracksel(
                         artist.set_selected(idx)
                     }
                 }
+                return None;
             }
             KeyCode::Char('p') => {
                 if let Some(Some(r)) = artist.selected_item().map(|i| i.rank) {
@@ -132,17 +109,19 @@ pub fn handle_search_k_tracksel(
                         );
                     }
                 }
+                return None;
             }
             _ => {}
         }
-    } else {
-        match apply_search_edit(&mut artist.search.query, k, false) {
-            SearchEditOutcome::Message(m) => return Some(m),
-            SearchEditOutcome::Continue => {}
-        }
     }
-    artist.update_search_query(matcher, aliases);
-    None
+    match apply_search_edit(&mut artist.search, k, false) {
+        SearchEditOutcome::Message(message) => Some(message),
+        SearchEditOutcome::Changed => {
+            artist.update_search_query(matcher, aliases);
+            None
+        }
+        _ => None,
+    }
 }
 
 pub fn handle_search_k<T>(
@@ -150,25 +129,24 @@ pub fn handle_search_k<T>(
     k: KeyEvent,
     matcher: &mut Matcher,
     top_k: usize,
-) -> Option<Message> {
-    if k.modifiers.contains(KeyModifiers::CONTROL) {
+) -> SearchEditOutcome {
+    if k.modifiers == KeyModifiers::CONTROL {
         match k.code {
-            // TODO: keep track of cursor and implement AEFB
-            KeyCode::Char('u') => s.filter_mut().query.clear(),
-            KeyCode::Char('w') => {
-                delete_previous_word(&mut s.filter_mut().query)
+            KeyCode::Char('n') => {
+                handle_vertical(Vertical::Down, s);
+                return SearchEditOutcome::Navigated;
             }
-            KeyCode::Char('n') => handle_vertical(Vertical::Down, s),
-            KeyCode::Char('p') => handle_vertical(Vertical::Up, s),
+            KeyCode::Char('p') => {
+                handle_vertical(Vertical::Up, s);
+                return SearchEditOutcome::Navigated;
+            }
             _ => {}
         }
-    } else {
-        match apply_search_edit(&mut s.filter_mut().query, k, true) {
-            SearchEditOutcome::Message(m) => return Some(m),
-            SearchEditOutcome::Continue => {}
-        }
     }
-    s.update_filter_query(matcher, Some(top_k));
-    s.watch_oob();
-    None
+    let outcome = apply_search_edit(s.filter_mut(), k, true);
+    if matches!(outcome, SearchEditOutcome::Changed) {
+        s.update_filter_query(matcher, Some(top_k));
+        s.watch_oob();
+    }
+    outcome
 }

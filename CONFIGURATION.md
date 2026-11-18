@@ -259,6 +259,7 @@ Here is the full list of styles available for customization:
 | `item_highlight_inactive` | selected item in an inactive list              |
 | `search_query_active`     | search query text when the search is active    |
 | `search_query_inactive`   | search query text when the search is inactive  |
+| `search_cursor`           | cursor character in the active search field    |
 | `slash_span`              | the slashes in global search                   |
 | `status_album`            | album text in status                           |
 | `status_artist`           | artist text in status                          |

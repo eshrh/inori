@@ -30,6 +30,7 @@ pub struct Theme {
     pub progress_bar_unfilled: Style,
     pub search_query_active: Style,
     pub search_query_inactive: Style,
+    pub search_cursor: Style,
     pub slash_span: Style,
     pub status_album: Style,
     pub status_artist: Style,
@@ -53,6 +54,7 @@ impl Theme {
             progress_bar_unfilled: Style::default().fg(Black),
             search_query_active: Style::default().bg(White).fg(Black),
             search_query_inactive: Style::default().bg(DarkGray).fg(Black),
+            search_cursor: Style::default().add_modifier(Modifier::REVERSED),
             slash_span: Style::default().fg(LightMagenta),
             status_album: Style::default().bold().italic().fg(Red),
             status_artist: Style::default().fg(Cyan),
@@ -122,6 +124,9 @@ impl Theme {
                 }
                 ("search_query_inactive", Value::Table(t)) => {
                     self.search_query_inactive = deserialize_style(t)?;
+                }
+                ("search_cursor", Value::Table(t)) => {
+                    self.search_cursor = deserialize_style(t)?;
                 }
                 ("progress_bar_filled", Value::Table(t)) => {
                     self.progress_bar_filled = deserialize_style(t)?;

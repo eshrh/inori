@@ -33,6 +33,8 @@ impl Filter {
             active: false,
             query: String::new(),
             cache: FilterCache::new(),
+            query_cursor: None,
+            query_offset: 0,
         }
     }
     pub fn set_on(&mut self) {
@@ -42,6 +44,8 @@ impl Filter {
         self.active = false;
         self.query.clear();
         self.cache.clear_matches();
+        self.query_cursor = None;
+        self.query_offset = 0;
     }
     pub fn reset_cache(&mut self) {
         self.cache = FilterCache::new();

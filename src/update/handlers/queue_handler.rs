@@ -37,7 +37,7 @@ pub fn handle_queue(model: &mut Model, msg: Message) -> Option<Action> {
             Some(Action::new(Command::Delete(model.queue.selected_id()?)))
         }
         Message::LocalSearch(SearchMsg::Start) => {
-            model.queue.songs.filter.active = true;
+            model.queue.songs.filter.set_on();
             model.state = State::Searching;
             if model.queue.len() != 0 {
                 model.queue.set_selected(Some(0));
@@ -49,8 +49,7 @@ pub fn handle_queue(model: &mut Model, msg: Message) -> Option<Action> {
             None
         }
         Message::Escape => {
-            model.queue.songs.filter.active = false;
-            model.queue.songs.filter.query = String::new();
+            model.queue.songs.filter.set_off();
             None
         }
         _ => None,
@@ -58,7 +57,7 @@ pub fn handle_queue(model: &mut Model, msg: Message) -> Option<Action> {
 }
 
 pub fn handle_search(model: &mut Model, k: KeyEvent) -> Option<Action> {
-    if let Some(m) = handle_search_k(
+    if let SearchEditOutcome::Message(m) = handle_search_k(
         &mut model.queue,
         k,
         &mut model.matcher,

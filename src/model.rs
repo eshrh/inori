@@ -12,6 +12,7 @@ mod impl_album_song;
 mod impl_artiststate;
 mod impl_library;
 mod impl_queue;
+mod impl_searchinput;
 mod impl_searchstate;
 pub mod proto;
 pub mod title_alias;
@@ -94,6 +95,8 @@ pub struct Filter {
     pub active: bool,
     pub query: String,
     pub cache: FilterCache,
+    query_cursor: Option<usize>, // None follows the end of the query.
+    query_offset: usize,
 }
 
 pub struct FilteredView<T> {

@@ -2,7 +2,7 @@ use super::artist_select_renderer::render_artist_list;
 use super::layout;
 use super::layout::InoriLayout;
 use super::search_renderable::render_searchable_line;
-use super::search_renderer::make_search_box;
+use super::search_renderer::render_search_box;
 use super::status_renderer::render_status;
 use super::track_select_renderer::render_track_list;
 use super::Theme;
@@ -28,13 +28,12 @@ pub fn render_global_search(
         Block::bordered().border_type(BorderType::Rounded),
         area,
     );
-    frame.render_widget(
-        make_search_box(
-            &model.library.global_search.entries.filter.query,
-            true,
-            theme,
-        ),
+    render_search_box(
+        &mut model.library.global_search.entries.filter,
+        matches!(model.state, State::Searching),
+        frame,
         layout[0],
+        theme,
     );
     let list = List::new(
         (0..model.library.global_search.display_len()).filter_map(|i| {
@@ -65,31 +64,29 @@ pub fn render(model: &mut Model, frame: &mut Frame, theme: &Theme) {
     render_status(model, frame, layout.header, theme);
     render_track_list(model, frame, layout.track_select, theme);
 
+    let searching = matches!(model.state, State::Searching)
+        && !model.library.global_search.entries.filter.active;
     if let Some(a) = layout.track_search {
-        let track_query = model
-            .library
-            .selected_item()
-            .map(|artist| artist.search.query.clone())
-            .unwrap_or_default();
-        frame.render_widget(
-            make_search_box(
-                &track_query,
-                matches!(model.state, State::Searching),
-                theme,
-            ),
-            a,
-        );
+        let active = searching
+            && matches!(model.library.active, LibActiveSelector::TrackSelector);
+        if let Some(artist) = model.library.selected_item_mut() {
+            render_search_box(&mut artist.search, active, frame, a, theme);
+        }
     }
 
     render_artist_list(model, frame, layout.artist_select, theme);
     if let Some(a) = layout.artist_search {
-        frame.render_widget(
-            make_search_box(
-                &model.library.artists.filter.query,
-                matches!(model.state, State::Searching),
-                theme,
-            ),
+        let active = searching
+            && matches!(
+                model.library.active,
+                LibActiveSelector::ArtistSelector
+            );
+        render_search_box(
+            &mut model.library.artists.filter,
+            active,
+            frame,
             a,
+            theme,
         );
     }
     if let Some(a) = layout.center_popup {

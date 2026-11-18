@@ -74,25 +74,28 @@ pub fn handle_search(model: &mut Model, k: KeyEvent) -> Option<Action> {
         model.library.global_search.entries.filter.active,
     ) {
         (_, true) => {
-            if let Some(m) = handle_search_k(
+            match handle_search_k(
                 &mut model.library.global_search,
                 k,
                 &mut model.matcher,
                 model.frame_size.height.into(),
             ) {
-                if matches!(m, Message::Select) {
+                SearchEditOutcome::Message(Message::Select) => {
                     add_search_result(model)
-                } else {
-                    handle_msg(model, m)
                 }
-            } else {
-                model.library.pending_jump = None;
-                model.finish_global_search();
-                None
+                SearchEditOutcome::Message(message) => {
+                    handle_msg(model, message)
+                }
+                SearchEditOutcome::Changed | SearchEditOutcome::Navigated => {
+                    model.library.pending_jump = None;
+                    model.finish_global_search();
+                    None
+                }
+                SearchEditOutcome::Continue => None,
             }
         }
         (ArtistSelector, _) => {
-            if let Some(m) = handle_search_k(
+            if let SearchEditOutcome::Message(m) = handle_search_k(
                 &mut model.library,
                 k,
                 &mut model.matcher,

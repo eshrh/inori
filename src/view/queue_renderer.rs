@@ -1,7 +1,7 @@
 use super::layout::queue_layout::QueueLayout;
 use super::layout::InoriLayout;
 use super::search_renderable::{render_searchable_line, QueueSearchRow};
-use super::search_renderer::make_search_box;
+use super::search_renderer::render_search_box;
 use super::Theme;
 use crate::model::proto::Searchable;
 use crate::model::*;
@@ -78,13 +78,12 @@ pub fn render(model: &mut Model, frame: &mut Frame, theme: &Theme) {
     let table = make_queue(model, theme);
 
     if let Some(a) = layout.search {
-        frame.render_widget(
-            make_search_box(
-                &model.queue.songs.filter.query,
-                matches!(model.state, State::Searching),
-                theme,
-            ),
+        render_search_box(
+            &mut model.queue.songs.filter,
+            matches!(model.state, State::Searching),
+            frame,
             a,
+            theme,
         );
     }
 
