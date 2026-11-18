@@ -141,6 +141,7 @@ mod implementation {
                     error: None,
                     status: mpd::Status::default(),
                     screen: Screen::Queue,
+                    previous_screen: Screen::Library,
                     library: LibraryState::new(),
                     queue: QueueSelector::new(),
                     currentsong: None,

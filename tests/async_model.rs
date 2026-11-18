@@ -13,6 +13,7 @@ fn model() -> Model {
         error: None,
         status: mpd::Status::default(),
         screen: Screen::Library,
+        previous_screen: Screen::Queue,
         library: model::LibraryState::new(),
         queue: model::QueueSelector::new(),
         currentsong: None,

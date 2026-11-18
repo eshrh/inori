@@ -4,10 +4,6 @@ use crate::view::layout::InoriLayout;
 
 pub fn handle_queue(model: &mut Model, msg: Message) -> Option<Action> {
     match msg {
-        Message::ToggleScreen => {
-            model.screen = Screen::Library;
-            None
-        }
         Message::Direction(Dirs::Vert(d)) => {
             handle_vertical(d, &mut model.queue);
             None

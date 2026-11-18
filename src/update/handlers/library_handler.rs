@@ -49,11 +49,6 @@ pub fn handle_library(model: &mut Model, msg: Message) -> Option<Action> {
             };
             None
         }
-        Message::ToggleScreen => {
-            handle_library(model, Message::LocalSearch(SearchMsg::End));
-            model.screen = Screen::Queue;
-            None
-        }
         Message::TogglePanel => {
             model.library.active = match model.library.active {
                 TrackSelector => ArtistSelector,

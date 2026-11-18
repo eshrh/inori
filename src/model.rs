@@ -25,7 +25,7 @@ use crate::model::title_alias::{
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Screen {
     Library,
     Queue,
@@ -156,6 +156,7 @@ pub struct Model {
     pub error: Option<String>,
     pub status: Status,
     pub screen: Screen,
+    pub previous_screen: Screen,
     pub library: LibraryState,
     pub queue: QueueSelector,
     pub currentsong: Option<Song>,
@@ -184,6 +185,11 @@ impl Model {
             error: None,
             status: Status::default(),
             screen: config.screens.first().cloned().unwrap_or(Screen::Library),
+            previous_screen: config
+                .screens
+                .last()
+                .cloned()
+                .unwrap_or(Screen::Queue),
             library: LibraryState::new(),
             queue,
             currentsong: None,
@@ -198,6 +204,14 @@ impl Model {
             title_alias_store,
             aliases,
         })
+    }
+
+    pub fn switch_screen(&mut self, screen: Screen) {
+        if self.screen != screen {
+            self.previous_screen = std::mem::replace(&mut self.screen, screen);
+        }
+        self.state = State::Running;
+        self.library.global_search.entries.filter.set_off();
     }
 
     pub fn reload_aliases(&mut self) -> Result<()> {

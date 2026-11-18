@@ -155,13 +155,17 @@ pub fn handle_msg(model: &mut Model, message: Message) -> Option<Action> {
             None
         }
         Message::SwitchScreen(to) => {
-            if let Some(screen) =
-                to.checked_sub(1).and_then(|i| model.config.screens.get(i))
+            if let Some(screen) = to
+                .checked_sub(1)
+                .and_then(|i| model.config.screens.get(i))
+                .cloned()
             {
-                model.screen = screen.clone();
-                model.state = State::Running;
-                model.library.global_search.entries.filter.set_off();
+                model.switch_screen(screen);
             }
+            None
+        }
+        Message::ToggleScreen => {
+            model.switch_screen(model.previous_screen.clone());
             None
         }
         Message::UpdateDB => Some(Action::new(Command::UpdateDatabase)),
