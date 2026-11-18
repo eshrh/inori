@@ -27,6 +27,7 @@ pub struct App {
     loads: Loads,
     unacked: VecDeque<Option<QueueEdit>>,
     want: Refresh,
+    update_db_on_startup: bool,
 }
 
 #[derive(Default)]
@@ -88,6 +89,7 @@ impl App {
         let matching = MatchingWorker::new(config)?;
         let (backend, events) =
             Backend::start(model.config.mpd_address.clone());
+        let update_db_on_startup = model.config.update_db_on_startup;
         Ok(Self {
             model,
             backend,
@@ -99,6 +101,7 @@ impl App {
             loads: Loads::default(),
             unacked: VecDeque::new(),
             want: Refresh::empty(),
+            update_db_on_startup,
         })
     }
 
@@ -265,8 +268,19 @@ impl App {
         match event {
             backend::Event::Connected { session, snapshot } => {
                 self.apply_snapshot(*snapshot);
-                self.session = Some(session);
                 self.model.error = None;
+                if self.update_db_on_startup {
+                    match session.try_command(Command::UpdateDatabase) {
+                        Ok(()) => {
+                            self.update_db_on_startup = false;
+                            self.unacked.push_back(None);
+                        }
+                        Err(error) => {
+                            self.model.error = Some(error.to_string());
+                        }
+                    }
+                }
+                self.session = Some(session);
                 self.loads.refresh = false;
                 self.invalidate_library();
             }

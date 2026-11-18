@@ -16,6 +16,7 @@ pub struct Config {
     pub theme: Theme,
     pub seek_seconds: i64,
     pub mpd_address: Option<String>,
+    pub update_db_on_startup: bool,
     pub screens: Vec<Screen>,
     pub nucleo_prefer_prefix: bool,
     pub status_indicator_enabled: String,
@@ -29,6 +30,7 @@ impl Config {
             theme: Theme::new(),
             seek_seconds: 5,
             mpd_address: None,
+            update_db_on_startup: false,
             screens: vec![Screen::Library, Screen::Queue],
             nucleo_prefer_prefix: false,
             status_indicator_enabled: "#".into(),
@@ -91,6 +93,15 @@ impl Config {
                         self.mpd_address = Some(addr);
                     }
                     ("mpd_address", other) => {
+                        return Err(Box::new(ConfigError::WrongKeyValueType {
+                            key,
+                            value: other,
+                        }));
+                    }
+                    ("update_db_on_startup", Value::Boolean(update)) => {
+                        self.update_db_on_startup = update;
+                    }
+                    ("update_db_on_startup", other) => {
                         return Err(Box::new(ConfigError::WrongKeyValueType {
                             key,
                             value: other,

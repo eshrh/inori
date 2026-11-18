@@ -13,6 +13,10 @@ For other operating systems, check the
   - The host and port to check for mpd. Alternatively you can set the
     `MPD_HOST` and `MPD_PORT` environment variables. Note that the
     configuration option currently has precedence.
+- `update_db_on_startup`
+  - Type: Boolean
+  - Default: `false`
+  - Request an MPD database update once on startup, like `mpc update`.
 - `seek_seconds`
   - Type: 64-bit integer
   - Default: 5
